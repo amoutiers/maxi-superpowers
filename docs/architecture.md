@@ -4,7 +4,7 @@
 
 maxi-superpowers is a Claude Code plugin with two layers:
 
-1. **spec-kit pipeline** — 7 maxi-native skills (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`) that enforce a phase-gated workflow. Each skill reads artifacts from `.maxi/` and refuses to run if the spec is in the wrong phase.
+1. **spec-kit pipeline** — 7 maxi-native skills (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`) that enforce a phase-gated workflow. Each skill reads artifacts from `docs/maxi/` and refuses to run if the spec is in the wrong phase.
 
 2. **superpowers implementation engine** — vendored superpowers v5.1.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
 

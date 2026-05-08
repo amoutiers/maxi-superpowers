@@ -33,8 +33,8 @@ claude plugin install .
 ## Quick Start
 
 ```
-1. /maxi:constitution        → creates .maxi/memory/constitution.md
-2. /maxi:specify <feature>   → creates .maxi/specs/001-feature/spec.md  (status: specified)
+1. /maxi:constitution        → creates docs/maxi/memory/constitution.md
+2. /maxi:specify <feature>   → creates docs/maxi/specs/001-feature/spec.md  (status: specified)
 3. /maxi:clarify             → resolves open questions                   (status: clarified)
 4. /maxi:plan                → writes plan.md                            (status: planned)
 5. /maxi:tasks               → writes tasks.md                           (status: tasked)
@@ -47,7 +47,7 @@ Each command reads the previous artifacts and refuses to run if the spec is in t
 ## Artifact Structure
 
 ```
-.maxi/
+docs/maxi/
   memory/
     constitution.md        # project principles (required by all skills)
   specs/

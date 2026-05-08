@@ -9,14 +9,14 @@ Extract a structured `tasks.md` from an existing `plan.md`. Pure extraction — 
 
 ## Prereqs
 
-- `.maxi/memory/constitution.md` must exist — hard stop if missing
+- `docs/maxi/memory/constitution.md` must exist — hard stop if missing
 - Spec status must be `planned`. Other statuses:
   - `drafting` / `specified` / `clarified`: stop — *"Spec must reach `planned` status first. Run `/maxi:plan`."*
   - `tasked` or later: stop — *"Tasks already extracted. Proceed to `/maxi:analyze` or `/maxi:implement`."*
 
 ## Process
 
-1. **Read inputs** — load `plan.md` as primary source; also load `research.md`, `data-model.md`, `contracts/` if they exist alongside it in `.maxi/specs/NNN-slug/`
+1. **Read inputs** — load `plan.md` as primary source; also load `research.md`, `data-model.md`, `contracts/` if they exist alongside it in `docs/maxi/specs/NNN-slug/`
 2. **Map tasks to user stories** — for each user story in `spec.md`, collect the tasks from `plan.md` that implement it. Tag each task with `[US1]`, `[US2]`, etc.
 3. **Identify parallel tasks** — mark with `[P]` any task that touches different files from all other tasks in the same phase (no shared-file writes, no dependency on concurrent tasks)
 4. **Assign sequential IDs** — number all tasks `T001`, `T002`, ... in phase order. No letters, no "Task N", no "Step N".
@@ -26,9 +26,9 @@ Extract a structured `tasks.md` from an existing `plan.md`. Pure extraction — 
    - Phase 3+: One phase per user story
    - Final phase: Polish & Cross-Cutting Concerns
    - A **Checkpoint** line after each phase
-6. **Write `tasks.md`** — output to `.maxi/specs/NNN-slug/tasks.md` following the template schema. Include Dependencies & Execution Order section.
+6. **Write `tasks.md`** — output to `docs/maxi/specs/NNN-slug/tasks.md` following the template schema. Include Dependencies & Execution Order section.
 7. **Transition status** — update frontmatter `status: planned → tasked`
-8. **Report** — *"Tasks written to `.maxi/specs/NNN-slug/tasks.md` (status: `tasked`). Next: `/maxi:analyze` (recommended) or `/maxi:implement`."*
+8. **Report** — *"Tasks written to `docs/maxi/specs/NNN-slug/tasks.md` (status: `tasked`). Next: `/maxi:analyze` (recommended) or `/maxi:implement`."*
 
 ## Task Format
 
@@ -94,7 +94,7 @@ Rules:
 - No `[USN]` labels → map every implementation task to a story
 - IDs like "Task 1", "Step A", or "T1" → use T001 format
 - No Checkpoint lines → add between every phase
-- tasks.md written to wrong directory → only `.maxi/specs/NNN-slug/tasks.md`
+- tasks.md written to wrong directory → only `docs/maxi/specs/NNN-slug/tasks.md`
 - tasks.md looks identical to plan.md (no added markers or structure) → extraction not done
 - Extra tasks not found in plan.md → remove invented tasks, only extract what plan.md contains
 

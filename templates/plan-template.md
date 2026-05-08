@@ -1,7 +1,7 @@
 # Implementation Plan: [FEATURE]
 
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `.maxi/specs/[###-feature-name]/spec.md`
+**Input**: Feature specification from `docs/maxi/specs/[###-feature-name]/spec.md`
 
 **Note**: This template is filled in by the `/maxi:plan` command. See `templates/plan-template.md` for the execution workflow.
 
@@ -38,7 +38,7 @@
 ### Documentation (this feature)
 
 ```text
-.maxi/specs/[###-feature-name]/
+docs/maxi/specs/[###-feature-name]/
 ├── plan.md              # This file (/maxi:plan command output)
 ├── research.md          # Phase 0 output (/maxi:plan command)
 ├── data-model.md        # Phase 1 output (/maxi:plan command)

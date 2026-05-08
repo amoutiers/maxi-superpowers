@@ -9,8 +9,8 @@ Execute the implementation plan from `tasks.md`. Delegates to `maxi:executing-pl
 
 ## Prereqs
 
-- `.maxi/memory/constitution.md` must exist — hard stop
-- Locate spec in `.maxi/specs/`. Status rules:
+- `docs/maxi/memory/constitution.md` must exist — hard stop
+- Locate spec in `docs/maxi/specs/`. Status rules:
   - `drafting` / `specified` / `clarified` / `planned`: stop — *"Cannot implement — spec must reach `tasked` status first. Complete the pipeline through `/maxi:tasks`."*
   - `tasked`: allowed with strong recommendation — *"⚠️ `/maxi:analyze` not yet run. Running analysis first catches issues before you write code. Run `/maxi:analyze` now, or type 'skip' to proceed directly to implementation."* Wait for user response.
   - `analyzed`: proceed without warning
@@ -19,7 +19,7 @@ Execute the implementation plan from `tasks.md`. Delegates to `maxi:executing-pl
 
 ## Process
 
-1. **Read tasks.md** — load all tasks from `.maxi/specs/NNN-slug/tasks.md`. Identify which are `- [ ]` (pending) vs `- [x]` (complete). If resuming, start from first pending task.
+1. **Read tasks.md** — load all tasks from `docs/maxi/specs/NNN-slug/tasks.md`. Identify which are `- [ ]` (pending) vs `- [x]` (complete). If resuming, start from first pending task.
 2. **Announce analyze recommendation** (if status is `tasked`) — see above. Wait for user decision.
 3. **Transition to implementing** — update frontmatter `status: → implementing` before first task begins.
 4. **Delegate to maxi:executing-plans** — **REQUIRED SUB-SKILL.** Pass the full tasks.md content and the spec context (feature slug, plan.md overview). Do NOT implement tasks directly in this session.

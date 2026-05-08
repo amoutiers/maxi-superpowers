@@ -9,8 +9,8 @@ Resolve open questions in an existing spec without rewriting it. Appends a `## C
 
 ## Prereqs
 
-- `.maxi/memory/constitution.md` must exist — if missing, stop: *"No constitution found. Run `/maxi:constitution` first."*
-- Locate the in-flight spec in `.maxi/specs/`. Find `spec.md` with `status: specified`.
+- `docs/maxi/memory/constitution.md` must exist — if missing, stop: *"No constitution found. Run `/maxi:constitution` first."*
+- Locate the in-flight spec in `docs/maxi/specs/`. Find `spec.md` with `status: specified`.
   - If multiple specs at `status: specified`: ask user which one to clarify.
   - If none at `status: specified`: stop with *"No spec at status `specified` found. Run `/maxi:specify` to create one, or check that the target spec is in the right phase."*
   - If spec is `drafting`: stop with *"Spec is still `drafting` — run `/maxi:specify` to complete it first."*
@@ -26,7 +26,7 @@ Resolve open questions in an existing spec without rewriting it. Appends a `## C
    a. In-place: replace `[NEEDS CLARIFICATION: ...]` markers with the resolved text in the relevant FRs
    b. Append: add/update `## Clarifications` section at the end of spec.md with Q&A pairs
 6. **Transition status** — change `status: specified` → `status: clarified` in frontmatter
-7. **Report** — tell user: spec clarified at `.maxi/specs/NNN-slug/spec.md` (status: `clarified`). Next: `/maxi:plan`.
+7. **Report** — tell user: spec clarified at `docs/maxi/specs/NNN-slug/spec.md` (status: `clarified`). Next: `/maxi:plan`.
 
 ## Clarifications Section Format
 

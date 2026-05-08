@@ -9,7 +9,7 @@ Non-destructive 6-pass cross-artifact quality audit. Reads `spec.md`, `plan.md`,
 
 ## Prereqs
 
-- `.maxi/memory/constitution.md` must exist — **hard stop** if missing: *"Constitution required. Run `/maxi:constitution` first. Without it, passes D (Constitution Alignment) and F (Inconsistency) cannot run meaningfully."*
+- `docs/maxi/memory/constitution.md` must exist — **hard stop** if missing: *"Constitution required. Run `/maxi:constitution` first. Without it, passes D (Constitution Alignment) and F (Inconsistency) cannot run meaningfully."*
 - Status must be `tasked`, `analyzed`, `implementing`, or `done`.
   - If earlier than `tasked`: stop — *"Cannot run /maxi:analyze — spec must reach `tasked` status. Run `/maxi:tasks` first."*
 - Rerunning on `analyzed`/`implementing`/`done` is allowed — status does NOT change again.
@@ -18,13 +18,13 @@ Non-destructive 6-pass cross-artifact quality audit. Reads `spec.md`, `plan.md`,
 
 ### Step 1 — Locate Spec
 
-Find the spec directory: `.maxi/specs/NNN-slug/`. If multiple in-flight specs exist, ask user which one.
+Find the spec directory: `docs/maxi/specs/NNN-slug/`. If multiple in-flight specs exist, ask user which one.
 
 Required files:
-- `.maxi/specs/NNN-slug/spec.md` (FRs, SCs, user stories, edge cases)
-- `.maxi/specs/NNN-slug/plan.md` (architecture, phases, technical constraints)
-- `.maxi/specs/NNN-slug/tasks.md` (task IDs, descriptions, phase grouping, [P] markers)
-- `.maxi/memory/constitution.md` (principles, MUST/SHOULD rules)
+- `docs/maxi/specs/NNN-slug/spec.md` (FRs, SCs, user stories, edge cases)
+- `docs/maxi/specs/NNN-slug/plan.md` (architecture, phases, technical constraints)
+- `docs/maxi/specs/NNN-slug/tasks.md` (task IDs, descriptions, phase grouping, [P] markers)
+- `docs/maxi/memory/constitution.md` (principles, MUST/SHOULD rules)
 
 Abort with actionable message if any required file is missing.
 
@@ -87,13 +87,13 @@ Find near-duplicate requirements with different FR-### IDs. Mark lower-quality p
 
 ### Step 6 — Write analysis.md
 
-Write to `.maxi/specs/NNN-slug/analysis.md`. Structure:
+Write to `docs/maxi/specs/NNN-slug/analysis.md`. Structure:
 
 ```markdown
 # Specification Analysis Report
 
 Generated: [date]
-Spec: .maxi/specs/NNN-slug/spec.md (status: [current status])
+Spec: docs/maxi/specs/NNN-slug/spec.md (status: [current status])
 
 ## Findings
 
@@ -136,7 +136,7 @@ If current status was already `analyzed`, `implementing`, or `done`: leave statu
 
 ### Step 8 — Report
 
-Tell user: *"Analysis complete. Report written to `.maxi/specs/NNN-slug/analysis.md` (status: `analyzed`). [N] critical issue(s) found. Resolve CRITICAL issues before running `/maxi:implement`."*
+Tell user: *"Analysis complete. Report written to `docs/maxi/specs/NNN-slug/analysis.md` (status: `analyzed`). [N] critical issue(s) found. Resolve CRITICAL issues before running `/maxi:implement`."*
 
 Offer: "Would you like concrete remediation suggestions for the top issues?" — **do NOT apply remediation automatically.**
 

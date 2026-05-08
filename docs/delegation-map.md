@@ -6,7 +6,7 @@ This table shows which maxi pipeline skill delegates to which superpowers sub-sk
 
 | maxi skill | Required status | Delegates to | Status transition |
 |---|---|---|---|
-| `constitution` | — (always runs) | (none — writes `.maxi/memory/constitution.md` directly) | — |
+| `constitution` | — (always runs) | (none — writes `docs/maxi/memory/constitution.md` directly) | — |
 | `specify` | constitution exists (no spec status required) | `maxi:brainstorming` | `drafting → specified` |
 | `clarify` | `specified` | (none — interactive Q&A dialogue) | `specified → clarified` |
 | `plan` | `specified` or `clarified` | `maxi:writing-plans` | `→ planned` |
