@@ -63,7 +63,9 @@ Ask one question at a time. Elicit 3–7 principles. Stop at 7.
 ## Critical Rules
 
 - **Copy template first.** When creating a new constitution, copy `templates/constitution-template.md` into `.maxi/memory/constitution.md` before writing anything. Use the template's section structure.
-- **Elicit, don't generate.** Never write generic principles ("write clean code", "test your work") that would apply to any project. Every principle must come from the user's answers.
+- **Elicit, don't generate.** Never write principles before the user has answered elicitation questions. This applies even if: (a) the user says they're in a hurry, (b) the user says to use "reasonable defaults", (c) the user points to an existing file like `CLAUDE.md` or `README.md`, or (d) the user says to infer from the codebase. In every case, ask the elicitation questions first and write only from the user's answers.
+- **CLAUDE.md is not a constitution.** If the user says "use my CLAUDE.md" or points to any existing file, explain that the constitution must follow the template format and be verified through elicitation. You may use the existing file as context for asking better questions, but never copy its content verbatim or use it as a substitute for elicitation.
+- **No codebase inference.** Never generate principles by reading source files, configs, or commit history. Principles must come from the user's stated values, not from what you observe in the code.
 - **Keep categories separate.** Core Principles ≠ Development Conventions ≠ Constraints. Conflating them makes the constitution unactionable for `/maxi:analyze`.
 - **Minimum 3, maximum 7.** Fewer than 3 is incomplete. More than 7 is noise.
 - **Verify on write.** After writing, confirm the file exists at `.maxi/memory/constitution.md`. If it doesn't, diagnose and retry.
@@ -72,5 +74,8 @@ Ask one question at a time. Elicit 3–7 principles. Stop at 7.
 
 - Writing to any path other than `.maxi/memory/constitution.md` → **wrong path, redo**
 - Generating content before asking any questions → **delete draft, elicit first**
+- User said "I'm in a hurry / just use reasonable defaults" and you skipped questions → **elicitation is never optional; ask anyway**
+- User pointed to `CLAUDE.md` or another file and you copied its content → **delete draft, explain format mismatch, elicit first**
+- You read source files or configs to infer principles without asking the user → **delete draft, elicit first**
 - Mixing "use TypeScript strict mode" (convention) with "never store PII unencrypted" (constraint) in the same section → **separate them**
 - Writing 10+ principles → **consolidate to 7 maximum**
