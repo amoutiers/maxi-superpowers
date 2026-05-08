@@ -13,14 +13,21 @@ assert_file_exists "$MANIFEST" "plugin.json"
 
 assert_json_valid "$MANIFEST" "plugin.json: valid JSON"
 
-REQUIRED_KEYS=(name description version author repository license)
-for key in "${REQUIRED_KEYS[@]}"; do
-  assert_jq "$MANIFEST" ".${key} | . != null" "true" "plugin.json: has ${key}"
-done
+missing_keys=$(jq -r '
+  . as $obj |
+  ["name","description","version","author","repository","license"] |
+  map(select($obj[.] == null)) |
+  join(", ")
+' "$MANIFEST")
+if [ -n "$missing_keys" ]; then
+  echo "FAIL [plugin.json: required keys]: missing or null: $missing_keys" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [plugin.json: all required keys present]"
+fi
 
 assert_jq "$MANIFEST" ".name" "maxi" "plugin.json: name is maxi"
 
-# semver shape check
 assert_jq "$MANIFEST" ".version | test(\"^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")" "true" "plugin.json: version is semver"
 
 summary_and_exit "plugin manifest checks"
