@@ -1,0 +1,82 @@
+---
+name: plan
+description: Use when the user invokes /maxi:plan or wants to create a technical implementation plan for a specified feature — spec must be at status "specified" or "clarified"
+---
+
+# plan
+
+Create a technical implementation plan for an existing spec. Delegates to `maxi:writing-plans` and writes output to `.maxi/specs/NNN-slug/plan.md`.
+
+## Prereqs
+
+- `.maxi/memory/constitution.md` must exist — hard stop if missing: *"No constitution found. Run `/maxi:constitution` first."*
+- Locate spec in `.maxi/specs/` at status `clarified` (preferred) or `specified` (allowed with warning)
+  - If status is `drafting`: stop — *"Spec is still `drafting`. Run `/maxi:specify` first."*
+  - If status is `planned` or later: stop — *"Spec is already `planned`. Proceed to `/maxi:tasks`."*
+  - If status is `specified`: warn — *"Clarification skipped. For best plan quality, run `/maxi:clarify` first. Proceeding anyway."* — then continue
+
+## Process
+
+1. **Read artifacts** — load `spec.md` (FRs, SCs, user stories) and `constitution.md` (principles, constraints)
+2. **Constitution check** — before planning: does anything in the spec contradict constitution principles? Flag violations to the user before proceeding. (Do NOT silently discard violating requirements — surface them.)
+3. **Invoke maxi:writing-plans** — **REQUIRED SUB-SKILL.** Pass the spec and constitution as context. Let writing-plans run its full planning process including file structure decisions and task decomposition.
+4. **Post-format into plan schema** — write output to `.maxi/specs/NNN-slug/plan.md` following `templates/plan-template.md` structure. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
+5. **Transition status** — update frontmatter `status → planned`
+6. **Report** — *"Plan written to `.maxi/specs/NNN-slug/plan.md` (status: `planned`). Next: `/maxi:tasks`."*
+
+## Constitution Check Protocol
+
+Before delegating to `maxi:writing-plans`, run this check:
+
+For each constitution principle, ask: "Does the spec require something that contradicts this principle?"
+
+Examples:
+- Constitution says "no third-party auth providers" → spec requires OAuth → FLAG
+- Constitution says "API-first design" → spec describes GUI-only feature → FLAG
+
+If violations found: present them to the user. Options: (a) amend constitution, (b) amend spec, (c) note as exception. Do NOT proceed to planning until user decides.
+
+**This check is mandatory even when:**
+- The user asserts "I know my spec is aligned" — you still MUST run the check yourself
+- The user wrote both the spec and the constitution — alignment must be verified, not assumed
+- The spec is simple or small — there is no size threshold below which the check is skipped
+
+## Output Artifacts
+
+All written to `.maxi/specs/NNN-slug/`:
+
+| Artifact | Required | Notes |
+|---|---|---|
+| `plan.md` | Always | Follows `templates/plan-template.md` schema |
+| `research.md` | If needed | Technology choices, library comparisons |
+| `data-model.md` | If needed | Entities, relationships, schemas |
+| `contracts/` | If needed | API endpoint definitions |
+
+## Critical Rules
+
+- **Constitution check before planning.** Never skip the pre-flight constitution alignment check. Applies regardless of spec size, user assertions, or perceived simplicity.
+- **writing-plans delegation is mandatory.** Do NOT write plan.md content directly without invoking `maxi:writing-plans`. This applies even for "simple" or "small" features — there is no complexity threshold below which direct writing is allowed.
+- **Template schema required.** Plan must follow `templates/plan-template.md` structure — not free-form notes. Always copy the template structure first.
+- **All artifacts in `.maxi/specs/NNN-slug/`.** Never write to project root, `docs/`, `.specify/`, or the user's current working directory.
+- **status: planned only when all artifacts written.** Transition happens after all files are on disk.
+
+## Red Flags
+
+- Writing plan.md without invoking `maxi:writing-plans` → delegate first
+- No constitution check run before planning → always do the pre-flight
+- Plan written to wrong directory → only `.maxi/specs/NNN-slug/`
+- Planning a `drafting` spec → stop, spec must be `specified` or `clarified`
+- Setting `status: planned` before plan.md is verified on disk → atomic transition only
+- "I know the spec is fine" → user assertions don't replace the constitution check — run it anyway
+- "This feature is too simple for writing-plans" → no feature is too simple; writing-plans delegation is unconditional
+- Writing plan.md in current directory → always use `.maxi/specs/NNN-slug/`, regardless of cwd
+
+## Rationalization Counters
+
+| Rationalization | Counter |
+|---|---|
+| "I wrote the spec so I know it's aligned with the constitution" | Self-authored specs still get checked. The check exists precisely because authors have blind spots. Run it. |
+| "This is a simple feature, writing-plans is overkill" | Feature complexity does not determine whether the sub-skill is invoked. Invoke writing-plans unconditionally. |
+| "I'll write plan.md here since that's where we're working" | The plan lives in `.maxi/specs/NNN-slug/plan.md`. Working directory is irrelevant. |
+| "The user says skip the constitution check" | The constitution check is a pipeline gate, not an optional step. It cannot be skipped by user request. |
+| "I'll adapt the template from a previous plan" | Always copy `templates/plan-template.md`. Previous plans may have customizations that corrupt the schema. |
