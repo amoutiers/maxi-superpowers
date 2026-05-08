@@ -14,8 +14,10 @@ if [ ! -f "$VENDORED" ]; then
   exit 1
 fi
 
-sed -i.bak "s/\*\*Pinned version\*\*:.*/\*\*Pinned version\*\*: $TAG/" "$VENDORED"
-sed -i.bak "s/\*\*Last synced\*\*:.*/\*\*Last synced\*\*: $DATE/" "$VENDORED"
+sed -i.bak \
+  -e "s/\*\*Pinned version\*\*:.*/\*\*Pinned version\*\*: $TAG/" \
+  -e "s/\*\*Last synced\*\*:.*/\*\*Last synced\*\*: $DATE/" \
+  "$VENDORED"
 rm -f "$VENDORED.bak"
 
 echo "Updated VENDORED.md: version=$TAG date=$DATE"
