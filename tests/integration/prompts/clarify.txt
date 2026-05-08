@@ -1,0 +1,1 @@
+I have a spec at docs/maxi/specs/001-dry-run/spec.md and I need to clarify some ambiguities in it before moving to planning. The feature involves a dry-run flag.

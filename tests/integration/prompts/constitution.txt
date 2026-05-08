@@ -1,0 +1,1 @@
+This project doesn't have a docs/constitution.md yet. I want to establish the project principles and values before writing any feature specs.

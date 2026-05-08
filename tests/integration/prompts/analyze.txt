@@ -1,0 +1,1 @@
+I have my spec, plan, and tasks all ready. Please run the consistency check and analysis before I start coding.

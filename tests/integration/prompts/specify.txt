@@ -1,0 +1,1 @@
+I want to add a new feature: a CLI flag --dry-run that shows what would change without actually writing anything. Help me create a spec for this feature.

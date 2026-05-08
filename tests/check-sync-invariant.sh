@@ -4,6 +4,8 @@
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
+source "$ROOT/tests/lib/test-helpers.sh"
+
 VENDOR="$ROOT/vendor/superpowers/skills"
 SKILLS="$ROOT/skills"
 failures=0
@@ -23,26 +25,17 @@ for vendor_dir in "$VENDOR"/*/; do
     continue
   fi
 
-  if [ ! -f "$skills_skill" ]; then
-    echo "FAIL [$name]: missing from skills/ — run scripts/sync-superpowers.sh" >&2
-    failures=$((failures + 1))
-    continue
-  fi
+  local_failures_before=$failures
+
+  assert_file_exists "$skills_skill" "$name: skills/ copy"
+  if [ "$failures" -gt "$local_failures_before" ]; then continue; fi
 
   if ! diff -q "$vendor_skill" "$skills_skill" > /dev/null 2>&1; then
     echo "FAIL [$name]: SKILL.md differs from vendor — run scripts/sync-superpowers.sh" >&2
     failures=$((failures + 1))
-    continue
+  else
+    echo "OK  [$name]"
   fi
-
-  echo "OK  [$name]"
 done
 
-if [ "$failures" -gt 0 ]; then
-  echo ""
-  echo "FAILED: $failures vendored skill(s) out of sync" >&2
-  exit 1
-fi
-
-echo ""
-echo "All vendored skills are in sync."
+summary_and_exit "vendor sync checks"
