@@ -14,6 +14,10 @@ bash "$SCRIPT_DIR/sync-superpowers.sh"
 
 # Update VENDORED.md pinned version line
 ROOT="$(git rev-parse --show-toplevel)"
+if [ ! -f "$ROOT/VENDORED.md" ]; then
+  echo "ERROR: $ROOT/VENDORED.md not found — cannot update version record" >&2
+  exit 1
+fi
 sed -i.bak "s/\*\*Pinned version\*\*:.*/\*\*Pinned version\*\*: $TAG/" "$ROOT/VENDORED.md"
 sed -i.bak "s/\*\*Last synced\*\*:.*/\*\*Last synced\*\*: $(date +%Y-%m-%d)/" "$ROOT/VENDORED.md"
 rm -f "$ROOT/VENDORED.md.bak"
