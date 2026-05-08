@@ -1,0 +1,99 @@
+<svg width="800" height="200" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#131a28"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="52" x2="0" y2="148" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="192" y1="0" x2="490" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <clipPath id="clip">
+      <rect width="800" height="200" rx="12"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#clip)">
+    <!-- Background -->
+    <rect width="800" height="200" fill="url(#bg)"/>
+
+    <!-- Top gradient bar -->
+    <rect width="800" height="4" fill="url(#accent)"/>
+
+    <!-- Icon: rounded square with Σ -->
+    <rect x="28" y="48" width="124" height="104" rx="14" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+    <rect x="28" y="48" width="124" height="104" rx="14" fill="none" stroke="#7c3aed" stroke-width="0.5" opacity="0.35"/>
+
+    <text x="90" y="100"
+          font-family="'Arial','Helvetica Neue',sans-serif"
+          font-size="74" font-weight="700" fill="white"
+          text-anchor="middle" dominant-baseline="central">Σ</text>
+
+    <!-- Vertical divider -->
+    <line x1="170" y1="32" x2="170" y2="168" stroke="#21262d" stroke-width="1"/>
+
+    <!-- "maxi" title -->
+    <text x="194" y="92"
+          font-family="ui-monospace,'SF Mono','Cascadia Code','Fira Code',Consolas,monospace"
+          font-size="50" font-weight="700" fill="#f0f6fc" letter-spacing="-2">maxi</text>
+
+    <!-- "superpowers" gradient -->
+    <text x="194" y="132"
+          font-family="ui-monospace,'SF Mono','Cascadia Code','Fira Code',Consolas,monospace"
+          font-size="28" font-weight="400" fill="url(#brand)" letter-spacing="3">superpowers</text>
+
+    <!-- Tagline -->
+    <text x="195" y="160"
+          font-family="ui-monospace,'SF Mono',Consolas,monospace"
+          font-size="11" fill="#484f58" letter-spacing="0.2">spec-driven · phase-gated · constitution &amp; adr-backed · Claude Code plugin</text>
+
+    <!-- Pipeline panel — right side -->
+    <!-- Row 1: constitution › specify › clarify › plan -->
+    <g font-family="ui-monospace,'SF Mono',Consolas,monospace" font-size="9" fill="#8b949e" text-anchor="middle">
+
+      <rect x="492" y="58" width="74" height="22" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+      <text x="529" y="73">constitution</text>
+      <text x="575" y="73" font-size="12" fill="#3d4450">›</text>
+
+      <rect x="582" y="58" width="48" height="22" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+      <text x="606" y="73">specify</text>
+      <text x="639" y="73" font-size="12" fill="#3d4450">›</text>
+
+      <rect x="646" y="58" width="46" height="22" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+      <text x="669" y="73">clarify</text>
+      <text x="701" y="73" font-size="12" fill="#3d4450">›</text>
+
+      <rect x="708" y="58" width="38" height="22" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+      <text x="727" y="73">plan</text>
+
+      <!-- Row 2: tasks › analyze › implement -->
+      <rect x="492" y="96" width="42" height="22" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+      <text x="513" y="111">tasks</text>
+      <text x="544" y="111" font-size="12" fill="#3d4450">›</text>
+
+      <rect x="551" y="96" width="56" height="22" rx="4" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+      <text x="579" y="111">analyze</text>
+      <text x="617" y="111" font-size="12" fill="#3d4450">›</text>
+
+      <!-- implement — highlighted -->
+      <rect x="624" y="96" width="70" height="22" rx="4" fill="#1a1435" stroke="#7c3aed" stroke-width="1"/>
+      <text x="659" y="111" fill="#a78bfa">implement</text>
+
+    </g>
+
+    <!-- Subtle pipeline connector line between row 1 and row 2 -->
+    <!-- Arrow from end of "plan" row down to start of "tasks" row -->
+    <path d="M727,80 L727,88 L513,88 L513,96" fill="none" stroke="#21262d" stroke-width="1" stroke-dasharray="3,2"/>
+  </g>
+
+  <!-- Border on top of everything -->
+  <rect width="800" height="200" rx="12" fill="none" stroke="#21262d" stroke-width="1.5"/>
+</svg>

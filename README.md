@@ -1,5 +1,7 @@
 # maxi-superpowers
 
+![maxi-superpowers](assets/logo.svg)
+
 A Claude Code plugin that combines a spec-driven workflow (spec-kit) with superpowers' battle-tested implementation engine. You write features through a structured pipeline — constitution, spec, clarification, plan, tasks, analysis, implementation — and maxi enforces phase gating so nothing ships without the artifacts to back it.
 
 ## Prerequisites
