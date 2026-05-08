@@ -30,12 +30,7 @@ for vendor_dir in "$VENDOR"/*/; do
   assert_file_exists "$skills_skill" "$name: skills/ copy"
   if [ "$failures" -gt "$local_failures_before" ]; then continue; fi
 
-  if ! diff -q "$vendor_skill" "$skills_skill" > /dev/null 2>&1; then
-    echo "FAIL [$name]: SKILL.md differs from vendor — run scripts/sync-superpowers.sh" >&2
-    failures=$((failures + 1))
-  else
-    echo "OK  [$name]"
-  fi
+  assert_files_equal "$vendor_skill" "$skills_skill" "$name: SKILL.md in sync with vendor"
 done
 
 summary_and_exit "vendor sync checks"
