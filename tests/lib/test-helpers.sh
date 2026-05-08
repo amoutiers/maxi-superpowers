@@ -1,9 +1,6 @@
 # test-helpers.sh — sourced by every check script.
-# Requires the caller to declare: failures=0
-
-repo_root() {
-  git rev-parse --show-toplevel
-}
+# Callers may declare failures=0 before sourcing; if omitted, this guard initialises it.
+: "${failures:=0}"
 
 assert_file_exists() {
   local path="$1" label="$2"
@@ -22,22 +19,28 @@ assert_starts_with_yaml_frontmatter() {
   if [ "$first_line" != "---" ]; then
     echo "FAIL [$label]: does not start with YAML frontmatter (---)" >&2
     failures=$((failures + 1))
+  else
+    echo "OK  [$label]"
   fi
 }
 
 assert_grep() {
   local file="$1" pattern="$2" label="$3"
   if ! grep -q "$pattern" "$file"; then
-    echo "FAIL [$label]: missing pattern: $pattern" >&2
+    echo "FAIL [$label]: missing pattern '$pattern' in $file" >&2
     failures=$((failures + 1))
+  else
+    echo "OK  [$label]"
   fi
 }
 
 assert_not_grep() {
   local file="$1" pattern="$2" label="$3"
   if grep -q "$pattern" "$file"; then
-    echo "FAIL [$label]: unexpected pattern found: $pattern" >&2
+    echo "FAIL [$label]: unexpected pattern '$pattern' found in $file" >&2
     failures=$((failures + 1))
+  else
+    echo "OK  [$label]"
   fi
 }
 
@@ -70,6 +73,22 @@ assert_executable() {
     failures=$((failures + 1))
   else
     echo "OK  [$label]: executable"
+  fi
+}
+
+assert_files_equal() {
+  local file1="$1" file2="$2" label="$3"
+  if [ ! -f "$file1" ]; then
+    echo "FAIL [$label]: file not found: $file1" >&2
+    failures=$((failures + 1))
+  elif [ ! -f "$file2" ]; then
+    echo "FAIL [$label]: file not found: $file2" >&2
+    failures=$((failures + 1))
+  elif ! diff -q "$file1" "$file2" > /dev/null 2>&1; then
+    echo "FAIL [$label]: files differ: $file1 vs $file2" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [$label]"
   fi
 }
 
