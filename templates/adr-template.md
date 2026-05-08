@@ -1,6 +1,6 @@
 ---
-adr: "NNN"
-slug: "NNN-[short-decision-slug]"
+adr: NNN
+slug: NNN-[short-decision-slug]
 status: accepted
 date: "[YYYY-MM-DD]"
 related_specs: []

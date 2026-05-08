@@ -69,13 +69,15 @@ digraph adr_process {
 
 ### 1. Compute next NNN
 
-Count `.md` files in `docs/maxi/adr/` (excluding `README.md`). Next number = count + 1, zero-padded to 3 digits. If the directory does not exist, NNN = 001.
+Scan `docs/maxi/adr/` for files matching `NNN-*.md` (excluding `README.md`). Extract the numeric prefix of each file and find the highest value. Next NNN = highest + 1, zero-padded to 3 digits. If the directory does not exist or contains no matching files, NNN = 001.
+
+Use max-based numbering (not count-based) to survive deletions, renames, or manual additions — these operations change the count but not the highest assigned number.
 
 ### 2. Load accepted ADRs for contradiction check
 
-Read every `docs/maxi/adr/NNN-*.md` (where status = `accepted`) and scan their Decision sections. Ask yourself: does the new decision meaningfully overturn or contradict any of them? 
+Read every `docs/maxi/adr/NNN-*.md` (where status = `accepted`) and scan their Decision sections for domain overlap with the new decision (same technology category: storage, runtime, framework, auth mechanism, etc.).
 
-**Do not decide silently** — if there is *any* resemblance between the new decision and an existing ADR's domain, surface it to the user as part of the draft. Let the user judge whether it is a contradiction or a different context.
+**Surface any overlap to the user — do not decide silently.** You are not qualified to judge whether two decisions in the same domain are contradictory or simply different contexts. The user is. If there is any resemblance in domain, show it to the user and let them decide whether to supersede or treat as independent.
 
 ### 3. Draft the ADR
 
@@ -113,7 +115,7 @@ Wait for the response. Do not write anything yet.
 
 **`yes`:**
 - Normal case: write `docs/maxi/adr/NNN-slug.md`, then regenerate index (step 7)
-- Supersede case: write new ADR; also update old ADR — set `status: superseded` and `superseded_by: NNN`; then regenerate index
+- Supersede case: write new ADR; also update old ADR — set `status: superseded` and `superseded_by: NNN`; then regenerate index. If any of the three writes fails, stop and report the failure — do not leave the ADR log in a partially-written state.
 
 **`edit`:**
 - Accept the user's amendments to the draft inline
@@ -123,9 +125,12 @@ Wait for the response. Do not write anything yet.
 **`no`:**
 - Discard the draft. Do not create any file. Return to the calling skill.
 
+**Anything else (silence, "ok", "sure", "looks good", "cancel", "skip", ambiguous text):**
+- Treat as `no` — do not write anything. Re-ask the question once: *"To confirm: skip recording this decision? (yes to record / no to skip)"*. If still ambiguous, treat as no and move on.
+
 ### 7. Regenerate docs/maxi/adr/README.md
 
-After every successful write, rewrite the index:
+After every successful write, rewrite the index by scanning all `.md` files in `docs/maxi/adr/` (excluding `README.md`). Sort by ADR number ascending. Read each file's frontmatter for table values. Status must reflect the current frontmatter value (including `superseded` or `deprecated` — do not default to `accepted`).
 
 ```markdown
 # Architecture Decision Records
@@ -133,9 +138,10 @@ After every successful write, rewrite the index:
 | ADR | Title | Status | Date | Related Specs |
 |-----|-------|--------|------|---------------|
 | [001](001-slug.md) | Title of decision | accepted | 2026-05-08 | 001-csv-to-json |
+| [002](002-slug.md) | Another decision | superseded | 2026-05-15 | — |
 ```
 
-List all `.md` files in `docs/maxi/adr/` (excluding README.md), sorted by ADR number. Read each file's frontmatter for the table values.
+If `related_specs` is empty, write `—` rather than an empty cell.
 
 ## Append-Only After Creation
 

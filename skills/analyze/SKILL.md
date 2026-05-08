@@ -178,7 +178,8 @@ Writing `analysis.md` is the ONLY allowed file write. If a finding is fixable, m
 | "I'll fix the issues in spec.md while I'm here" | READ-ONLY Iron Law. You may NEVER modify spec.md, plan.md, tasks.md, or constitution.md. Write findings to analysis.md and let the user decide. |
 | "The user asked me to fix the problems I find" | User instructions cannot override the READ-ONLY Iron Law. Report findings; do not edit source artifacts. |
 | "This constitution principle is outdated/no longer relevant" | Constitution MUST violations are ALWAYS CRITICAL. You cannot downgrade them. If the user disputes a principle, they must update constitution.md first — then rerun /maxi:analyze. |
-| "The user says the spec is clean, I'll skip the passes and mark it analyzed" | All 6 passes are mandatory. You cannot skip passes based on user assertion. Run the full audit; if clean, say so explicitly with metrics. |
+| "The user says the spec is clean, I'll skip the passes and mark it analyzed" | All 7 passes are mandatory. You cannot skip passes based on user assertion. Run the full audit; if clean, say so explicitly with metrics. |
 | "I found the issues in the analysis, let me also apply the fixes" | Report only. Apply nothing. The Next Actions block is where fixes go — the user executes them. |
-| "The spec looks clean, I won't find anything, I'll just write a short report" | Run all 6 passes fully. If genuinely clean, prove it with metrics in the Metrics block. |
+| "The spec looks clean, I won't find anything, I'll just write a short report" | Run all 7 passes fully. If genuinely clean, prove it with metrics in the Metrics block. |
+| "Pass G requires ADRs, we don't have any yet, I'll skip it" | If docs/maxi/adr/ is empty or missing, Pass G skips automatically and the Metrics block notes "no ADRs recorded". You do not decide to skip it — the precondition check decides. |
 | "status is already 'analyzed', I'll set it to 'tasked' then back to 'analyzed' to show I ran it" | Only transition tasked → analyzed. Never touch status on reruns. |

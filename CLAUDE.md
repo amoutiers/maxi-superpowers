@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers is a Claude Code plugin. It vendors superpowers' skills via git subtree and adds 8 new spec-kit-pipeline skills on top.
+maxi-superpowers is a Claude Code plugin. It vendors superpowers' skills via git subtree and adds 8 maxi-native skills: 7 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`) and 1 internal skill (`adr`).
 
 ## Developing New Skills
 
@@ -21,8 +21,9 @@ The writing-skills TDD cycle:
 
 ## Artifact Convention
 
-Per-project artifacts live in `docs/maxi/` at the user's project root:
+Per-project artifacts live at the user's project root:
 - `docs/constitution.md` — project principles
+- `docs/maxi/adr/` — Architecture Decision Records (auto-captured, NNN-slug.md format)
 - `docs/maxi/specs/NNN-slug/` — spec, plan, tasks, analysis per feature
 
 ## Status Frontmatter
@@ -34,4 +35,4 @@ Skills read this to enforce phase gating. Never bypass it.
 
 ## Testing
 
-Run `bash tests/check-frontmatter.sh` and `bash tests/check-sync-invariant.sh` after changes.
+Run `bash tests/run-all.sh` after changes (runs frontmatter, sync-invariant, and spec-fixture checks).

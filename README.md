@@ -87,7 +87,7 @@ See [CLAUDE.md](CLAUDE.md) for contributor guidelines. Key rules:
 
 - All new skills must be authored via `superpowers:writing-skills` — do not hand-write SKILL.md files.
 - Do not hand-edit files under `skills/` that originate from superpowers. Run `scripts/sync-superpowers.sh` to re-sync after a version bump.
-- Run `bash tests/run-all.sh` before committing — all 3 checks must pass.
+- Run `bash tests/run-all.sh` before committing — all checks must pass.
 
 ## License
 
