@@ -94,6 +94,15 @@ ios/ or android/
 **Structure Decision**: [Document the selected structure and reference the real
 directories captured above]
 
+## Decisions
+
+> **Auto-populated by `/maxi:plan` when architectural choices are recorded as ADRs.**  
+> Each entry links to the full decision record in `docs/maxi/adr/`.
+
+| ADR | Title | Status |
+|-----|-------|--------|
+| — | No ADRs recorded yet. | — |
+
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**

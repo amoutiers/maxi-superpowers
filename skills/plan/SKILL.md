@@ -21,8 +21,9 @@ Create a technical implementation plan for an existing spec. Delegates to `maxi:
 2. **Constitution check** — before planning: does anything in the spec contradict constitution principles? Flag violations to the user before proceeding. (Do NOT silently discard violating requirements — surface them.)
 3. **Invoke maxi:writing-plans** — **REQUIRED SUB-SKILL.** Pass the spec and constitution as context. Let writing-plans run its full planning process including file structure decisions and task decomposition.
 4. **Post-format into plan schema** — write output to `docs/maxi/specs/NNN-slug/plan.md` following `templates/plan-template.md` structure. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
-5. **Transition status** — update frontmatter `status → planned`
-6. **Report** — *"Plan written to `docs/maxi/specs/NNN-slug/plan.md` (status: `planned`). Next: `/maxi:tasks`."*
+5. **ADR scan (post-planning)** — scan the just-written `plan.md` for non-obvious architectural choices. Look for: Tech Stack sections, storage/database/runtime/framework picks, phrases like "we chose X over Y because" or "considered A, B, chose C". For each detected choice, invoke `maxi:adr` — it will draft the ADR, show it to the user, and write it only if the user consents. If the user declines all ADR proposals, the plan is still complete; ADR capture is opt-out, not mandatory. Do not invoke `maxi:adr` for trivial choices (e.g., variable naming conventions, test library defaults).
+6. **Transition status** — update frontmatter `status → planned`
+7. **Report** — *"Plan written to `docs/maxi/specs/NNN-slug/plan.md` (status: `planned`). Next: `/maxi:tasks`."*
 
 ## Constitution Check Protocol
 
@@ -67,6 +68,8 @@ All written to `docs/maxi/specs/NNN-slug/`:
 - Plan written to wrong directory → only `docs/maxi/specs/NNN-slug/`
 - Planning a `drafting` spec → stop, spec must be `specified` or `clarified`
 - Setting `status: planned` before plan.md is verified on disk → atomic transition only
+- Skipping the ADR scan after writing plan.md → scan is part of the process, not optional
+- Writing ADR files directly without invoking `maxi:adr` → delegate to `maxi:adr`, which handles consent, numbering, and index updates
 - "I know the spec is fine" → user assertions don't replace the constitution check — run it anyway
 - "This feature is too simple for writing-plans" → no feature is too simple; writing-plans delegation is unconditional
 - Writing plan.md in current directory → always use `docs/maxi/specs/NNN-slug/`, regardless of cwd

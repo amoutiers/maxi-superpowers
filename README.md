@@ -27,7 +27,7 @@ claude plugin install .
 | `/maxi:clarify` | Resolve open questions in a spec before planning |
 | `/maxi:plan` | Generate a technical implementation plan from the spec |
 | `/maxi:tasks` | Extract a structured checkbox task list from the plan |
-| `/maxi:analyze` | Run a 6-pass quality audit across all artifacts |
+| `/maxi:analyze` | Run a 7-pass quality audit across all artifacts (includes ADR alignment) |
 | `/maxi:implement` | Execute the task list and transition the spec to `done` |
 
 ## Quick Start
@@ -47,16 +47,25 @@ Each command reads the previous artifacts and refuses to run if the spec is in t
 ## Artifact Structure
 
 ```
-docs/maxi/
-  memory/
-    constitution.md        # project principles (required by all skills)
-  specs/
-    001-my-feature/
-      spec.md              # requirements, user stories, success criteria
-      plan.md              # technical design and approach
-      tasks.md             # checkbox task list extracted from plan
-      analysis.md          # 6-pass quality audit output
+docs/
+  constitution.md          # project principles (required by all skills)
+  maxi/
+    adr/                   # Architecture Decision Records (auto-captured during plan + implement)
+      README.md            # auto-maintained index
+      001-slug.md          # NNN-slug.md format
+    specs/
+      001-my-feature/
+        spec.md            # requirements, user stories, success criteria
+        plan.md            # technical design and approach
+        tasks.md           # checkbox task list extracted from plan
+        analysis.md        # 7-pass quality audit output
 ```
+
+## Architecture Decision Records
+
+ADRs are captured automatically — you don't create them manually. During `/maxi:plan`, the skill scans the produced plan for architectural choices (tech stack, storage, framework) and proposes an ADR for each. During `/maxi:implement`, unplanned forks that surface mid-implementation also trigger a proposal. In both cases you see the full draft and choose yes/no/edit before anything is written.
+
+ADRs are append-only: once accepted, only status/supersede fields can change. To revise a decision, create a new ADR that supersedes the old one. `/maxi:analyze` includes a Pass G that cross-checks ADRs against the constitution and each other.
 
 ## Status State Machine
 

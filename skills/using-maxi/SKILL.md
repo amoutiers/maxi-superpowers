@@ -19,27 +19,32 @@ maxi grafts a structured spec-driven workflow onto superpowers' implementation e
 /maxi:clarify       →  answer open questions in spec.md (status: clarified)
 /maxi:plan          →  write plan.md + design docs (status: planned)
 /maxi:tasks         →  extract tasks.md from plan (status: tasked)
-/maxi:analyze       →  6-pass cross-artifact audit → analysis.md (status: analyzed)
+/maxi:analyze       →  7-pass cross-artifact audit → analysis.md (status: analyzed)
 /maxi:implement     →  execute tasks, write code (status: implementing → done)
+
+ADRs are captured automatically during /maxi:plan and /maxi:implement — the pipeline proposes ADRs for architectural choices and asks for your consent before writing.
 ```
 
 ## Artifact Locations
 
-All per-project artifacts live in `docs/maxi/`:
+Per-project artifacts:
 
 ```
-docs/maxi/
-├── memory/
-│   └── constitution.md          # project principles (mandatory before any spec work)
-└── specs/
-    └── NNN-feature-slug/
-        ├── spec.md              # status: in YAML frontmatter
-        ├── plan.md
-        ├── tasks.md
-        ├── analysis.md          # written by /maxi:analyze (read-only audit)
-        ├── research.md
-        ├── data-model.md
-        └── contracts/
+docs/
+├── constitution.md              # project principles (mandatory before any spec work)
+└── maxi/
+    ├── adr/                     # Architecture Decision Records (auto-captured)
+    │   ├── README.md            # auto-maintained index
+    │   └── NNN-slug.md
+    └── specs/
+        └── NNN-feature-slug/
+            ├── spec.md          # status: in YAML frontmatter
+            ├── plan.md
+            ├── tasks.md
+            ├── analysis.md      # written by /maxi:analyze (read-only audit)
+            ├── research.md
+            ├── data-model.md
+            └── contracts/
 ```
 
 ## Status State Machine
@@ -73,4 +78,5 @@ maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `max
 - Never skip the constitution step.
 - Never hand-edit the `status:` frontmatter — let skills manage it.
 - `/maxi:analyze` is read-only. It writes `analysis.md` but never modifies source artifacts.
-- The `analyze` skill requires constitution to be present — constitution principles inform 2 of the 6 audit passes.
+- The `analyze` skill requires constitution to be present — constitution principles inform 2 of the 7 audit passes.
+- ADRs are append-only. To revise a past decision, create a new ADR that supersedes the old one.

@@ -4,7 +4,7 @@
 
 maxi-superpowers is a Claude Code plugin with two layers:
 
-1. **spec-kit pipeline** — 7 maxi-native skills (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`) that enforce a phase-gated workflow. Each skill reads artifacts from `docs/maxi/` and refuses to run if the spec is in the wrong phase.
+1. **spec-kit pipeline** — 8 maxi-native skills (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `adr`) that enforce a phase-gated workflow. Each skill reads artifacts from `docs/maxi/` (or `docs/constitution.md`) and refuses to run if prerequisites are missing.
 
 2. **superpowers implementation engine** — vendored superpowers v5.1.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
 
@@ -27,6 +27,7 @@ maxi-superpowers/
 │   ├── tasks/
 │   ├── analyze/
 │   ├── implement/
+│   ├── adr/                 # internal ADR capture skill (invoked by plan + implement)
 │   ├── using-maxi/          # maxi-native meta skill
 │   ├── brainstorming/       # vendored from superpowers (do not hand-edit)
 │   ├── writing-plans/
@@ -46,7 +47,8 @@ maxi-superpowers/
 │   ├── constitution-template.md
 │   ├── spec-template.md
 │   ├── plan-template.md
-│   └── tasks-template.md
+│   ├── tasks-template.md
+│   └── adr-template.md
 ├── scripts/
 │   ├── sync-superpowers.sh  # re-sync vendored skills from vendor/superpowers/
 │   └── bump-superpowers.sh  # pull new superpowers tag into vendor/
@@ -77,10 +79,32 @@ See [delegation-map.md](delegation-map.md) for the full table. Summary:
 | `constitution` | (none — writes directly) |
 | `specify` | `maxi:brainstorming` |
 | `clarify` | (none — interactive dialogue) |
-| `plan` | `maxi:writing-plans` |
+| `plan` | `maxi:writing-plans`, then `maxi:adr` per detected architectural choice |
 | `tasks` | (none — extraction only) |
-| `analyze` | (none — reads artifacts, writes analysis.md) |
-| `implement` | `maxi:executing-plans`, then `maxi:requesting-code-review` |
+| `analyze` | (none — reads artifacts + ADRs, writes analysis.md with 7-pass audit) |
+| `implement` | `maxi:executing-plans`, then `maxi:adr` on unplanned forks, then `maxi:requesting-code-review` |
+| `adr` | (internal — invoked by plan + implement; never invoked by user directly) |
+
+## Architecture Decision Records
+
+ADRs live in the **user's project**, not in this plugin repo. The layout in a user project:
+
+```
+docs/
+├── constitution.md          # mandatory, checked by every pipeline skill
+└── maxi/
+    ├── adr/
+    │   ├── README.md        # auto-maintained index (all ADRs, sorted by number)
+    │   └── NNN-slug.md      # NNN = 001–999, zero-padded
+    └── specs/
+        └── NNN-feature-slug/
+```
+
+**Trigger points:** `/maxi:plan` scans the produced plan for tech-stack and architecture choices; `/maxi:implement` watches for unplanned forks reported by subagents. Both invoke `maxi:adr`, which drafts the ADR, shows it to the user, and writes only on explicit consent.
+
+**Append-only:** ADR body is immutable after creation. Only `status`, `supersedes`, and `superseded_by` frontmatter fields may change. To revise a decision, create a new ADR that supersedes the old one.
+
+**Pass G (analyze):** `/maxi:analyze` runs a 7th detection pass — ADR Alignment — that flags missing ADRs for consequential tech choices (G1, MEDIUM), ADRs contradicting constitution MUST rules (G2, CRITICAL), stale ADR references (G3, HIGH), and cyclic supersede chains (G4, HIGH). If `docs/maxi/adr/` is empty or absent, Pass G is skipped and the metrics note "no ADRs recorded."
 
 ## Phase Gating
 

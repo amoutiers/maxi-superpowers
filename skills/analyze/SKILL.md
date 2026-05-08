@@ -5,7 +5,7 @@ description: Use when the user invokes /maxi:analyze or wants to audit spec/plan
 
 # analyze
 
-Non-destructive 6-pass cross-artifact quality audit. Reads `spec.md`, `plan.md`, `tasks.md`, and `constitution.md`. Writes findings to `analysis.md`. **Never modifies source artifacts.**
+Non-destructive 7-pass cross-artifact quality audit. Reads `spec.md`, `plan.md`, `tasks.md`, `constitution.md`, and any ADRs in `docs/maxi/adr/`. Writes findings to `analysis.md`. **Never modifies source artifacts.**
 
 ## Prereqs
 
@@ -36,14 +36,16 @@ Load only what each pass needs:
 **From plan.md:** Architecture choices, data model references, phases, technical constraints
 **From tasks.md:** Task IDs, descriptions, [USN] labels, [P] markers, file paths
 **From constitution.md:** All principle names + MUST/SHOULD statements
+**From docs/maxi/adr/ (if exists):** All ADR files — adr number, title, status, related_specs, related_principles, Decision section, Consequences section
 
 ### Step 3 — Build Semantic Models
 
 - **Requirements inventory:** key each FR-### and SC-### by ID; note any SC items requiring buildable work (exclude post-launch business KPIs like "reduce support tickets by 50%")
 - **Task coverage map:** for each FR-### / SC-###, list which task IDs reference it (by explicit ID mention or keyword inference)
 - **Constitution rule set:** extract MUST/SHOULD statements as rules to check against
+- **ADR registry:** list all `docs/maxi/adr/NNN-*.md` files; for each record adr number, title, status, related_specs, and the decision domain (tech stack, storage, runtime, framework). If `docs/maxi/adr/` does not exist or is empty, Pass G reports "no ADRs recorded" in Metrics and skips G-type findings.
 
-### Step 4 — Six Detection Passes
+### Step 4 — Seven Detection Passes
 
 #### A. Duplication
 Find near-duplicate requirements with different FR-### IDs. Mark lower-quality phrasing.
@@ -72,7 +74,16 @@ Find near-duplicate requirements with different FR-### IDs. Mark lower-quality p
 - Conflicting requirements (e.g., spec says Next.js, plan says Vue)
 - Task ordering contradictions (integration before foundational with no dependency note)
 
-**Finding limit:** 50 total. Aggregate remaining in an "Overflow Summary" section.
+#### G. ADR Alignment
+
+Skip this pass entirely (and note "no ADRs" in Metrics) if `docs/maxi/adr/` is empty or missing.
+
+- **G1 — Missing ADR (MEDIUM):** plan.md has a "Tech Stack" section or mentions a primary technology choice (storage engine, runtime, primary framework) with no accepted ADR linking to this spec via `related_specs:`. One finding per unrecorded choice. Note: only flag consequential choices, not incidental library picks.
+- **G2 — ADR-Constitution conflict (CRITICAL):** An accepted ADR's Decision or Consequences section makes a statement that directly contradicts a constitution MUST principle. ADR-Constitution conflicts are always CRITICAL — same rule as D-pass violations.
+- **G3 — Stale ADR reference (HIGH):** spec.md, plan.md, or tasks.md mentions or links to an ADR by number, and that ADR has status `deprecated` or `superseded`. Stale references are HIGH — they indicate the artifacts are out of sync with the decision log.
+- **G4 — Cyclic supersede (HIGH):** Following the `supersedes:` chain for any ADR leads back to itself (A supersedes B supersedes A). This corrupts the ADR history and must be resolved.
+
+**Finding limit:** 50 total across all passes. Aggregate remaining in an "Overflow Summary" section.
 
 ### Step 5 — Severity Assignment
 
@@ -110,6 +121,10 @@ Spec: docs/maxi/specs/NNN-slug/spec.md (status: [current status])
 
 [If any CRITICAL D-pass findings — or "None found."]
 
+## ADR Alignment Issues
+
+[If any G-pass findings — or "No ADRs recorded." if docs/maxi/adr/ is empty — or "None found."]
+
 ## Unmapped Tasks
 
 [Tasks with no FR/SC/story mapping — or "None found."]
@@ -122,6 +137,7 @@ Spec: docs/maxi/specs/NNN-slug/spec.md (status: [current status])
 - Ambiguity Count: N
 - Duplication Count: N
 - Critical Issues Count: N
+- ADRs Recorded: N (or "none")
 
 ## Next Actions
 
@@ -142,7 +158,7 @@ Offer: "Would you like concrete remediation suggestions for the top issues?" —
 
 ## READ-ONLY Iron Law
 
-**Do NOT modify `spec.md`, `plan.md`, `tasks.md`, or `constitution.md` under any circumstances.**
+**Do NOT modify `spec.md`, `plan.md`, `tasks.md`, `constitution.md`, or any ADR file under any circumstances.**
 
 Writing `analysis.md` is the ONLY allowed file write. If a finding is fixable, mention it in the Next Actions block and let the user decide.
 
