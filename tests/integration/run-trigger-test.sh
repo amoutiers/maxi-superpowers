@@ -25,7 +25,13 @@ echo "Output dir: $OUTPUT_DIR"
 echo ""
 echo "Running claude -p ..."
 
-timeout 300 claude -p "$PROMPT" \
+if command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_CMD=(timeout 300)
+else
+  echo "WARNING: 'timeout' not found (install coreutils for macOS). Running without timeout." >&2
+  TIMEOUT_CMD=()
+fi
+"${TIMEOUT_CMD[@]}" claude -p "$PROMPT" \
   --plugin-dir "$PLUGIN_DIR" \
   --dangerously-skip-permissions \
   --max-turns "$MAX_TURNS" \
