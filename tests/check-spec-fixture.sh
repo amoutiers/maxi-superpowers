@@ -6,7 +6,7 @@ ROOT="$(git rev-parse --show-toplevel)"
 source "$ROOT/tests/lib/test-helpers.sh"
 
 FIXTURE="$ROOT/tests/fixtures/sample-spec.md"
-VALID_STATUSES="drafting specified clarified planned tasked analyzed implementing done"
+VALID_STATUSES=(drafting specified clarified planned tasked analyzed implementing done)
 failures=0
 
 if [ ! -f "$FIXTURE" ]; then
@@ -26,8 +26,7 @@ fi
 
 assert_grep "$FIXTURE" "^created:" "spec fixture: created field present"
 
-for status in $VALID_STATUSES; do
-  # Substitute status in fixture, extract it back, compare
+for status in "${VALID_STATUSES[@]}"; do
   result=$(sed "s/^status:.*/status: $status/" "$FIXTURE" | { grep "^status:" || true; } | sed "s/^status: //")
   if [ "$result" != "$status" ]; then
     echo "FAIL: status '$status' did not round-trip cleanly (got: '$result')" >&2
