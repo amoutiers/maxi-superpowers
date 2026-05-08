@@ -22,6 +22,7 @@ run_check() {
 run_check "$TESTS_DIR/check-frontmatter.sh"    "Skill frontmatter validation"
 run_check "$TESTS_DIR/check-sync-invariant.sh" "Vendor/skills sync invariant"
 run_check "$TESTS_DIR/check-spec-fixture.sh"   "Spec fixture round-trip"
+run_check "$TESTS_DIR/check-adr-template.sh"   "ADR template and fixture validation"
 
 if [ "$failures" -gt 0 ]; then
   echo "FAILED: $failures check(s) failed" >&2
