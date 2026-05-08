@@ -1,6 +1,6 @@
 ---
 slug: 000-feature-slug
-created: YYYY-MM-DD
+created: "[DATE]"
 status: drafting
 ---
 

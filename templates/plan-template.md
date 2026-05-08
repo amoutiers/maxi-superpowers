@@ -1,9 +1,9 @@
 # Implementation Plan: [FEATURE]
 
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Input**: Feature specification from `.maxi/specs/[###-feature-name]/spec.md`
 
-**Note**: This template is filled in by the `__MAXI_COMMAND_PLAN__` command. See `.maxi/templates/plan-template.md` for the execution workflow.
+**Note**: This template is filled in by the `/maxi:plan` command. See `templates/plan-template.md` for the execution workflow.
 
 ## Summary
 
@@ -38,13 +38,13 @@
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (__MAXI_COMMAND_PLAN__ command output)
-├── research.md          # Phase 0 output (__MAXI_COMMAND_PLAN__ command)
-├── data-model.md        # Phase 1 output (__MAXI_COMMAND_PLAN__ command)
-├── quickstart.md        # Phase 1 output (__MAXI_COMMAND_PLAN__ command)
-├── contracts/           # Phase 1 output (__MAXI_COMMAND_PLAN__ command)
-└── tasks.md             # Phase 2 output (__MAXI_COMMAND_TASKS__ command - NOT created by __MAXI_COMMAND_PLAN__)
+.maxi/specs/[###-feature-name]/
+├── plan.md              # This file (/maxi:plan command output)
+├── research.md          # Phase 0 output (/maxi:plan command)
+├── data-model.md        # Phase 1 output (/maxi:plan command)
+├── quickstart.md        # Phase 1 output (/maxi:plan command)
+├── contracts/           # Phase 1 output (/maxi:plan command)
+└── tasks.md             # Phase 2 output (/maxi:tasks command - NOT created by /maxi:plan)
 ```
 
 ### Source Code (repository root)
