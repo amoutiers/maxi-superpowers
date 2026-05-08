@@ -33,7 +33,7 @@ claude plugin install .
 ## Quick Start
 
 ```
-1. /maxi:constitution        → creates docs/maxi/memory/constitution.md
+1. /maxi:constitution        → creates docs/constitution.md
 2. /maxi:specify <feature>   → creates docs/maxi/specs/001-feature/spec.md  (status: specified)
 3. /maxi:clarify             → resolves open questions                   (status: clarified)
 4. /maxi:plan                → writes plan.md                            (status: planned)

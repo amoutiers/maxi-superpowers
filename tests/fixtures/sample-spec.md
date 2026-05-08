@@ -49,4 +49,4 @@ A user can invoke the sample feature and receive a result.
 ## Assumptions
 
 - User has already run `/maxi:constitution` to establish project principles.
-- A `docs/maxi/memory/constitution.md` file exists in the project.
+- A `docs/constitution.md` file exists in the project.

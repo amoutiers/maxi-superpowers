@@ -22,7 +22,7 @@ The writing-skills TDD cycle:
 ## Artifact Convention
 
 Per-project artifacts live in `docs/maxi/` at the user's project root:
-- `docs/maxi/memory/constitution.md` — project principles
+- `docs/constitution.md` — project principles
 - `docs/maxi/specs/NNN-slug/` — spec, plan, tasks, analysis per feature
 
 ## Status Frontmatter

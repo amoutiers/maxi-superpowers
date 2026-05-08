@@ -9,7 +9,7 @@ Execute the implementation plan from `tasks.md`. Delegates to `maxi:executing-pl
 
 ## Prereqs
 
-- `docs/maxi/memory/constitution.md` must exist — hard stop
+- `docs/constitution.md` must exist — hard stop
 - Locate spec in `docs/maxi/specs/`. Status rules:
   - `drafting` / `specified` / `clarified` / `planned`: stop — *"Cannot implement — spec must reach `tasked` status first. Complete the pipeline through `/maxi:tasks`."*
   - `tasked`: allowed with strong recommendation — *"⚠️ `/maxi:analyze` not yet run. Running analysis first catches issues before you write code. Run `/maxi:analyze` now, or type 'skip' to proceed directly to implementation."* Wait for user response.

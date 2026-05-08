@@ -9,14 +9,14 @@ Create a new feature specification. Invokes `maxi:brainstorming` for design dial
 
 ## Prereqs
 
-- `docs/maxi/memory/constitution.md` must exist — if missing, stop: *"No constitution found. Run `/maxi:constitution` first to establish project principles."*
+- `docs/constitution.md` must exist — if missing, stop: *"No constitution found. Run `/maxi:constitution` first to establish project principles."*
 - No `spec.md` status prereq (this skill creates the spec)
 
 ## Process
 
 ```dot
 digraph specify {
-    "Check docs/maxi/memory/constitution.md" [shape=diamond];
+    "Check docs/constitution.md" [shape=diamond];
     "STOP: No constitution found" [shape=box];
     "Compute next NNN" [shape=box];
     "Derive slug from description" [shape=box];
@@ -29,8 +29,8 @@ digraph specify {
     "Set status: specified" [shape=box];
     "Report to user" [shape=box];
 
-    "Check docs/maxi/memory/constitution.md" -> "STOP: No constitution found" [label="missing"];
-    "Check docs/maxi/memory/constitution.md" -> "Compute next NNN" [label="exists"];
+    "Check docs/constitution.md" -> "STOP: No constitution found" [label="missing"];
+    "Check docs/constitution.md" -> "Compute next NNN" [label="exists"];
     "Compute next NNN" -> "Derive slug from description";
     "Derive slug from description" -> "Create docs/maxi/specs/NNN-slug/";
     "Create docs/maxi/specs/NNN-slug/" -> "Copy templates/spec-template.md";
@@ -47,7 +47,7 @@ digraph specify {
 
 **Step 1 — Prereq check**
 
-Read `docs/maxi/memory/constitution.md`. If it does not exist, stop immediately:
+Read `docs/constitution.md`. If it does not exist, stop immediately:
 
 > *"No constitution found. Run `/maxi:constitution` first to establish project principles."*
 
@@ -137,7 +137,7 @@ Tell the user:
 
 ## Critical Rules
 
-- **Constitution first.** Hard stop if `docs/maxi/memory/constitution.md` is missing. No exceptions.
+- **Constitution first.** Hard stop if `docs/constitution.md` is missing. No exceptions.
 - **Template first.** Never write `spec.md` from scratch. Always copy `templates/spec-template.md` as the base.
 - **Compute NNN, don't guess.** Scan `docs/maxi/specs/` for existing `NNN-*` dirs. Take max + 1.
 - **brainstorming before content.** Do NOT write FR-### or user stories until `maxi:brainstorming` completes. This applies even if the feature is simple or the user wants a quick spec.

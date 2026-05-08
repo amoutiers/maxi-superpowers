@@ -54,7 +54,7 @@ Skills read and enforce this. Running a skill out of order gives a friendly mess
 
 ## Phase Gating
 
-- **Constitution is mandatory.** All workflow skills (except `constitution` itself) will refuse to run if `docs/maxi/memory/constitution.md` is missing.
+- **Constitution is mandatory.** All workflow skills (except `constitution` itself) will refuse to run if `docs/constitution.md` is missing.
 - **Soft gating.** If you try to run `/maxi:tasks` when the status is `specified`, you get: *"Cannot run /maxi:tasks — current spec status is `specified`. Run `/maxi:clarify` or `/maxi:plan` first."*
 - **Some phases accept the previous.** `/maxi:plan` accepts both `specified` and `clarified` (with a warning if `specified`). `/maxi:implement` accepts both `tasked` and `analyzed`.
 

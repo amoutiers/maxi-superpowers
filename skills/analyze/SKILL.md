@@ -9,7 +9,7 @@ Non-destructive 6-pass cross-artifact quality audit. Reads `spec.md`, `plan.md`,
 
 ## Prereqs
 
-- `docs/maxi/memory/constitution.md` must exist — **hard stop** if missing: *"Constitution required. Run `/maxi:constitution` first. Without it, passes D (Constitution Alignment) and F (Inconsistency) cannot run meaningfully."*
+- `docs/constitution.md` must exist — **hard stop** if missing: *"Constitution required. Run `/maxi:constitution` first. Without it, passes D (Constitution Alignment) and F (Inconsistency) cannot run meaningfully."*
 - Status must be `tasked`, `analyzed`, `implementing`, or `done`.
   - If earlier than `tasked`: stop — *"Cannot run /maxi:analyze — spec must reach `tasked` status. Run `/maxi:tasks` first."*
 - Rerunning on `analyzed`/`implementing`/`done` is allowed — status does NOT change again.
@@ -24,7 +24,7 @@ Required files:
 - `docs/maxi/specs/NNN-slug/spec.md` (FRs, SCs, user stories, edge cases)
 - `docs/maxi/specs/NNN-slug/plan.md` (architecture, phases, technical constraints)
 - `docs/maxi/specs/NNN-slug/tasks.md` (task IDs, descriptions, phase grouping, [P] markers)
-- `docs/maxi/memory/constitution.md` (principles, MUST/SHOULD rules)
+- `docs/constitution.md` (principles, MUST/SHOULD rules)
 
 Abort with actionable message if any required file is missing.
 
