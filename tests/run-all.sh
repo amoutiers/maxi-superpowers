@@ -41,7 +41,8 @@ run_check "$TESTS_DIR/check-plugin-manifest.sh"  "Plugin manifest validation"
 run_check "$TESTS_DIR/check-hooks.sh"            "Hooks config validation"
 run_check "$TESTS_DIR/check-vendored-doc.sh"     "VENDORED.md validation"
 run_check "$TESTS_DIR/check-sync-script.sh"      "Sync script behavior"
-run_check "$TESTS_DIR/check-bump-script.sh"      "Bump script behavior"
+run_check "$TESTS_DIR/check-bump-script.sh"          "Bump script behavior"
+run_check "$TESTS_DIR/check-migrate-from-speckit.sh" "migrate-from-speckit script behavior"
 
 if [ "$failures" -gt 0 ]; then
   echo "FAILED: $failures check(s) failed" >&2

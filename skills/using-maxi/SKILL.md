@@ -38,7 +38,7 @@ docs/
     │   └── NNN-slug.md
     └── specs/
         └── NNN-feature-slug/
-            ├── spec.md          # status: in YAML frontmatter
+            ├── spec.md          # status/updated/slug in YAML frontmatter
             ├── plan.md
             ├── tasks.md
             ├── analysis.md      # written by /maxi:analyze (read-only audit)
@@ -69,6 +69,8 @@ maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `max
 
 ## Getting Started
 
+**Migrating from github-spec-kit?** Run `/maxi:migrate-from-speckit` first — it copies your existing specs and constitution into the maxi layout, non-destructively.
+
 1. Run `/maxi:constitution` to establish your project's principles.
 2. Run `/maxi:specify "your feature description"` to start a new spec.
 3. Follow the pipeline from there. Each skill tells you what comes next.
@@ -77,6 +79,8 @@ maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `max
 
 - Never skip the constitution step.
 - Never hand-edit the `status:` frontmatter — let skills manage it.
+- Every skill that mutates an artifact bumps its `updated:` field to today's ISO date.
 - `/maxi:analyze` is read-only. It writes `analysis.md` but never modifies source artifacts.
 - The `analyze` skill requires constitution to be present — constitution principles inform 2 of the 7 audit passes.
 - ADRs are append-only. To revise a past decision, create a new ADR that supersedes the old one.
+- Existing specs that predate the `updated:`, `spec_slug:`, or `decider:` fields will not have them — skills should tolerate absent optional fields rather than failing.
