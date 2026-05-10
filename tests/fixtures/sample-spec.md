@@ -1,15 +1,11 @@
 ---
 slug: 001-sample-feature
 created: "2026-05-08"
+updated: "2026-05-08"
 status: drafting
 ---
 
 # Feature Specification: Sample Feature
-
-**Feature Branch**: `001-sample-feature`
-**Created**: 2026-05-08
-**Status**: Draft
-**Input**: User description: "build a sample feature for testing"
 
 ## User Scenarios & Testing
 
@@ -39,6 +35,13 @@ A user can invoke the sample feature and receive a result.
 ### Key Entities
 
 - **SampleInput**: The data provided by the user.
+
+## Clarifications
+
+<!--
+  Populated by `/maxi:clarify`. Each entry is a Q/A pair recording how an
+  ambiguity in the spec was resolved. Leave empty until `/maxi:clarify` runs.
+-->
 
 ## Success Criteria
 

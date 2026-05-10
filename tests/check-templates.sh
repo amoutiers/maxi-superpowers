@@ -49,47 +49,49 @@ check_template() {
 # adr-template
 check_template \
   "$ROOT/templates/adr-template.md" "adr-template.md" "true" \
-  "adr:" "slug:" "status:" "date:" "related_specs:" "related_principles:" "related_requirements:" "supersedes:" "superseded_by:" \
+  "adr:" "slug:" "status:" "date:" "updated:" "decider:" "related_specs:" "related_principles:" "related_requirements:" "supersedes:" "superseded_by:" \
   "--" \
   "^## Context" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
 
 # adr fixture
 check_template \
   "$ROOT/tests/fixtures/sample-adr.md" "fixtures/sample-adr.md" "true" \
-  "adr:" "slug:" "status:" "date:" "related_specs:" "related_principles:" "related_requirements:" "supersedes:" "superseded_by:" \
+  "adr:" "slug:" "status:" "date:" "updated:" "decider:" "related_specs:" "related_principles:" "related_requirements:" "supersedes:" "superseded_by:" \
   "--" \
   "^## Context" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
 
 # spec-template
 check_template \
   "$ROOT/templates/spec-template.md" "spec-template.md" "true" \
-  "slug:" "created:" "status:" \
+  "slug:" "created:" "updated:" "status:" \
   "--" \
-  "^## User Scenarios" "^## Requirements" "^## Success Criteria"
+  "^## User Scenarios" "^## Requirements" "^## Clarifications" "^## Success Criteria"
 
 # spec fixture
 check_template \
   "$ROOT/tests/fixtures/sample-spec.md" "fixtures/sample-spec.md" "true" \
-  "slug:" "created:" "status:" \
+  "slug:" "created:" "updated:" "status:" \
   "--" \
-  "^## User Scenarios" "^## Requirements" "^## Success Criteria"
+  "^## User Scenarios" "^## Requirements" "^## Clarifications" "^## Success Criteria"
 
-# constitution-template (no frontmatter)
+# constitution-template
 check_template \
-  "$ROOT/templates/constitution-template.md" "constitution-template.md" "false" \
+  "$ROOT/templates/constitution-template.md" "constitution-template.md" "true" \
+  "version:" "ratified:" "last_amended:" \
   "--" \
   "## Core Principles"
 
-# plan-template (no frontmatter)
+# plan-template
 check_template \
-  "$ROOT/templates/plan-template.md" "plan-template.md" "false" \
+  "$ROOT/templates/plan-template.md" "plan-template.md" "true" \
+  "slug:" "spec_slug:" "created:" "updated:" \
   "--" \
   "## Summary" "## Technical Context" "## Constitution Check"
 
 # tasks-template
 check_template \
   "$ROOT/templates/tasks-template.md" "tasks-template.md" "true" \
-  "description:" \
+  "description:" "slug:" "spec_slug:" "created:" "updated:" \
   "--" \
   "## Format:" "## Path Conventions"
 

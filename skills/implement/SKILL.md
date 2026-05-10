@@ -21,12 +21,12 @@ Execute the implementation plan from `tasks.md`. Delegates to `maxi:executing-pl
 
 1. **Read tasks.md** — load all tasks from `docs/maxi/specs/NNN-slug/tasks.md`. Identify which are `- [ ]` (pending) vs `- [x]` (complete). If resuming, start from first pending task.
 2. **Announce analyze recommendation** (if status is `tasked`) — see above. Wait for user decision.
-3. **Transition to implementing** — update frontmatter `status: → implementing` before first task begins.
+3. **Transition to implementing** — update spec.md frontmatter `status: → implementing`; also set `updated: [today's ISO date]` on spec.md. Do this before first task begins.
 4. **Delegate to maxi:executing-plans** — **REQUIRED SUB-SKILL.** Pass the full tasks.md content and the spec context (feature slug, plan.md overview). Do NOT implement tasks directly in this session.
 5. **Track task completion** — as each task completes, tick it in tasks.md: `- [ ] T001` → `- [x] T001`.
 6. **ADR nudge on unplanned forks** — if `maxi:executing-plans` (via subagents) surfaces a decision that wasn't in plan.md — the subagent reports "had to choose between X and Y" or "plan didn't specify Z so I chose W" — invoke `maxi:adr` with the choice details. The ADR skill will draft, show, and wait for user consent. Implementation continues regardless of whether the user accepts or declines the ADR. Do not block task completion on ADR capture.
 7. **Run code review** — after all tasks complete, invoke `maxi:requesting-code-review`. **This step is mandatory and cannot be skipped.**
-8. **Transition to done** — verify ALL tasks in tasks.md are ticked (`- [x]`). Count remaining `- [ ]` items. If count > 0, do not transition — report which tasks remain. Only when count is 0: update `status: implementing → done`.
+8. **Transition to done** — verify ALL tasks in tasks.md are ticked (`- [x]`). Count remaining `- [ ]` items. If count > 0, do not transition — report which tasks remain. Only when count is 0: update spec.md frontmatter `status: implementing → done` and set `updated: [today's ISO date]`.
 9. **Report** — *"Implementation complete. All tasks done. Status: `done`."*
 
 ## Critical Rules

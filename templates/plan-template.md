@@ -1,9 +1,13 @@
+---
+slug: 000-feature-slug
+spec_slug: 000-feature-slug
+created: "[DATE]"
+updated: "[DATE]"
+---
+
 # Implementation Plan: [FEATURE]
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `docs/maxi/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/maxi:plan` command. See `templates/plan-template.md` for the execution workflow.
+**Note**: This template is filled in by the `/maxi:plan` command. See `skills/plan/SKILL.md` for the execution workflow.
 
 ## Summary
 
@@ -31,7 +35,10 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Pass / Fail | Notes |
+|-----------|-------------|-------|
+| [Principle 1 from constitution.md] | [✓ / ✗] | [If ✗: justify below in Complexity Tracking] |
+| [Principle 2 from constitution.md] | [✓ / ✗] | |
 
 ## Project Structure
 

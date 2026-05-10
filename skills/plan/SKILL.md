@@ -20,9 +20,9 @@ Create a technical implementation plan for an existing spec. Delegates to `maxi:
 1. **Read artifacts** — load `spec.md` (FRs, SCs, user stories) and `constitution.md` (principles, constraints)
 2. **Constitution check** — before planning: does anything in the spec contradict constitution principles? Flag violations to the user before proceeding. (Do NOT silently discard violating requirements — surface them.)
 3. **Invoke maxi:writing-plans** — **REQUIRED SUB-SKILL.** Pass the spec and constitution as context. Let writing-plans run its full planning process including file structure decisions and task decomposition.
-4. **Post-format into plan schema** — write output to `docs/maxi/specs/NNN-slug/plan.md` following `templates/plan-template.md` structure. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
+4. **Post-format into plan schema** — write output to `docs/maxi/specs/NNN-slug/plan.md` following `templates/plan-template.md` structure. Set plan.md frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
 5. **ADR scan (post-planning)** — scan the just-written `plan.md` for non-obvious architectural choices. Look for: Tech Stack sections, storage/database/runtime/framework picks, phrases like "we chose X over Y because" or "considered A, B, chose C". For each detected choice, invoke `maxi:adr` — it will draft the ADR, show it to the user, and write it only if the user consents. If the user declines all ADR proposals, the plan is still complete; ADR capture is opt-out, not mandatory. Do not invoke `maxi:adr` for trivial choices (e.g., variable naming conventions, test library defaults).
-6. **Transition status** — update frontmatter `status → planned`
+6. **Transition status** — update spec.md frontmatter `status → planned`; also set `updated: [today's ISO date]` on spec.md and on plan.md
 7. **Report** — *"Plan written to `docs/maxi/specs/NNN-slug/plan.md` (status: `planned`). Next: `/maxi:tasks`."*
 
 ## Constitution Check Protocol

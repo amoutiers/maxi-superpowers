@@ -85,8 +85,10 @@ Use `templates/adr-template.md` as the base. Fill in:
 
 - `adr:` — the 3-digit number
 - `slug:` — `NNN-[short-kebab-title]`
-- `status: accepted`
+- `status: proposed` ← draft state; transitions to `accepted` when user confirms
 - `date:` — today in YYYY-MM-DD
+- `updated:` — today in YYYY-MM-DD
+- `decider:` — name or role of the decision-maker (ask user if unknown)
 - `related_specs:` — spec slug(s) this decision applies to, if known
 - `related_principles:` — constitution principle names referenced, if any
 - `related_requirements:` — FR-### / SC-### IDs, if applicable
@@ -114,7 +116,7 @@ Wait for the response. Do not write anything yet.
 ### 6. Handle user response
 
 **`yes`:**
-- Normal case: write `docs/maxi/adr/NNN-slug.md`, then regenerate index (step 7)
+- Normal case: set `status: accepted` in the ADR, then write `docs/maxi/adr/NNN-slug.md`, then regenerate index (step 7)
 - Supersede case: write new ADR; also update old ADR — set `status: superseded` and `superseded_by: NNN`; then regenerate index. If any of the three writes fails, stop and report the failure — do not leave the ADR log in a partially-written state.
 
 **`edit`:**

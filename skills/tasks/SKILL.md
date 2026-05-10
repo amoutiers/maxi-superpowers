@@ -27,7 +27,7 @@ Extract a structured `tasks.md` from an existing `plan.md`. Pure extraction — 
    - Final phase: Polish & Cross-Cutting Concerns
    - A **Checkpoint** line after each phase
 6. **Write `tasks.md`** — output to `docs/maxi/specs/NNN-slug/tasks.md` following the template schema. Include Dependencies & Execution Order section.
-7. **Transition status** — update frontmatter `status: planned → tasked`
+7. **Transition status** — update spec.md frontmatter `status: planned → tasked`; also set `updated: [today's ISO date]` on spec.md and on tasks.md. When creating tasks.md, set its frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date.
 8. **Report** — *"Tasks written to `docs/maxi/specs/NNN-slug/tasks.md` (status: `tasked`). Next: `/maxi:analyze` (recommended) or `/maxi:implement`."*
 
 ## Task Format

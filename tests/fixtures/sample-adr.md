@@ -3,6 +3,8 @@ adr: 001
 slug: 001-use-sqlite-for-local-store
 status: accepted
 date: 2026-05-08
+updated: 2026-05-08
+decider: "Maxi Project Team"
 related_specs: [001-csv-to-json]
 related_principles: ["II. Simplicity Over Cleverness"]
 related_requirements: [FR-003, SC-002]

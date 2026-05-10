@@ -1,8 +1,10 @@
 ---
 adr: NNN
 slug: NNN-[short-decision-slug]
-status: accepted
+status: proposed
 date: "[YYYY-MM-DD]"
+updated: "[YYYY-MM-DD]"
+decider: "[name or role]"
 related_specs: []
 related_principles: []
 related_requirements: []

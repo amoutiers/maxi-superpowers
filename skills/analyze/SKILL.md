@@ -147,7 +147,7 @@ Spec: docs/maxi/specs/NNN-slug/spec.md (status: [current status])
 
 ### Step 7 — Transition Status
 
-If current status was `tasked`: update frontmatter `status: tasked → analyzed`.
+If current status was `tasked`: update spec.md frontmatter `status: tasked → analyzed`; also set `updated: [today's ISO date]` on spec.md.
 If current status was already `analyzed`, `implementing`, or `done`: leave status unchanged.
 
 ### Step 8 — Report

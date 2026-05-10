@@ -90,6 +90,7 @@ Update the frontmatter in the copied `spec.md`:
 ---
 slug: NNN-slug
 created: [today's ISO date, e.g. 2026-05-08]
+updated: [today's ISO date, e.g. 2026-05-08]
 status: drafting
 ---
 ```
@@ -125,6 +126,7 @@ Overwrite `docs/maxi/specs/NNN-slug/spec.md` with the fully formatted spec. Upda
 
 ```yaml
 status: drafting  →  status: specified
+updated: [today's ISO date]
 ```
 
 `status: specified` is only set **after** spec.md is fully written and verified. Never set it before.

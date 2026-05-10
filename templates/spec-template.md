@@ -1,15 +1,11 @@
 ---
 slug: 000-feature-slug
 created: "[DATE]"
+updated: "[DATE]"
 status: drafting
 ---
 
 # Feature Specification: [FEATURE NAME]
-
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
-**Status**: Draft  
-**Input**: User description: "$ARGUMENTS"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -105,6 +101,13 @@ status: drafting
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
+
+## Clarifications
+
+<!--
+  Populated by `/maxi:clarify`. Each entry is a Q/A pair recording how an
+  ambiguity in the spec was resolved. Leave empty until `/maxi:clarify` runs.
+-->
 
 ## Success Criteria *(mandatory)*
 

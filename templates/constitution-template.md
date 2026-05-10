@@ -1,3 +1,9 @@
+---
+version: "[CONSTITUTION_VERSION]"
+ratified: "[RATIFICATION_DATE]"
+last_amended: "[LAST_AMENDED_DATE]"
+---
+
 # [PROJECT_NAME] Constitution
 <!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
 
