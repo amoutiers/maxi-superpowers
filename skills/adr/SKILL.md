@@ -81,6 +81,8 @@ Read every `docs/maxi/adr/NNN-*.md` (where status = `accepted`) and scan their D
 
 ### 3. Draft the ADR
 
+Verify `templates/adr-template.md` exists (Read tool) before proceeding; if missing, stop: *"Cannot proceed — `templates/adr-template.md` is missing. Please reinstall the maxi plugin."*
+
 Use `templates/adr-template.md` as the base. Fill in:
 
 - `adr:` — the 3-digit number

@@ -20,7 +20,7 @@ Extract a structured `tasks.md` from an existing `plan.md`. Pure extraction — 
 2. **Map tasks to user stories** — for each user story in `spec.md`, collect the tasks from `plan.md` that implement it. Tag each task with `[US1]`, `[US2]`, etc.
 3. **Identify parallel tasks** — mark with `[P]` any task that touches different files from all other tasks in the same phase (no shared-file writes, no dependency on concurrent tasks)
 4. **Assign sequential IDs** — number all tasks `T001`, `T002`, ... in phase order. No letters, no "Task N", no "Step N".
-5. **Structure into phases** — following `templates/tasks-template.md`:
+5. **Structure into phases** — verify `templates/tasks-template.md` exists (Read tool) before proceeding; if missing, stop: *"Cannot proceed — `templates/tasks-template.md` is missing. Please reinstall the maxi plugin."* Then follow the template:
    - Phase 1: Setup (project init, no deps)
    - Phase 2: Foundational (blocks all user stories — CRITICAL warning)
    - Phase 3+: One phase per user story
