@@ -83,6 +83,10 @@ Skipping or reversing a status is blocked by the skill that owns each transition
 
 maxi-superpowers vendors [superpowers v5.1.0](https://github.com/obra/superpowers) via git subtree. All superpowers skills are available as `maxi:<skill>` (e.g., `maxi:brainstorming`, `maxi:writing-plans`, `maxi:executing-plans`). The pipeline skills delegate to them at the right moments — you don't invoke them directly.
 
+## Migrating from spec-kit
+
+If you're coming from [github-spec-kit](https://github.com/speckit/spec-kit), use `/maxi:migrate-from-speckit` for a one-shot migration to maxi conventions. The command copies specs to `docs/maxi/specs/`, adds YAML frontmatter, infers status, and migrates your constitution. **Non-destructive:** originals in `specs/` and `.specify/` are never touched.
+
 ## Contributing
 
 See [CLAUDE.md](CLAUDE.md) for contributor guidelines. Key rules:
