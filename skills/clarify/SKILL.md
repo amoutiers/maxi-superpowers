@@ -22,10 +22,11 @@ Resolve open questions in an existing spec without rewriting it. Appends a `## C
 2. **Build question list** — collect all ambiguities found; prioritize by impact (blocking FRs first)
 3. **Ask one question at a time** — present context, ask one focused question, wait for answer before next
 4. **Record each answer** — after each answer, note how it resolves the ambiguity
-5. **Update spec.md** — two updates:
+5. **Update spec.md** — three updates in the same write operation:
    a. In-place: replace `[NEEDS CLARIFICATION: ...]` markers with the resolved text in the relevant FRs
    b. Append: add/update `## Clarifications` section at the end of spec.md with Q&A pairs
-6. **Transition status** — change `status: specified` → `status: clarified` in spec.md frontmatter; also set `updated: [today's ISO date]`
+   c. Frontmatter: set `updated: [today's ISO date]` (`YYYY-MM-DD`)
+6. **Transition status** — change `status: specified` → `status: clarified` in spec.md frontmatter
 7. **Report** — tell user: spec clarified at `docs/maxi/specs/NNN-slug/spec.md` (status: `clarified`). Next: `/maxi:plan`.
 
 ## Clarifications Section Format

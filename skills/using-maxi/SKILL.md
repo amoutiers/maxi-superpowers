@@ -88,7 +88,7 @@ maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `max
 
 - Never skip the constitution step.
 - Never hand-edit the `status:` frontmatter — let skills manage it.
-- Every skill that mutates an artifact bumps its `updated:` field to today's ISO date.
+- **Invariant — `updated:` field:** Every write to a maxi artifact (`spec.md`, `plan.md`, `tasks.md`, ADR file) must include bumping its `updated:` frontmatter field to today's ISO date (`YYYY-MM-DD`) in the same operation. Never bump in a separate step.
 - `/maxi:analyze` is read-only. It writes `analysis.md` but never modifies source artifacts.
 - The `analyze` skill requires constitution to be present — constitution principles inform 2 of the 7 audit passes.
 - ADRs are append-only. To revise a past decision, create a new ADR that supersedes the old one.
