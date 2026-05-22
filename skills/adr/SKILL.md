@@ -1,5 +1,5 @@
 ---
-name: maxi-adr
+name: adr
 description: Use when the plan or implement skill has detected an architectural decision (tech stack choice, storage selection, framework pick, significant trade-off) that should be recorded as an Architecture Decision Record in the current maxi project
 ---
 
