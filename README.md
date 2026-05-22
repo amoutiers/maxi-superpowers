@@ -85,7 +85,7 @@ maxi-superpowers vendors [superpowers v5.1.0](https://github.com/obra/superpower
 
 ## Migrating from spec-kit
 
-If you're coming from [github-spec-kit](https://github.com/speckit/spec-kit), use `/maxi:migrate-from-speckit` for a one-shot migration to maxi conventions. The command copies specs to `docs/maxi/specs/`, adds YAML frontmatter, infers status, and migrates your constitution. **Non-destructive:** originals in `specs/` and `.specify/` are never touched.
+If you're coming from [github-spec-kit](https://github.com/github/spec-kit), use `/maxi:migrate-from-speckit` for a one-shot migration to maxi conventions. The command copies specs to `docs/maxi/specs/`, adds YAML frontmatter, infers status, and migrates your constitution. **Non-destructive:** originals in `specs/` and `.specify/` are never touched.
 
 ## Contributing
 
