@@ -1,11 +1,11 @@
 ---
-slug: 000-feature-slug
-spec_slug: 000-feature-slug
-created: "[DATE]"
-updated: "[DATE]"
+slug: NNN-feature-slug
+spec_slug: NNN-feature-slug
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
 ---
 
-# Implementation Plan: [FEATURE]
+# Implementation Plan: [feature-name]
 
 **Note**: This template is filled in by the `/maxi:plan` command. See `skills/plan/SKILL.md` for the execution workflow.
 

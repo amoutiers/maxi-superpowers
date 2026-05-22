@@ -1,12 +1,11 @@
 ---
-description: "Task list template for feature implementation"
-slug: 000-feature-slug
-spec_slug: 000-feature-slug
-created: "[DATE]"
-updated: "[DATE]"
+slug: NNN-feature-slug
+spec_slug: NNN-feature-slug
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
 ---
 
-# Tasks: [FEATURE NAME]
+# Tasks: [feature-name]
 
 **Input**: Design documents from `docs/maxi/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
