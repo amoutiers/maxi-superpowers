@@ -11,9 +11,11 @@ if [ ! -d "$SRC" ]; then
   exit 1
 fi
 
+shopt -s nullglob
 synced=0
 for skill_dir in "$SRC"/*/; do
   name=$(basename "$skill_dir")
+  [ -n "$name" ] || { echo "ERROR: empty skill name from '$skill_dir'" >&2; exit 1; }
   rm -rf "$DST/$name"
   cp -r "$skill_dir" "$DST/$name"
   synced=$((synced + 1))
