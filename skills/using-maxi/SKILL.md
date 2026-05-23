@@ -21,6 +21,7 @@ maxi grafts a structured spec-driven workflow onto superpowers' implementation e
 /maxi:tasks         →  extract tasks.md from plan (status: tasked)
 /maxi:analyze       →  7-pass cross-artifact audit → analysis.md (status: analyzed)
 /maxi:implement     →  execute tasks, write code (status: implementing → done)
+/maxi:board         →  kanban overview of all specs grouped by status (read-only)
 
 ADRs are captured automatically during /maxi:plan and /maxi:implement — the pipeline proposes ADRs for architectural choices and asks for your consent before writing.
 ```
