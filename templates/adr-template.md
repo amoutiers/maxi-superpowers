@@ -2,6 +2,7 @@
 adr: NNN
 slug: NNN-[short-decision-slug]
 status: proposed
+# Note: transitions to "accepted" when user confirms the ADR
 date: YYYY-MM-DD
 updated: YYYY-MM-DD
 decider: "[name-or-role]"

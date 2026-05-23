@@ -11,8 +11,8 @@ A Claude Code plugin that combines a spec-driven workflow (spec-kit) with superp
 ## Installation
 
 ```bash
-# From the plugin marketplace (once published):
-claude plugin install maxi-superpowers
+# From the plugin marketplace (plugin name: maxi):
+claude plugin install maxi
 
 # Or install locally:
 git clone https://github.com/amoutiers/maxi-superpowers
