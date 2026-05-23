@@ -9,16 +9,15 @@ This table shows which maxi pipeline skill delegates to which superpowers sub-sk
 | `constitution` | — (always runs) | (none — writes `docs/constitution.md` directly) | — |
 | `specify` | constitution exists (no spec status required) | `maxi:brainstorming` | `drafting → specified` |
 | `clarify` | `specified` | (none — interactive Q&A dialogue) | `specified → clarified` |
-| `plan` | `specified` or `clarified` | `maxi:writing-plans` | `→ planned` |
+| `plan` | `clarified` | `maxi:writing-plans` | `clarified → planned` |
 | `tasks` | `planned` | (none — extraction from plan.md) | `planned → tasked` |
 | `analyze` | `tasked`, `analyzed`, `implementing`, or `done` | (none — reads artifacts, writes analysis.md) | `tasked → analyzed` (once; reruns don't change status) |
-| `implement` | `tasked` or `analyzed` | `maxi:executing-plans`, then `maxi:requesting-code-review` | `→ implementing → done` |
+| `implement` | `analyzed` | `maxi:executing-plans`, then `maxi:requesting-code-review` | `analyzed → implementing → done` |
 
 ### Notes
 
-- `/maxi:plan` accepts `specified` (with a warning that clarification was skipped) or `clarified` (preferred, no warning).
-- `/maxi:implement` accepts `tasked` (with a strong recommendation to run `/maxi:analyze` first) or `analyzed` (proceeds without warning). It also resumes from `implementing` if interrupted.
-- `/maxi:analyze` can be rerun at any status from `tasked` onward — it is non-destructive and never modifies source artifacts.
+- `/maxi:analyze` can be rerun at any status from `tasked` onward — it is non-destructive and never modifies source artifacts. Status does not change on subsequent runs.
+- `/maxi:implement` resumes from `implementing` if an earlier run was interrupted — it starts from the first unchecked `- [ ]` task.
 
 ## Accessing Superpowers Skills Directly
 

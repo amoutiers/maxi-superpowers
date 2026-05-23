@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Use when the user invokes /maxi:plan or wants to create a technical implementation plan for a specified feature — spec must be at status "specified" or "clarified"
+description: Use when the user invokes /maxi:plan or wants to create a technical implementation plan for a clarified feature — spec must be at status "clarified"
 ---
 
 # plan
@@ -10,10 +10,10 @@ Create a technical implementation plan for an existing spec. Delegates to `maxi:
 ## Prereqs
 
 - `docs/constitution.md` must exist — hard stop if missing: *"No constitution found. Run `/maxi:constitution` first."*
-- Locate spec in `docs/maxi/specs/` at status `clarified` (preferred) or `specified` (allowed with warning)
+- Locate spec in `docs/maxi/specs/` at status `clarified`
   - If status is `drafting`: stop — *"Spec is still `drafting`. Run `/maxi:specify` first."*
+  - If status is `specified`: stop — *"Spec must be `clarified` before planning. Run `/maxi:clarify` first. If the spec has no ambiguities, `/maxi:clarify` will complete in seconds and confirm this."*
   - If status is `planned` or later: stop — *"Spec is already `planned`. Proceed to `/maxi:tasks`."*
-  - If status is `specified`: warn — *"Clarification skipped. For best plan quality, run `/maxi:clarify` first. Proceeding anyway."* — then continue
 
 ## Process
 
@@ -79,6 +79,8 @@ All written to `docs/maxi/specs/NNN-slug/`:
 | Rationalization | Counter |
 |---|---|
 | "I wrote the spec so I know it's aligned with the constitution" | Self-authored specs still get checked. The check exists precisely because authors have blind spots. Run it. |
+| "The user says there are no ambiguities, skipping clarify is fine" | User assertions don't replace the clarification phase. `/maxi:clarify` completes in seconds on an unambiguous spec — run it. The pipeline is strict precisely to avoid this class of shortcut. |
+| "The spec came from migrate-from-speckit, it's already mature" | Maturity doesn't replace the phase. The pipeline applies equally to migrated specs. Run `/maxi:clarify`. |
 | "This is a simple feature, writing-plans is overkill" | Feature complexity does not determine whether the sub-skill is invoked. Invoke writing-plans unconditionally. |
 | "I'll write plan.md here since that's where we're working" | The plan lives in `docs/maxi/specs/NNN-slug/plan.md`. Working directory is irrelevant. |
 | "The user says skip the constitution check" | The constitution check is a pipeline gate, not an optional step. It cannot be skipped by user request. |
