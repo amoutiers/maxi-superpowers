@@ -35,7 +35,7 @@ claude plugin install .
 ## Quick Start
 
 ```
-1. /maxi:constitution        → creates docs/constitution.md
+1. /maxi:constitution        → creates docs/maxi/constitution.md
 2. /maxi:specify <feature>   → creates docs/maxi/specs/001-feature/spec.md  (status: specified)
 3. /maxi:clarify             → resolves open questions                   (status: clarified)
 4. /maxi:plan                → writes plan.md                            (status: planned)
@@ -50,13 +50,13 @@ Each command reads the previous artifacts and refuses to run if the spec is in t
 
 ```
 docs/
-  constitution.md          # project principles (required by all skills)
   maxi/
+    constitution.md        # project principles (required by all skills)
     adr/                   # Architecture Decision Records (auto-captured during plan + implement)
       README.md            # auto-maintained index
-      001-slug.md          # NNNN-slug.md format
+      0001-slug.md         # NNNN-slug.md format
     specs/
-      001-my-feature/
+      0001-my-feature/
         spec.md            # requirements, user stories, success criteria
         plan.md            # technical design and approach
         tasks.md           # checkbox task list extracted from plan

@@ -114,8 +114,8 @@ assert_grep "$spec2" "^created: 2026-03-01$" "002 spec.md created date parsed"
 # ---------------------------------------------------------------------------
 # Constitution
 # ---------------------------------------------------------------------------
-assert_file_exists "$TMP/docs/constitution.md" "constitution copied"
-assert_grep "$TMP/docs/constitution.md" "Test Project Constitution" "constitution content correct"
+assert_file_exists "$TMP/docs/maxi/constitution.md" "constitution copied"
+assert_grep "$TMP/docs/maxi/constitution.md" "Test Project Constitution" "constitution content correct"
 
 # ---------------------------------------------------------------------------
 # Originals untouched

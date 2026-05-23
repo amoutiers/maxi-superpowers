@@ -4,7 +4,7 @@
 
 maxi-superpowers is a Claude Code plugin with two layers:
 
-1. **spec-kit pipeline** — 7 user-facing commands plus 1 internal skill (`adr`), totalling 8 maxi-native skills. Each reads artifacts from `docs/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
+1. **spec-kit pipeline** — 7 user-facing commands plus 1 internal skill (`adr`), totalling 8 maxi-native skills. Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
 
 2. **superpowers implementation engine** — vendored superpowers v5.1.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
 
@@ -91,11 +91,11 @@ ADRs live in the **user's project**, not in this plugin repo. The layout in a us
 
 ```
 docs/
-├── constitution.md          # mandatory, checked by every pipeline skill
 └── maxi/
+    ├── constitution.md      # mandatory, checked by every pipeline skill
     ├── adr/
     │   ├── README.md        # auto-maintained index (all ADRs, sorted by number)
-    │   └── NNNN-slug.md      # NNNN = 00001.9999, zero-padded
+    │   └── NNNN-slug.md     # 0001–9999, zero-padded
     └── specs/
         └── NNNN-feature-slug/
 ```

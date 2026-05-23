@@ -15,7 +15,7 @@ This is an **internal pipeline skill** — it is invoked by `maxi:plan` and `max
 
 Before doing anything else:
 
-1. Check that `docs/constitution.md` exists. If it does not: stop immediately with *"No constitution found. Run `/maxi:constitution` first."*
+1. Check that `docs/maxi/constitution.md` exists. If it does not: stop immediately with *"No constitution found. Run `/maxi:constitution` first."*
 2. Proceed only when constitution is confirmed present.
 
 ## The Iron Rule: Never Write Without Consent
@@ -34,7 +34,7 @@ The fact that the calling skill (plan/implement) already identified the decision
 
 ```dot
 digraph adr_process {
-    "Check docs/constitution.md" [shape=diamond];
+    "Check docs/maxi/constitution.md" [shape=diamond];
     "Stop: run /maxi:constitution first" [shape=box];
     "Compute next NNNN" [shape=box];
     "Load accepted ADRs" [shape=box];
@@ -48,8 +48,8 @@ digraph adr_process {
     "Write both ADRs + update index" [shape=box];
     "Discard. No file written." [shape=box];
 
-    "Check docs/constitution.md" -> "Stop: run /maxi:constitution first" [label="missing"];
-    "Check docs/constitution.md" -> "Compute next NNNN" [label="exists"];
+    "Check docs/maxi/constitution.md" -> "Stop: run /maxi:constitution first" [label="missing"];
+    "Check docs/maxi/constitution.md" -> "Compute next NNNN" [label="exists"];
     "Compute next NNNN" -> "Load accepted ADRs";
     "Load accepted ADRs" -> "Contradiction with existing ADR?" ;
     "Contradiction with existing ADR?" -> "Frame as supersede proposal" [label="yes"];

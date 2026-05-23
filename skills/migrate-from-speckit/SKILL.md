@@ -6,7 +6,7 @@ user-invocable: true
 
 # migrate-from-speckit
 
-One-shot migration from [github-spec-kit](https://github.com/github/spec-kit) to maxi conventions. Copies specs to `docs/maxi/specs/`, copies the constitution to `docs/constitution.md`, adds YAML frontmatter, and infers maxi status from files present.
+One-shot migration from [github-spec-kit](https://github.com/github/spec-kit) to maxi conventions. Copies specs to `docs/maxi/specs/`, copies the constitution to `docs/maxi/constitution.md`, adds YAML frontmatter, and infers maxi status from files present.
 
 **Non-destructive:** originals in `specs/` and `.specify/` are never touched.
 
@@ -110,7 +110,7 @@ The script handles these transforms — you do NOT need to re-implement any of t
 
 | What | How |
 |------|-----|
-| Constitution | Copies `.specify/memory/constitution.md` → `docs/constitution.md` (skips if target exists) |
+| Constitution | Copies `.specify/memory/constitution.md` → `docs/maxi/constitution.md` (skips if target exists) |
 | Spec dirs | `cp -r specs/NNN-slug/ docs/maxi/specs/NNN-slug/` |
 | spec.md frontmatter | Prepends YAML `slug/created/updated/status`; strips inline `**Status**:`, `**Created**:`, `**Feature Branch**:`, `**Input**:` lines |
 | Status inference | Shipped OR retrospective.md → `done`; tasks.md → `tasked`; plan.md → `planned`; else → `specified` |

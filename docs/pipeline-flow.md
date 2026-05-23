@@ -7,7 +7,7 @@ For the authoritative source on delegation and gating rules, see [delegation-map
 ```mermaid
 flowchart TD
     subgraph pipeline["Pipeline (maxi-native)"]
-        CONSTITUTION["/maxi:constitution\n─────────────\nwrites docs/constitution.md"]
+        CONSTITUTION["/maxi:constitution\n─────────────\nwrites docs/maxi/constitution.md"]
         SPECIFY["/maxi:specify\n─────────────\ndrafting → specified"]
         CLARIFY["/maxi:clarify\n─────────────\nspecified → clarified\n(interactive Q&A)"]
         PLAN["/maxi:plan\n─────────────\nclarified → planned"]

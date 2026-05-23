@@ -9,7 +9,7 @@ Resolve open questions in an existing spec without rewriting it. Appends a `## C
 
 ## Prereqs
 
-- `docs/constitution.md` must exist — if missing, stop: *"No constitution found. Run `/maxi:constitution` first."*
+- `docs/maxi/constitution.md` must exist — if missing, stop: *"No constitution found. Run `/maxi:constitution` first."*
 - Locate the in-flight spec in `docs/maxi/specs/`. Find `spec.md` with `status: specified`.
   - If multiple specs at `status: specified`: ask user which one to clarify.
   - If none at `status: specified`: stop with *"No spec at status `specified` found. Run `/maxi:specify` to create one, or check that the target spec is in the right phase."*

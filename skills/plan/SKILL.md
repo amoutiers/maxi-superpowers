@@ -9,7 +9,7 @@ Create a technical implementation plan for an existing spec. Delegates to `maxi:
 
 ## Prereqs
 
-- `docs/constitution.md` must exist — hard stop if missing: *"No constitution found. Run `/maxi:constitution` first."*
+- `docs/maxi/constitution.md` must exist — hard stop if missing: *"No constitution found. Run `/maxi:constitution` first."*
 - Locate spec in `docs/maxi/specs/` at status `clarified`
   - If status is `drafting`: stop — *"Spec is still `drafting`. Run `/maxi:specify` first."*
   - If status is `specified`: stop — *"Spec must be `clarified` before planning. Run `/maxi:clarify` first. If the spec has no ambiguities, `/maxi:clarify` will complete in seconds and confirm this."*

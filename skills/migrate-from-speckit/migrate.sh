@@ -52,7 +52,7 @@ fi
 # Constitution paths
 # ---------------------------------------------------------------------------
 CONST_SRC=".specify/memory/constitution.md"
-CONST_DST="docs/constitution.md"
+CONST_DST="docs/maxi/constitution.md"
 if [[ -f "$CONST_SRC" ]] && [[ ! -f "$CONST_DST" ]]; then
   const_action="COPY"
 elif [[ -f "$CONST_SRC" ]] && [[ -f "$CONST_DST" ]]; then

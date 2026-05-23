@@ -9,7 +9,7 @@ Extract a structured `tasks.md` from an existing `plan.md`. Pure extraction — 
 
 ## Prereqs
 
-- `docs/constitution.md` must exist — hard stop if missing
+- `docs/maxi/constitution.md` must exist — hard stop if missing
 - Spec status must be `planned`. Other statuses:
   - `drafting` / `specified` / `clarified`: stop — *"Spec must reach `planned` status first. Run `/maxi:plan`."*
   - `tasked` or later: stop — *"Tasks already extracted. Proceed to `/maxi:analyze` or `/maxi:implement`."*

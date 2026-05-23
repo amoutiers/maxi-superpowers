@@ -32,8 +32,8 @@ Per-project artifacts:
 
 ```
 docs/
-├── constitution.md              # project principles (mandatory before any spec work)
 └── maxi/
+    ├── constitution.md          # project principles (mandatory before any spec work)
     ├── adr/                     # Architecture Decision Records (auto-captured)
     │   ├── README.md            # auto-maintained index
     │   └── NNNN-slug.md
@@ -60,7 +60,7 @@ Skills read and enforce this. Running a skill out of order gives a friendly mess
 
 ## Phase Gating
 
-- **Constitution is mandatory.** All workflow skills (except `constitution` itself) will refuse to run if `docs/constitution.md` is missing.
+- **Constitution is mandatory.** All workflow skills (except `constitution` itself) will refuse to run if `docs/maxi/constitution.md` is missing.
 
 Each skill enforces the required status strictly:
 
