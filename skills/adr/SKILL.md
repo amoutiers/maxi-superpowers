@@ -36,7 +36,7 @@ The fact that the calling skill (plan/implement) already identified the decision
 digraph adr_process {
     "Check docs/constitution.md" [shape=diamond];
     "Stop: run /maxi:constitution first" [shape=box];
-    "Compute next NNN" [shape=box];
+    "Compute next NNNN" [shape=box];
     "Load accepted ADRs" [shape=box];
     "Contradiction with existing ADR?" [shape=diamond];
     "Draft ADR (use template)" [shape=box];
@@ -49,8 +49,8 @@ digraph adr_process {
     "Discard. No file written." [shape=box];
 
     "Check docs/constitution.md" -> "Stop: run /maxi:constitution first" [label="missing"];
-    "Check docs/constitution.md" -> "Compute next NNN" [label="exists"];
-    "Compute next NNN" -> "Load accepted ADRs";
+    "Check docs/constitution.md" -> "Compute next NNNN" [label="exists"];
+    "Compute next NNNN" -> "Load accepted ADRs";
     "Load accepted ADRs" -> "Contradiction with existing ADR?" ;
     "Contradiction with existing ADR?" -> "Frame as supersede proposal" [label="yes"];
     "Contradiction with existing ADR?" -> "Draft ADR (use template)" [label="no"];
@@ -67,15 +67,15 @@ digraph adr_process {
 
 ## Step-by-Step
 
-### 1. Compute next NNN
+### 1. Compute next NNNN
 
-Scan `docs/maxi/adr/` for files matching `NNN-*.md` (excluding `README.md`). Extract the numeric prefix of each file and find the highest value. Next NNN = highest + 1, zero-padded to 3 digits. If the directory does not exist or contains no matching files, NNN = 001.
+Scan `docs/maxi/adr/` for files matching `NNNN-*.md` (excluding `README.md`). Extract the numeric prefix of each file and find the highest value. Next NNNN = highest + 1, zero-padded to 4 digits. If the directory does not exist or contains no matching files, NNNN = 0001.
 
 Use max-based numbering (not count-based) to survive deletions, renames, or manual additions — these operations change the count but not the highest assigned number.
 
 ### 2. Load accepted ADRs for contradiction check
 
-Read every `docs/maxi/adr/NNN-*.md` (where status = `accepted`) and scan their Decision sections for domain overlap with the new decision (same technology category: storage, runtime, framework, auth mechanism, etc.).
+Read every `docs/maxi/adr/NNNN-*.md` (where status = `accepted`) and scan their Decision sections for domain overlap with the new decision (same technology category: storage, runtime, framework, auth mechanism, etc.).
 
 **Surface any overlap to the user — do not decide silently.** You are not qualified to judge whether two decisions in the same domain are contradictory or simply different contexts. The user is. If there is any resemblance in domain, show it to the user and let them decide whether to supersede or treat as independent.
 
@@ -85,8 +85,8 @@ Verify `templates/adr-template.md` exists (Read tool) before proceeding; if miss
 
 Use `templates/adr-template.md` as the base. Fill in:
 
-- `adr:` — the 3-digit number
-- `slug:` — `NNN-[short-kebab-title]`
+- `adr:` — the 4-digit number
+- `slug:` — `NNNN-[short-kebab-title]`
 - `status: proposed` ← draft state; transitions to `accepted` when user confirms
 - `date:` — today in YYYY-MM-DD
 - `updated:` — today in YYYY-MM-DD
@@ -94,7 +94,7 @@ Use `templates/adr-template.md` as the base. Fill in:
 - `related_specs:` — spec slug(s) this decision applies to, if known
 - `related_principles:` — constitution principle names referenced, if any
 - `related_requirements:` — FR-### / SC-### IDs, if applicable
-- `supersedes:` — NNN of the ADR being overturned (or `null`)
+- `supersedes:` — NNNN of the ADR being overturned (or `null`)
 - `superseded_by: null`
 
 Body: fill all six sections from the architectural choice that was detected:
@@ -116,7 +116,7 @@ Body: fill all six sections from the architectural choice that was detected:
 
 If this decision contradicts an existing accepted ADR (say ADR-003), present the draft with this header:
 
-> **This decision appears to contradict ADR-003 ("original title").** Propose ADR-NNN that supersedes ADR-003?
+> **This decision appears to contradict ADR-003 ("original title").** Propose ADR-NNNN that supersedes ADR-003?
 
 The proposal shows the full new ADR draft. The user can say yes, edit, or no.
 
@@ -124,15 +124,15 @@ The proposal shows the full new ADR draft. The user can say yes, edit, or no.
 
 Output the full ADR as formatted Markdown and ask:
 
-> *"Record this as ADR-NNN? (yes / no / edit)"*
+> *"Record this as ADR-NNNN? (yes / no / edit)"*
 
 Wait for the response. Do not write anything yet.
 
 ### 6. Handle user response
 
 **`yes`:**
-- Normal case: set `status: accepted` in the ADR, then write `docs/maxi/adr/NNN-slug.md`, then regenerate index (step 7)
-- Supersede case: write new ADR; also update old ADR — set `status: superseded` and `superseded_by: NNN`; then regenerate index. If any of the three writes fails, stop and report the failure — do not leave the ADR log in a partially-written state.
+- Normal case: set `status: accepted` in the ADR, then write `docs/maxi/adr/NNNN-slug.md`, then regenerate index (step 7)
+- Supersede case: write new ADR; also update old ADR — set `status: superseded` and `superseded_by: NNNN`; then regenerate index. If any of the three writes fails, stop and report the failure — do not leave the ADR log in a partially-written state.
 
 **`edit`:**
 - Accept the user's amendments to the draft inline
@@ -173,7 +173,7 @@ These fields and the body sections MUST NOT be edited on an existing ADR:
 
 If the user wants to revise a past decision, create a new ADR that supersedes the old one. The old one stays as a historical record.
 
-**If asked to edit an existing ADR's body:** decline and explain — *"ADRs are append-only. To revise this decision, I can create ADR-NNN that supersedes ADR-NNN. Shall I?"*
+**If asked to edit an existing ADR's body:** decline and explain — *"ADRs are append-only. To revise this decision, I can create ADR-NNNN that supersedes ADR-NNNN. Shall I?"*
 
 ## Common Mistakes
 

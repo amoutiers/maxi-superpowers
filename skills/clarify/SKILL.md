@@ -27,7 +27,7 @@ Resolve open questions in an existing spec without rewriting it. Appends a `## C
    b. Append: add/update `## Clarifications` section at the end of spec.md with Q&A pairs
    c. Frontmatter: set `updated: [today's ISO date]` (`YYYY-MM-DD`)
 6. **Transition status** — change `status: specified` → `status: clarified` in spec.md frontmatter
-7. **Report** — tell user: spec clarified at `docs/maxi/specs/NNN-slug/spec.md` (status: `clarified`). Next: `/maxi:plan`.
+7. **Report** — tell user: spec clarified at `docs/maxi/specs/NNNN-slug/spec.md` (status: `clarified`). Next: `/maxi:plan`.
 
 ## Clarifications Section Format
 

@@ -1,6 +1,6 @@
 ---
-slug: NNN-feature-slug
-spec_slug: NNN-feature-slug
+slug: NNNN-feature-slug
+spec_slug: NNNN-feature-slug
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---

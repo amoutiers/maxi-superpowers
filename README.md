@@ -54,7 +54,7 @@ docs/
   maxi/
     adr/                   # Architecture Decision Records (auto-captured during plan + implement)
       README.md            # auto-maintained index
-      001-slug.md          # NNN-slug.md format
+      001-slug.md          # NNNN-slug.md format
     specs/
       001-my-feature/
         spec.md            # requirements, user stories, success criteria

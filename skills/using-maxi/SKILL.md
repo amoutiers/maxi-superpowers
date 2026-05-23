@@ -36,9 +36,9 @@ docs/
 └── maxi/
     ├── adr/                     # Architecture Decision Records (auto-captured)
     │   ├── README.md            # auto-maintained index
-    │   └── NNN-slug.md
+    │   └── NNNN-slug.md
     └── specs/
-        └── NNN-feature-slug/
+        └── NNNN-feature-slug/
             ├── spec.md          # status/updated/slug in YAML frontmatter
             ├── plan.md
             ├── tasks.md

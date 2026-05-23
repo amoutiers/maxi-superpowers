@@ -5,7 +5,7 @@ description: Use when the user invokes /maxi:specify or wants to create a new fe
 
 # specify
 
-Create a new feature specification. Invokes `maxi:brainstorming` for design dialogue, then formats output into `docs/maxi/specs/NNN-slug/spec.md`.
+Create a new feature specification. Invokes `maxi:brainstorming` for design dialogue, then formats output into `docs/maxi/specs/NNNN-slug/spec.md`.
 
 ## Prereqs
 
@@ -18,9 +18,9 @@ Create a new feature specification. Invokes `maxi:brainstorming` for design dial
 digraph specify {
     "Check docs/constitution.md" [shape=diamond];
     "STOP: No constitution found" [shape=box];
-    "Compute next NNN" [shape=box];
+    "Compute next NNNN" [shape=box];
     "Derive slug from description" [shape=box];
-    "Create docs/maxi/specs/NNN-slug/" [shape=box];
+    "Create docs/maxi/specs/NNNN-slug/" [shape=box];
     "Copy templates/spec-template.md" [shape=box];
     "Set status: drafting in frontmatter" [shape=box];
     "Invoke maxi:brainstorming" [shape=box];
@@ -30,10 +30,10 @@ digraph specify {
     "Report to user" [shape=box];
 
     "Check docs/constitution.md" -> "STOP: No constitution found" [label="missing"];
-    "Check docs/constitution.md" -> "Compute next NNN" [label="exists"];
-    "Compute next NNN" -> "Derive slug from description";
-    "Derive slug from description" -> "Create docs/maxi/specs/NNN-slug/";
-    "Create docs/maxi/specs/NNN-slug/" -> "Copy templates/spec-template.md";
+    "Check docs/constitution.md" -> "Compute next NNNN" [label="exists"];
+    "Compute next NNNN" -> "Derive slug from description";
+    "Derive slug from description" -> "Create docs/maxi/specs/NNNN-slug/";
+    "Create docs/maxi/specs/NNNN-slug/" -> "Copy templates/spec-template.md";
     "Copy templates/spec-template.md" -> "Set status: drafting in frontmatter";
     "Set status: drafting in frontmatter" -> "Invoke maxi:brainstorming";
     "Invoke maxi:brainstorming" -> "Reformat output to spec-kit schema";
@@ -55,12 +55,12 @@ Do not proceed past this step without the constitution file.
 
 **Step 2 — Compute next feature number**
 
-Scan `docs/maxi/specs/` for directories matching the pattern `NNN-*` (three-digit numeric prefix). Find the highest NNN. Add 1. If no specs directory exists or no `NNN-*` directories are found, use `001`.
+Scan `docs/maxi/specs/` for directories matching the pattern `NNNN-*` (four-digit numeric prefix). Find the highest NNNN. Add 1. If no specs directory exists or no `NNNN-*` directories are found, use `0001`.
 
 Examples:
-- No specs → `001`
-- Existing: `001-auth`, `002-export` → next is `003`
-- Existing: `001-auth`, `003-export` (gap) → next is `004`
+- No specs → `0001`
+- Existing: `0001-auth`, `0002-export` → next is `0003`
+- Existing: `0001-auth`, `0003-export` (gap) → next is `0004`
 
 **Step 3 — Derive slug**
 
@@ -73,11 +73,11 @@ Examples:
 
 **Step 4 — Create directory and copy template**
 
-Create `docs/maxi/specs/NNN-slug/`.
+Create `docs/maxi/specs/NNNN-slug/`.
 
 Verify `templates/spec-template.md` exists (Read tool) before copying; if missing, stop: *"Cannot proceed — `templates/spec-template.md` is missing. Please reinstall the maxi plugin."*
 
-Copy `templates/spec-template.md` to `docs/maxi/specs/NNN-slug/spec.md`.
+Copy `templates/spec-template.md` to `docs/maxi/specs/NNNN-slug/spec.md`.
 
 **NEVER write spec.md from scratch.** Always start from the template. This applies even if:
 - The feature is simple
@@ -90,7 +90,7 @@ Update the frontmatter in the copied `spec.md`:
 
 ```yaml
 ---
-slug: NNN-slug
+slug: NNNN-slug
 created: [today's ISO date, e.g. 2026-05-08]
 updated: [today's ISO date, e.g. 2026-05-08]
 status: drafting
@@ -124,7 +124,7 @@ Every user story MUST have:
 
 **Step 8 — Write spec.md and transition status**
 
-Overwrite `docs/maxi/specs/NNN-slug/spec.md` with the fully formatted spec. Update frontmatter:
+Overwrite `docs/maxi/specs/NNNN-slug/spec.md` with the fully formatted spec. Update frontmatter:
 
 ```yaml
 status: drafting  →  status: specified
@@ -137,17 +137,17 @@ updated: [today's ISO date]
 
 Tell the user:
 
-> "Spec created at `docs/maxi/specs/NNN-slug/spec.md` (status: `specified`). Next step: `/maxi:clarify` to resolve open questions, or `/maxi:plan` to proceed to planning."
+> "Spec created at `docs/maxi/specs/NNNN-slug/spec.md` (status: `specified`). Next step: `/maxi:clarify` to resolve open questions, or `/maxi:plan` to proceed to planning."
 
 ## Critical Rules
 
 - **Constitution first.** Hard stop if `docs/constitution.md` is missing. No exceptions.
 - **Template first.** Never write `spec.md` from scratch. Always copy `templates/spec-template.md` as the base.
-- **Compute NNN, don't guess.** Scan `docs/maxi/specs/` for existing `NNN-*` dirs. Take max + 1.
+- **Compute NNNN, don't guess.** Scan `docs/maxi/specs/` for existing `NNNN-*` dirs. Take max + 1.
 - **brainstorming before content.** Do NOT write FR-### or user stories until `maxi:brainstorming` completes. This applies even if the feature is simple or the user wants a quick spec.
 - **Schema compliance is not optional.** Every user story gets a priority (P1/P2/P3), an `Independent Test`, and `Acceptance Scenarios`. Every requirement is `FR-NNN`. Every success criterion is `SC-NNN`. "Feature is too simple" is not an exemption.
 - **Status transition is atomic.** Set `status: drafting` on creation. Set `status: specified` only after spec.md is fully written and verified.
-- **Path is fixed.** Specs live in `docs/maxi/specs/NNN-slug/spec.md` — not `docs/specs/`, not `.specify/`, not the project root.
+- **Path is fixed.** Specs live in `docs/maxi/specs/NNNN-slug/spec.md` — not `docs/specs/`, not `.specify/`, not the project root.
 - **Never copy a previous spec as the template.** Even if the feature is similar to an existing spec, always copy `templates/spec-template.md`. Previous specs may have customizations that corrupt the schema.
 
 ## Red Flags
@@ -158,7 +158,7 @@ Tell the user:
 - Writing `### Requirements` without `FR-###` numbering → schema violation
 - Setting `status: specified` before spec.md is fully written → premature transition
 - Setting `status: done`, `status: draft`, or any value other than `drafting` at creation → wrong value
-- NNN made up instead of computed → always scan `docs/maxi/specs/` for the next number
+- NNNN made up instead of computed → always scan `docs/maxi/specs/` for the next number
 - Copying a previous spec as a starting point instead of the template → always use `templates/spec-template.md`
 - User said "just a quick spec" or "this is simple, skip the details" → schema compliance is mandatory regardless of perceived simplicity
 - Skipping `Independent Test` field on a user story → every story requires one

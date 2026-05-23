@@ -1,6 +1,6 @@
 ---
-adr: 001
-slug: 001-use-sqlite-for-local-store
+adr: 0001
+slug: 0001-use-sqlite-for-local-store
 status: accepted
 date: 2026-05-08
 updated: 2026-05-08
@@ -12,7 +12,7 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-001: Use SQLite for local store
+# ADR-0001: Use SQLite for local store
 
 ## Context
 

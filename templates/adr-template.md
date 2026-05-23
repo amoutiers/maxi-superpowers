@@ -1,6 +1,6 @@
 ---
-adr: NNN
-slug: NNN-[short-decision-slug]
+adr: NNNN
+slug: NNNN-[short-decision-slug]
 status: proposed
 # Note: transitions to "accepted" when user confirms the ADR
 date: YYYY-MM-DD
@@ -13,7 +13,7 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-NNN: [Short Title — One Line]
+# ADR-NNNN: [Short Title — One Line]
 
 ## Context
 

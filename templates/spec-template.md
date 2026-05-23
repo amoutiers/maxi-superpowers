@@ -1,5 +1,5 @@
 ---
-slug: NNN-feature-slug
+slug: NNNN-feature-slug
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 status: drafting

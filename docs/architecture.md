@@ -95,9 +95,9 @@ docs/
 └── maxi/
     ├── adr/
     │   ├── README.md        # auto-maintained index (all ADRs, sorted by number)
-    │   └── NNN-slug.md      # NNN = 001–999, zero-padded
+    │   └── NNNN-slug.md      # NNNN = 00001.9999, zero-padded
     └── specs/
-        └── NNN-feature-slug/
+        └── NNNN-feature-slug/
 ```
 
 **Trigger points:** `/maxi:plan` scans the produced plan for tech-stack and architecture choices; `/maxi:implement` watches for unplanned forks reported by subagents. Both invoke `maxi:adr`, which drafts the ADR, shows it to the user, and writes only on explicit consent.

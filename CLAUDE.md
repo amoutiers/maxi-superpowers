@@ -23,8 +23,8 @@ The writing-skills TDD cycle:
 
 Per-project artifacts live at the user's project root:
 - `docs/constitution.md` — project principles
-- `docs/maxi/adr/` — Architecture Decision Records (auto-captured, NNN-slug.md format)
-- `docs/maxi/specs/NNN-slug/` — spec, plan, tasks, analysis per feature
+- `docs/maxi/adr/` — Architecture Decision Records (auto-captured, NNNN-slug.md format)
+- `docs/maxi/specs/NNNN-slug/` — spec, plan, tasks, analysis per feature
 
 ## Status Frontmatter
 

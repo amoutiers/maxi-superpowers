@@ -18,12 +18,12 @@ Non-destructive 7-pass cross-artifact quality audit. Reads `spec.md`, `plan.md`,
 
 ### Step 1 — Locate Spec
 
-Find the spec directory: `docs/maxi/specs/NNN-slug/`. If multiple in-flight specs exist, ask user which one.
+Find the spec directory: `docs/maxi/specs/NNNN-slug/`. If multiple in-flight specs exist, ask user which one.
 
 Required files:
-- `docs/maxi/specs/NNN-slug/spec.md` (FRs, SCs, user stories, edge cases)
-- `docs/maxi/specs/NNN-slug/plan.md` (architecture, phases, technical constraints)
-- `docs/maxi/specs/NNN-slug/tasks.md` (task IDs, descriptions, phase grouping, [P] markers)
+- `docs/maxi/specs/NNNN-slug/spec.md` (FRs, SCs, user stories, edge cases)
+- `docs/maxi/specs/NNNN-slug/plan.md` (architecture, phases, technical constraints)
+- `docs/maxi/specs/NNNN-slug/tasks.md` (task IDs, descriptions, phase grouping, [P] markers)
 - `docs/constitution.md` (principles, MUST/SHOULD rules)
 
 Abort with actionable message if any required file is missing.
@@ -43,7 +43,7 @@ Load only what each pass needs:
 - **Requirements inventory:** key each FR-### and SC-### by ID; note any SC items requiring buildable work (exclude post-launch business KPIs like "reduce support tickets by 50%")
 - **Task coverage map:** for each FR-### / SC-###, list which task IDs reference it (by explicit ID mention or keyword inference)
 - **Constitution rule set:** extract MUST/SHOULD statements as rules to check against
-- **ADR registry:** list all `docs/maxi/adr/NNN-*.md` files; for each record adr number, title, status, related_specs, and the decision domain (tech stack, storage, runtime, framework). If `docs/maxi/adr/` does not exist or is empty, Pass G reports "no ADRs recorded" in Metrics and skips G-type findings.
+- **ADR registry:** list all `docs/maxi/adr/NNNN-*.md` files; for each record adr number, title, status, related_specs, and the decision domain (tech stack, storage, runtime, framework). If `docs/maxi/adr/` does not exist or is empty, Pass G reports "no ADRs recorded" in Metrics and skips G-type findings.
 
 ### Step 4 — Seven Detection Passes
 
@@ -98,13 +98,13 @@ Skip this pass entirely (and note "no ADRs" in Metrics) if `docs/maxi/adr/` is e
 
 ### Step 6 — Write analysis.md
 
-Write to `docs/maxi/specs/NNN-slug/analysis.md`. Structure:
+Write to `docs/maxi/specs/NNNN-slug/analysis.md`. Structure:
 
 ```markdown
 # Specification Analysis Report
 
 Generated: [date]
-Spec: docs/maxi/specs/NNN-slug/spec.md (status: [current status])
+Spec: docs/maxi/specs/NNNN-slug/spec.md (status: [current status])
 
 ## Findings
 
@@ -152,7 +152,7 @@ If current status was already `analyzed`, `implementing`, or `done`: leave statu
 
 ### Step 8 — Report
 
-Tell user: *"Analysis complete. Report written to `docs/maxi/specs/NNN-slug/analysis.md` (status: `analyzed`). [N] critical issue(s) found. Resolve CRITICAL issues before running `/maxi:implement`."*
+Tell user: *"Analysis complete. Report written to `docs/maxi/specs/NNNN-slug/analysis.md` (status: `analyzed`). [N] critical issue(s) found. Resolve CRITICAL issues before running `/maxi:implement`."*
 
 Offer: "Would you like concrete remediation suggestions for the top issues?" — **do NOT apply remediation automatically.**
 

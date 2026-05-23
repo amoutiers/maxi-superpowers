@@ -18,7 +18,7 @@ Execute the implementation plan from `tasks.md`. Delegates to `maxi:executing-pl
 
 ## Process
 
-1. **Read tasks.md** — load all tasks from `docs/maxi/specs/NNN-slug/tasks.md`. Identify which are `- [ ]` (pending) vs `- [x]` (complete). If resuming, start from first pending task.
+1. **Read tasks.md** — load all tasks from `docs/maxi/specs/NNNN-slug/tasks.md`. Identify which are `- [ ]` (pending) vs `- [x]` (complete). If resuming, start from first pending task.
 2. **Transition to implementing** — update spec.md frontmatter `status: → implementing`; also set `updated: [today's ISO date]` on spec.md. Do this before first task begins.
 3. **Delegate to maxi:executing-plans** — **REQUIRED SUB-SKILL.** Pass the full tasks.md content and the spec context (feature slug, plan.md overview). Do NOT implement tasks directly in this session.
 4. **Track task completion** — as each task completes, tick it in tasks.md: `- [ ] T001` → `- [x] T001`.

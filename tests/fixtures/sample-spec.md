@@ -1,5 +1,5 @@
 ---
-slug: 001-sample-feature
+slug: 0001-sample-feature
 created: "2026-05-08"
 updated: "2026-05-08"
 status: drafting

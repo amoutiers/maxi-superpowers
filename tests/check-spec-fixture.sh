@@ -17,8 +17,8 @@ fi
 assert_grep "$FIXTURE" "^slug:" "spec fixture: slug field present"
 
 slug_val=$(grep "^slug:" "$FIXTURE" | sed "s/^slug: *//" | tr -d '"')
-if ! echo "$slug_val" | grep -qE "^[0-9]{3}-[a-z0-9-]+$"; then
-  echo "FAIL [spec fixture: slug shape]: '$slug_val' does not match NNN-slug pattern" >&2
+if ! echo "$slug_val" | grep -qE "^[0-9]{4}-[a-z0-9-]+$"; then
+  echo "FAIL [spec fixture: slug shape]: '$slug_val' does not match NNNN-slug pattern" >&2
   failures=$((failures + 1))
 else
   echo "OK  [spec fixture: slug shape]: $slug_val"
