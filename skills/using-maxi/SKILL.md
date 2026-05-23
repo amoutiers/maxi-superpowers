@@ -60,8 +60,17 @@ Skills read and enforce this. Running a skill out of order gives a friendly mess
 ## Phase Gating
 
 - **Constitution is mandatory.** All workflow skills (except `constitution` itself) will refuse to run if `docs/constitution.md` is missing.
-- **Soft gating.** If you try to run `/maxi:tasks` when the status is `specified`, you get: *"Cannot run /maxi:tasks — current spec status is `specified`. Run `/maxi:clarify` or `/maxi:plan` first."*
-- **Some phases accept the previous.** `/maxi:plan` accepts both `specified` and `clarified` (with a warning if `specified`). `/maxi:implement` accepts both `tasked` and `analyzed`.
+
+Each skill enforces the required status strictly:
+
+| Skill | Required status | Tolerance | Produces |
+|---|---|---|---|
+| `/maxi:specify` | none | — | `specified` |
+| `/maxi:clarify` | `specified` | none | `clarified` |
+| `/maxi:plan` | `clarified` | accepts `specified` (warns) | `planned` |
+| `/maxi:tasks` | `planned` | none | `tasked` |
+| `/maxi:analyze` | `tasked`+ | re-run ok on `analyzed`/`implementing`/`done` | `analyzed` |
+| `/maxi:implement` | `tasked` or `analyzed` | none | `implementing` → `done` |
 
 ## Vendored Superpowers Skills
 
@@ -79,7 +88,7 @@ maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `max
 
 - Never skip the constitution step.
 - Never hand-edit the `status:` frontmatter — let skills manage it.
-- Every skill that mutates an artifact bumps its `updated:` field to today's ISO date.
+- **Invariant — `updated:` field:** Every write to a maxi artifact (`spec.md`, `plan.md`, `tasks.md`, ADR file) must include bumping its `updated:` frontmatter field to today's ISO date (`YYYY-MM-DD`) in the same operation. Never bump in a separate step.
 - `/maxi:analyze` is read-only. It writes `analysis.md` but never modifies source artifacts.
 - The `analyze` skill requires constitution to be present — constitution principles inform 2 of the 7 audit passes.
 - ADRs are append-only. To revise a past decision, create a new ADR that supersedes the old one.

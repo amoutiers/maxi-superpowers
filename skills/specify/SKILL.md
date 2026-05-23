@@ -75,6 +75,8 @@ Examples:
 
 Create `docs/maxi/specs/NNN-slug/`.
 
+Verify `templates/spec-template.md` exists (Read tool) before copying; if missing, stop: *"Cannot proceed — `templates/spec-template.md` is missing. Please reinstall the maxi plugin."*
+
 Copy `templates/spec-template.md` to `docs/maxi/specs/NNN-slug/spec.md`.
 
 **NEVER write spec.md from scratch.** Always start from the template. This applies even if:

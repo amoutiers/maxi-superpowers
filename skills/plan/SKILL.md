@@ -48,7 +48,7 @@ All written to `docs/maxi/specs/NNN-slug/`:
 
 | Artifact | Required | Notes |
 |---|---|---|
-| `plan.md` | Always | Follows `templates/plan-template.md` schema |
+| `plan.md` | Always | Verify `templates/plan-template.md` exists (Read tool) before writing; if missing, stop: *"Cannot proceed — `templates/plan-template.md` is missing. Please reinstall the maxi plugin."* Then follow the template schema |
 | `research.md` | If needed | Technology choices, library comparisons |
 | `data-model.md` | If needed | Entities, relationships, schemas |
 | `contracts/` | If needed | API endpoint definitions |

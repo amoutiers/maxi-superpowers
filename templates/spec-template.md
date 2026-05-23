@@ -1,11 +1,12 @@
 ---
-slug: 000-feature-slug
-created: "[DATE]"
-updated: "[DATE]"
+slug: NNN-feature-slug
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
 status: drafting
+# Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done
 ---
 
-# Feature Specification: [FEATURE NAME]
+# Feature Specification: [feature-name]
 
 ## User Scenarios & Testing *(mandatory)*
 

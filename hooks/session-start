@@ -26,12 +26,13 @@ escape_for_json() {
 using_maxi_escaped=$(escape_for_json "$using_maxi_content")
 session_context="<EXTREMELY_IMPORTANT>\nYou have maxi.\n\n**Below is the full content of your 'maxi:using-maxi' skill - your introduction to the maxi spec-driven pipeline. For all other maxi skills, use the 'Skill' tool:**\n\n${using_maxi_escaped}\n</EXTREMELY_IMPORTANT>"
 
-# Output context injection as JSON.
-# Cursor hooks expect additional_context (snake_case).
-# Claude Code hooks expect hookSpecificOutput.additionalContext (nested).
-# Copilot CLI (v1.0.11+) and others expect additionalContext (top-level, SDK standard).
-# Claude Code reads BOTH additional_context and hookSpecificOutput without
-# deduplication, so we must emit only the field the current platform consumes.
+# Output context injection in platform-specific format.
+# This script may be invoked by different platforms, each expecting a different JSON shape:
+#   - Claude Code: hookSpecificOutput.additionalContext (via hooks.json + CLAUDE_PLUGIN_ROOT)
+#   - Cursor: additional_context top-level (if Cursor loads this via CURSOR_PLUGIN_ROOT)
+#   - Copilot CLI / unknown: additionalContext top-level (SDK standard)
+# Note: hooks.json only registers this hook for Claude Code. Cursor/Copilot support
+# requires each platform to load the script via its own hook mechanism.
 #
 # Uses printf instead of heredoc to work around bash 5.3+ heredoc hang.
 # See: https://github.com/obra/superpowers/issues/571

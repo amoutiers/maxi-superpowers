@@ -1,5 +1,5 @@
 ---
-name: maxi-adr
+name: adr
 description: Use when the plan or implement skill has detected an architectural decision (tech stack choice, storage selection, framework pick, significant trade-off) that should be recorded as an Architecture Decision Record in the current maxi project
 ---
 
@@ -80,6 +80,8 @@ Read every `docs/maxi/adr/NNN-*.md` (where status = `accepted`) and scan their D
 **Surface any overlap to the user — do not decide silently.** You are not qualified to judge whether two decisions in the same domain are contradictory or simply different contexts. The user is. If there is any resemblance in domain, show it to the user and let them decide whether to supersede or treat as independent.
 
 ### 3. Draft the ADR
+
+Verify `templates/adr-template.md` exists (Read tool) before proceeding; if missing, stop: *"Cannot proceed — `templates/adr-template.md` is missing. Please reinstall the maxi plugin."*
 
 Use `templates/adr-template.md` as the base. Fill in:
 

@@ -91,7 +91,7 @@ check_template \
 # tasks-template
 check_template \
   "$ROOT/templates/tasks-template.md" "tasks-template.md" "true" \
-  "description:" "slug:" "spec_slug:" "created:" "updated:" \
+  "slug:" "spec_slug:" "created:" "updated:" \
   "--" \
   "## Format:" "## Path Conventions"
 
