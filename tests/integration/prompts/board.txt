@@ -1,0 +1,1 @@
+Show me a kanban view of all the specs in this project.

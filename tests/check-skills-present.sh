@@ -9,7 +9,7 @@ SKILLS_DIR="$ROOT/skills"
 failures=0
 
 MAXI_SKILLS=(
-  adr analyze clarify constitution implement migrate-from-speckit plan specify tasks using-maxi
+  adr analyze board clarify constitution implement migrate-from-speckit plan specify tasks using-maxi
 )
 
 for skill in "${MAXI_SKILLS[@]}"; do

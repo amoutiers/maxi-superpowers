@@ -13,6 +13,7 @@ SKILLS=(
   "analyze"
   "implement"
   "constitution"
+  "board"
 )
 
 echo "=== Maxi Skill Triggering Tests ==="
