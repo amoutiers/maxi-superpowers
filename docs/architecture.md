@@ -72,7 +72,7 @@ Skills under `skills/` that originate from superpowers are kept in sync with `ve
 
 ## The Delegation Map
 
-See [delegation-map.md](delegation-map.md) for the full table. Summary:
+See [delegation-map.md](delegation-map.md) for the full table, and [pipeline-flow.md](pipeline-flow.md) for a visual Mermaid diagram of the complete pipeline including status transitions, bypass branches, and delegations. Summary:
 
 | maxi skill | Delegates to |
 |---|---|
@@ -118,9 +118,14 @@ Each skill checks this field at startup:
 
 - If the spec is **behind** the required status, the skill stops with a message directing the user to the missing step.
 - If the spec is **ahead** of the status (e.g., already `planned` when calling `/maxi:plan`), the skill stops to prevent accidental re-runs.
-- Some skills allow adjacent statuses with a warning (e.g., `/maxi:plan` accepts `specified` with a "clarification skipped" notice).
 
 Skills update `status:` in-place at the end of their process. The frontmatter is the single source of truth for pipeline position.
+
+### Phase Gating Philosophy
+
+Each pipeline phase has its own responsibility — that is why it exists as a separate skill. Allowing a phase to be bypassed contradicts the premise that each phase deserves a dedicated step. The pipeline is therefore strict: every feature passes through every phase, in order.
+
+Skills are designed to be cheap when there is nothing to do. `/maxi:clarify` can resolve to "no ambiguities found" in a single step. `/maxi:analyze` produces a clean `analysis.md` with zero findings instantly. The ceremony cost is real but bounded; the value of the discipline is not.
 
 ## Vendoring Mechanics
 
@@ -138,3 +143,20 @@ bash scripts/sync-superpowers.sh
 ```
 
 `sync-superpowers.sh` copies skills from `vendor/superpowers/skills/` into `skills/` and updates `VENDORED.md`. The `check-sync-invariant.sh` test verifies that `skills/` and `vendor/superpowers/skills/` are in sync — it fails if they diverge.
+
+## Design Decisions
+
+### Strict pipeline — no skips (2026-05-28)
+
+**Decision:** Every pipeline phase is mandatory. No phase may be bypassed, even with a warning.
+
+**Context:** An earlier version allowed two skips: `/maxi:plan` accepted `specified` (skipping clarify, with warning), and `/maxi:implement` accepted `tasked` (skipping analyze, with warning). This created an undocumented asymmetry — only `clarify` and `analyze` were skippable, with no written rationale. The phrase "Nothing skips the queue" in this document was contradicted in practice.
+
+**Alternatives considered:**
+- *Status quo + docs*: document the asymmetry as "raffinement vs structurel" rule. Rejected because it justifies the symptom rather than fixing the design.
+- *Extend skippability to `tasks`*: apply the same "derivable from plan.md" logic. Rejected because it weakens the pipeline further.
+- *Per-project mandatory flags*: constitution declares which phases are mandatory per project. Rejected as over-engineering for a marginal gain.
+
+**Rationale:** If a skill exists as a separate pipeline phase, its responsibility is worth enforcing. The "skip-with-warning" pattern is a code smell — it delegates a design decision to the user at runtime. A strict pipeline makes the discipline explicit and non-negotiable.
+
+**Consequences:** Specs migrated via `migrate-from-speckit` at status `specified` must pass through `/maxi:clarify` before `/maxi:plan`. This is intentional.
