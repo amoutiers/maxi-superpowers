@@ -26,16 +26,35 @@ superseded_by: null
 constraints (time, budget, team skill, existing infrastructure) and
 the goals the decision must serve.]
 
+## Decision Drivers
+
+<!--
+  What criteria determined the choice? Derive from: constitution principles
+  (related_principles), spec requirements (FR-###, SC-###), and explicit
+  constraints from the plan. Minimum 1, usually 2–4.
+-->
+
+- [criterion — e.g., no external server dependency]
+- [criterion — e.g., aligns with principle "II. Simplicity Over Cleverness"]
+- [criterion — e.g., SQL query capability required]
+
 ## Considered Options
 
 <!--
   List every meaningful option that was on the table, including the
   status quo if "do nothing" was a live option.
+  For each option, add ✅/❌ lines referencing a driver above.
 -->
 
 - **Option A: [Name]** — [one-sentence description]
+  - ✅ Satisfies driver: [criterion]
+  - ❌ [trade-off or limitation]
 - **Option B: [Name]** — [one-sentence description]
+  - ✅ [pro]
+  - ❌ Violates driver: [criterion]
 - **Option C: [Name]** — [one-sentence description]
+  - ✅ [pro]
+  - ❌ [con]
 
 ## Decision
 

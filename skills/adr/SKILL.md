@@ -97,7 +97,20 @@ Use `templates/adr-template.md` as the base. Fill in:
 - `supersedes:` — NNN of the ADR being overturned (or `null`)
 - `superseded_by: null`
 
-Body: fill Context, Considered Options, Decision, Consequences, Confirmation from the architectural choice that was detected.
+Body: fill all six sections from the architectural choice that was detected:
+
+- **Context** — the forces, constraints, and goals that made this decision necessary
+- **Decision Drivers** — list 2–4 criteria that determine which option wins. Derive from:
+  - Constitution principles in `related_principles` (e.g., "III. Data Integrity First")
+  - Spec requirements in `related_requirements` (FR-###, SC-###)
+  - Explicit constraints from the plan (e.g., "must support 100+ concurrent writes")
+  Never leave this section empty — if no requirements are referenced, state the implicit constraint that drove the choice.
+- **Considered Options** — for each option, add ✅/❌ lines that reference a specific driver:
+  `✅ Satisfies driver: <criterion>` or `❌ Violates driver: <criterion>`
+  Generic ✅/❌ without driver reference are not sufficient.
+- **Decision** — the chosen option with a concise rationale tied to the drivers
+- **Consequences** — concrete implications of the chosen option (Good/Bad)
+- **Confirmation** — how the decision will be verified or enforced over time
 
 ### 4. Frame supersede proposal (if contradiction found)
 
@@ -155,7 +168,7 @@ Once an ADR is written, its **content is immutable**. These fields MAY be update
 - `supersedes`
 
 These fields and the body sections MUST NOT be edited on an existing ADR:
-- Any body section (Context, Options, Decision, Consequences, Confirmation)
+- Any body section (Context, Decision Drivers, Options, Decision, Consequences, Confirmation)
 - `adr`, `slug`, `date`, `related_specs`, `related_principles`, `related_requirements`
 
 If the user wants to revise a past decision, create a new ADR that supersedes the old one. The old one stays as a historical record.

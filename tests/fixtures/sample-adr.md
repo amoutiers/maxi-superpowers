@@ -20,12 +20,27 @@ The CSV-to-JSON CLI tool processes files on a single user's machine with no
 network requirement and no concurrent writers. We need lightweight persistent
 storage for intermediate query results.
 
+## Decision Drivers
+
+- No external server dependency (single-user local CLI, no provisioning)
+- Zero-configuration install (aligns with "II. Simplicity Over Cleverness")
+- SQL query capability required for filtering and aggregation (FR-003)
+
 ## Considered Options
 
 - **SQLite** — embedded relational database, zero external dependencies, ships
   with Python stdlib
+  - ✅ Satisfies driver: no server to provision or maintain
+  - ✅ Satisfies driver: ships with Python stdlib, zero extra install
+  - ✅ Satisfies driver: full SQL support for filtering and aggregation
+  - ❌ Single-writer concurrency model (acceptable for local CLI)
 - **Redis** — fast key-value store requiring a running server process
+  - ✅ Fast, widely known
+  - ❌ Violates driver: requires running server (no zero-config install)
+  - ❌ No SQL query capability
 - **In-memory dict + JSON file** — simple but no query capability
+  - ✅ Trivially simple, zero dependencies
+  - ❌ Violates driver: no SQL query capability for filtering and aggregation
 
 ## Decision
 

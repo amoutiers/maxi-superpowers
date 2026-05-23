@@ -51,14 +51,14 @@ check_template \
   "$ROOT/templates/adr-template.md" "adr-template.md" "true" \
   "adr:" "slug:" "status:" "date:" "updated:" "decider:" "related_specs:" "related_principles:" "related_requirements:" "supersedes:" "superseded_by:" \
   "--" \
-  "^## Context" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
+  "^## Context" "^## Decision Drivers" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
 
 # adr fixture
 check_template \
   "$ROOT/tests/fixtures/sample-adr.md" "fixtures/sample-adr.md" "true" \
   "adr:" "slug:" "status:" "date:" "updated:" "decider:" "related_specs:" "related_principles:" "related_requirements:" "supersedes:" "superseded_by:" \
   "--" \
-  "^## Context" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
+  "^## Context" "^## Decision Drivers" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
 
 # spec-template
 check_template \
