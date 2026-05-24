@@ -2,8 +2,8 @@
 adr: 0001
 slug: 0001-fsm-status-expansion
 status: accepted
-date: 2026-05-28
-updated: 2026-05-28
+date: 2026-05-24
+updated: 2026-05-24
 decider: "Antoine Moutiers"
 related_specs: ["0001-design-review-fixes"]
 related_principles: ["III. Strict Pipeline — No Skipping", "V. Artifacts Over Chat"]
@@ -18,7 +18,7 @@ superseded_by: null
 
 The maxi pipeline FSM originally defined 8 forward-only statuses: `drafting → specified → clarified → planned → tasked → analyzed → implementing → done`. All statuses implied active forward progression. There was no way to represent a spec that was intentionally paused (blocked, de-prioritised) or definitively abandoned — features that any long-lived project will inevitably need.
 
-Without lifecycle statuses, abandoned specs accumulated as `implementing` entries on `/maxi:board` with growing staleness indicators, and users were forced to either delete spec directories (losing history) or hand-edit `status:` (forbidden by constitution). The 2026-05-28 design review (spec 0001) identified this as F5 — a gap that would force workarounds in any real project.
+Without lifecycle statuses, abandoned specs accumulated as `implementing` entries on `/maxi:board` with growing staleness indicators, and users were forced to either delete spec directories (losing history) or hand-edit `status:` (forbidden by constitution). The 2026-05-24 design review (spec 0001) identified this as F5 — a gap that would force workarounds in any real project.
 
 ## Decision Drivers
 

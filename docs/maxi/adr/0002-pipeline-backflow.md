@@ -2,8 +2,8 @@
 adr: 0002
 slug: 0002-pipeline-backflow
 status: accepted
-date: 2026-05-28
-updated: 2026-05-28
+date: 2026-05-24
+updated: 2026-05-24
 decider: "Antoine Moutiers"
 related_specs: ["0001-design-review-fixes"]
 related_principles: ["III. Strict Pipeline — No Skipping", "IV. ADR for Every Non-Trivial Architectural Decision", "V. Artifacts Over Chat"]
@@ -18,7 +18,7 @@ superseded_by: null
 
 The maxi pipeline is strictly forward-only: `specified → clarified → planned → … → done`. Once a spec reaches `planned` or beyond, the existing skills (`clarify`, `analyze`) refuse to run on it (by design). Yet real projects change: requirements clarify late, scope shifts after planning, a stakeholder adds a constraint post-task extraction.
 
-Before this ADR, the only escape was to hand-edit `status:` — which `using-maxi/SKILL.md` explicitly forbids ("Never hand-edit the `status:` frontmatter"). Users were forced to choose between violating the constitution or creating a brand-new spec (losing all prior context). The 2026-05-28 design review (spec 0001, F4) identified this as a structural gap that would drive pipeline bypass in any active project.
+Before this ADR, the only escape was to hand-edit `status:` — which `using-maxi/SKILL.md` explicitly forbids ("Never hand-edit the `status:` frontmatter"). Users were forced to choose between violating the constitution or creating a brand-new spec (losing all prior context). The 2026-05-24 design review (spec 0001, F4) identified this as a structural gap that would drive pipeline bypass in any active project.
 
 ## Decision Drivers
 

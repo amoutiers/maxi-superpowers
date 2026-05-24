@@ -146,7 +146,7 @@ bash scripts/sync-superpowers.sh
 
 ## Design Decisions
 
-### Strict pipeline — no skips (2026-05-28)
+### Strict pipeline — no skips (2026-05-24)
 
 **Decision:** Every pipeline phase is mandatory. No phase may be bypassed, even with a warning.
 

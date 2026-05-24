@@ -42,7 +42,7 @@ Skills read this to enforce phase gating. Never bypass it.
 3. **`skills/using-maxi/SKILL.md`** — Phase gating table and status state machine string (injected at every session start — stale content misleads Claude from turn 0).
 4. **`CLAUDE.md`** (this file) — Skill count in Overview, status field values in Status Frontmatter, fast-tier descriptions, and integration test list.
 
-**This is not optional.** The 2026-05-28 design review found that `using-maxi` had been injecting a stale phase-gating table for every session after the strict-pipeline decision — because only the skill implementations were updated, not the documentation. That class of bug is prevented by updating all four files atomically.
+**This is not optional.** The 2026-05-24 design review found that `using-maxi` had been injecting a stale phase-gating table for every session after the strict-pipeline decision — because only the skill implementations were updated, not the documentation. That class of bug is prevented by updating all four files atomically.
 
 ## Testing
 

@@ -1,7 +1,7 @@
 ---
 version: "1.1.0"
-ratified: 2026-05-28
-last_amended: 2026-05-28
+ratified: 2026-05-24
+last_amended: 2026-05-24
 ---
 
 # maxi-superpowers Constitution
@@ -46,4 +46,4 @@ Every design decision must persist in a file. `spec.md`, `plan.md`, `tasks.md`, 
 
 The constitution takes precedence over any other practice documented in this repo. In case of conflict between a skill and the constitution, the constitution wins — the skill must be updated. Any amendment to the constitution bumps `version` (semver), updates `last_amended`, and generates an ADR.
 
-**Version**: 1.1.0 | **Ratified**: 2026-05-28 | **Last Amended**: 2026-05-28
+**Version**: 1.1.0 | **Ratified**: 2026-05-24 | **Last Amended**: 2026-05-24
