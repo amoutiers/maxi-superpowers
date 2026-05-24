@@ -9,6 +9,16 @@ flowchart TD
     subgraph row1[" "]
         direction LR
 
+        subgraph lifecycle["Lifecycle Skills (maxi-native)"]
+            PARK["/maxi:park\n─────────────\nany active → parked\n(stores parked_from:)"]
+            RESUME["/maxi:resume\n─────────────\nparked → parked_from\n(clears parked_from:)"]
+            CANCEL["/maxi:cancel\n─────────────\nany active → cancelled\n(terminal)"]
+            REVISE["/maxi:revise\n─────────────\nrollback to earlier phase\n(A+ picker, consent-gated)"]
+            BOARD["/maxi:board\n─────────────\nread-only kanban\n(no state change)"]
+            PARKED(["⏸ parked\n(non-terminal)"])
+            CANCELLED(["✗ cancelled\n(terminal)"])
+        end
+
         subgraph pipeline["Main Pipeline (maxi-native)"]
             CONSTITUTION["/maxi:constitution\n─────────────\nwrites docs/maxi/constitution.md"]
             SPECIFY["/maxi:specify\n─────────────\ndrafting → specified"]
@@ -19,16 +29,6 @@ flowchart TD
             IMPLEMENT["/maxi:implement\n─────────────\nanalyzed → implementing → done"]
             ADR["maxi:adr\n─────────────\n(internal — never\ninvoked by user)"]
             DONE(["✓ done"])
-        end
-
-        subgraph lifecycle["Lifecycle Skills (maxi-native)"]
-            PARK["/maxi:park\n─────────────\nany active → parked\n(stores parked_from:)"]
-            RESUME["/maxi:resume\n─────────────\nparked → parked_from\n(clears parked_from:)"]
-            CANCEL["/maxi:cancel\n─────────────\nany active → cancelled\n(terminal)"]
-            REVISE["/maxi:revise\n─────────────\nrollback to earlier phase\n(A+ picker, consent-gated)"]
-            BOARD["/maxi:board\n─────────────\nread-only kanban\n(no state change)"]
-            PARKED(["⏸ parked\n(non-terminal)"])
-            CANCELLED(["✗ cancelled\n(terminal)"])
         end
     end
 
