@@ -104,6 +104,8 @@ After `--apply` exits 0, tell the user:
 
 > "Migration complete. Originals in `specs/` and `.specify/` are untouched. Review `docs/maxi/specs/`, then run `/maxi:specify` to add new features."
 
+If any migrated spec landed at status `planned`, `tasked`, or `done`, it will have a `## Migration Notes` section at the bottom of its `spec.md` documenting which maxi pipeline phases were not run (trusted from spec-kit history). Mention this to the user so they are aware.
+
 ## What migrate.sh does (reference)
 
 The script handles these transforms — you do NOT need to re-implement any of this:

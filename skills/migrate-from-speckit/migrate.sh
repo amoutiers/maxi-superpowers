@@ -205,6 +205,30 @@ for i in "${!slugs[@]}"; do
   } > "$tmp"
   mv "$tmp" "$spec_file"
 
+  # Append Migration Notes for specs that skipped pipeline phases
+  if [[ "$st" != "specified" ]]; then
+    case "$st" in
+      planned)
+        skipped_phases="- \`/maxi:clarify\` (spec considered clarified from spec-kit history)"
+        ;;
+      tasked)
+        skipped_phases="- \`/maxi:clarify\` (spec considered clarified from spec-kit history)
+- \`/maxi:plan\` (plan.md found in spec-kit)
+- \`/maxi:tasks\` (tasks.md found in spec-kit)"
+        ;;
+      done)
+        skipped_phases="- \`/maxi:clarify\`, \`/maxi:plan\`, \`/maxi:tasks\`, \`/maxi:analyze\`, \`/maxi:implement\` (retrospective/shipped spec)"
+        ;;
+      *)
+        skipped_phases=""
+        ;;
+    esac
+    if [[ -n "$skipped_phases" ]]; then
+      printf '\n## Migration Notes\n\n**Migrated from spec-kit on %s.** Status inferred as `%s` from artefacts found.\n\nPipeline phases not run in maxi (trusted from spec-kit history):\n%s\n\nFrom this status forward, the strict maxi pipeline applies.\n' \
+        "$TODAY" "$st" "$skipped_phases" >> "$spec_file"
+    fi
+  fi
+
   # Add frontmatter to plan.md if present and not already fronted
   if [[ -f "$plan_file" ]] && ! head -1 "$plan_file" | grep -q '^---'; then
     tmp=$(mktemp)

@@ -159,4 +159,7 @@ bash scripts/sync-superpowers.sh
 
 **Rationale:** If a skill exists as a separate pipeline phase, its responsibility is worth enforcing. The "skip-with-warning" pattern is a code smell — it delegates a design decision to the user at runtime. A strict pipeline makes the discipline explicit and non-negotiable.
 
-**Consequences:** Specs migrated via `migrate-from-speckit` at status `specified` must pass through `/maxi:clarify` before `/maxi:plan`. This is intentional.
+**Consequences:**
+- Specs at status `drafting` or `specified` must pass through the full remaining pipeline from that status.
+- `/maxi:migrate-from-speckit` is an **explicit exception**: it infers status from pre-existing spec-kit artefacts (`planned`, `tasked`, `done`). Trust is delegated to the spec-kit history. From the inferred status forward, the strict pipeline applies without exception.
+- Migrated specs with status above `specified` have a `## Migration Notes` section appended, documenting which maxi pipeline phases were not run. This section is informational — it records provenance, not a mandate to re-run phases.
