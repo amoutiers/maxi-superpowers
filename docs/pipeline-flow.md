@@ -6,20 +6,21 @@ For the authoritative source on delegation and gating rules, see [delegation-map
 
 ```mermaid
 flowchart TD
-    subgraph pipeline["Main Pipeline (maxi-native)"]
-        CONSTITUTION["/maxi:constitution\n─────────────\nwrites docs/maxi/constitution.md"]
-        SPECIFY["/maxi:specify\n─────────────\ndrafting → specified"]
-        CLARIFY["/maxi:clarify\n─────────────\nspecified → clarified\n(interactive Q&A)"]
-        PLAN["/maxi:plan\n─────────────\nclarified → planned"]
-        TASKS["/maxi:tasks\n─────────────\nplanned → tasked\n(extraction only)"]
-        ANALYZE["/maxi:analyze\n─────────────\ntasked → analyzed\n(7-pass audit)"]
-        IMPLEMENT["/maxi:implement\n─────────────\nanalyzed → implementing → done"]
-        ADR["maxi:adr\n─────────────\n(internal — never\ninvoked by user)"]
-        DONE(["✓ done"])
-    end
-
-    subgraph bottom[" "]
+    subgraph row1[" "]
         direction LR
+
+        subgraph pipeline["Main Pipeline (maxi-native)"]
+            CONSTITUTION["/maxi:constitution\n─────────────\nwrites docs/maxi/constitution.md"]
+            SPECIFY["/maxi:specify\n─────────────\ndrafting → specified"]
+            CLARIFY["/maxi:clarify\n─────────────\nspecified → clarified\n(interactive Q&A)"]
+            PLAN["/maxi:plan\n─────────────\nclarified → planned"]
+            TASKS["/maxi:tasks\n─────────────\nplanned → tasked\n(extraction only)"]
+            ANALYZE["/maxi:analyze\n─────────────\ntasked → analyzed\n(7-pass audit)"]
+            IMPLEMENT["/maxi:implement\n─────────────\nanalyzed → implementing → done"]
+            ADR["maxi:adr\n─────────────\n(internal — never\ninvoked by user)"]
+            DONE(["✓ done"])
+        end
+
         subgraph lifecycle["Lifecycle Skills (maxi-native)"]
             PARK["/maxi:park\n─────────────\nany active → parked\n(stores parked_from:)"]
             RESUME["/maxi:resume\n─────────────\nparked → parked_from\n(clears parked_from:)"]
@@ -29,13 +30,13 @@ flowchart TD
             PARKED(["⏸ parked\n(non-terminal)"])
             CANCELLED(["✗ cancelled\n(terminal)"])
         end
+    end
 
-        subgraph vendored["Superpowers (vendored)"]
-            BRAINSTORMING["maxi:brainstorming"]
-            WRITING_PLANS["maxi:writing-plans"]
-            EXECUTING_PLANS["maxi:executing-plans"]
-            CODE_REVIEW["maxi:requesting-code-review"]
-        end
+    subgraph vendored["Superpowers (vendored)"]
+        BRAINSTORMING["maxi:brainstorming"]
+        WRITING_PLANS["maxi:writing-plans"]
+        EXECUTING_PLANS["maxi:executing-plans"]
+        CODE_REVIEW["maxi:requesting-code-review"]
     end
 
     %% Main pipeline transitions (thick arrows)
@@ -56,6 +57,12 @@ flowchart TD
     RESUME -->|"back into pipeline\nat prior status"| CLARIFY
     CANCEL -->|"any active status"| CANCELLED
     REVISE -->|"rollback: clarified/planned/\ntasked/analyzed"| CLARIFY
+
+    %% Invisible links to anchor vendored below both blocks
+    DONE ~~~ BRAINSTORMING
+    DONE ~~~ WRITING_PLANS
+    CANCELLED ~~~ EXECUTING_PLANS
+    CANCELLED ~~~ CODE_REVIEW
 
     %% Delegations to superpowers (dashed arrows)
     SPECIFY -.->|"delegates"| BRAINSTORMING
