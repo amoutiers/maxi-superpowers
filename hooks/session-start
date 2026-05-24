@@ -7,6 +7,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+# Only inject in maxi projects — skip in projects without docs/maxi/
+if [ ! -d "$PWD/docs/maxi" ]; then
+  exit 0
+fi
+
 # Read using-maxi content
 using_maxi_content=$(cat "${PLUGIN_ROOT}/skills/using-maxi/SKILL.md" 2>&1 || echo "Error reading using-maxi skill")
 
