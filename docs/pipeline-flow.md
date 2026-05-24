@@ -18,14 +18,24 @@ flowchart TD
         DONE(["✓ done"])
     end
 
-    subgraph lifecycle["Lifecycle Skills (maxi-native)"]
-        PARK["/maxi:park\n─────────────\nany active → parked\n(stores parked_from:)"]
-        RESUME["/maxi:resume\n─────────────\nparked → parked_from\n(clears parked_from:)"]
-        CANCEL["/maxi:cancel\n─────────────\nany active → cancelled\n(terminal)"]
-        REVISE["/maxi:revise\n─────────────\nrollback to earlier phase\n(A+ picker, consent-gated)"]
-        BOARD["/maxi:board\n─────────────\nread-only kanban\n(no state change)"]
-        PARKED(["⏸ parked\n(non-terminal)"])
-        CANCELLED(["✗ cancelled\n(terminal)"])
+    subgraph bottom[" "]
+        direction LR
+        subgraph lifecycle["Lifecycle Skills (maxi-native)"]
+            PARK["/maxi:park\n─────────────\nany active → parked\n(stores parked_from:)"]
+            RESUME["/maxi:resume\n─────────────\nparked → parked_from\n(clears parked_from:)"]
+            CANCEL["/maxi:cancel\n─────────────\nany active → cancelled\n(terminal)"]
+            REVISE["/maxi:revise\n─────────────\nrollback to earlier phase\n(A+ picker, consent-gated)"]
+            BOARD["/maxi:board\n─────────────\nread-only kanban\n(no state change)"]
+            PARKED(["⏸ parked\n(non-terminal)"])
+            CANCELLED(["✗ cancelled\n(terminal)"])
+        end
+
+        subgraph vendored["Superpowers (vendored)"]
+            BRAINSTORMING["maxi:brainstorming"]
+            WRITING_PLANS["maxi:writing-plans"]
+            EXECUTING_PLANS["maxi:executing-plans"]
+            CODE_REVIEW["maxi:requesting-code-review"]
+        end
     end
 
     %% Main pipeline transitions (thick arrows)
@@ -46,17 +56,6 @@ flowchart TD
     RESUME -->|"back into pipeline\nat prior status"| CLARIFY
     CANCEL -->|"any active status"| CANCELLED
     REVISE -->|"rollback: clarified/planned/\ntasked/analyzed"| CLARIFY
-
-    subgraph vendored["Superpowers (vendored)"]
-        BRAINSTORMING["maxi:brainstorming"]
-        WRITING_PLANS["maxi:writing-plans"]
-        EXECUTING_PLANS["maxi:executing-plans"]
-        CODE_REVIEW["maxi:requesting-code-review"]
-    end
-
-    %% Invisible links to push vendored below lifecycle
-    PARKED ~~~ BRAINSTORMING
-    CANCELLED ~~~ CODE_REVIEW
 
     %% Delegations to superpowers (dashed arrows)
     SPECIFY -.->|"delegates"| BRAINSTORMING
