@@ -68,10 +68,12 @@ Each skill enforces the required status strictly:
 |---|---|---|---|
 | `/maxi:specify` | none | — | `specified` |
 | `/maxi:clarify` | `specified` | none | `clarified` |
-| `/maxi:plan` | `clarified` | accepts `specified` (warns) | `planned` |
+| `/maxi:plan` | `clarified` | none | `planned` |
 | `/maxi:tasks` | `planned` | none | `tasked` |
 | `/maxi:analyze` | `tasked`+ | re-run ok on `analyzed`/`implementing`/`done` | `analyzed` |
-| `/maxi:implement` | `tasked` or `analyzed` | none | `implementing` → `done` |
+| `/maxi:implement` | `analyzed` | none | `implementing` → `done` |
+
+> **Note:** Skills are designed to be cheap when there is nothing to do. `/maxi:clarify` completes in seconds if the spec has no ambiguities. `/maxi:analyze` produces a clean report instantly if there are no issues. The discipline cost is bounded; the value is not.
 
 ## Vendored Superpowers Skills
 

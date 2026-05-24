@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers is a Claude Code plugin. It vendors superpowers' skills via git subtree and adds 10 maxi-native skills: 7 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`), 1 internal pipeline skill (`adr`), 1 session skill (`using-maxi`), and 1 migration utility (`migrate-from-speckit`).
+maxi-superpowers is a Claude Code plugin. It vendors superpowers' skills via git subtree and adds 11 maxi-native skills: 8 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`), 1 internal pipeline skill (`adr`), 1 session skill (`using-maxi`), and 1 migration utility (`migrate-from-speckit`).
 
 ## Developing New Skills
 
@@ -42,7 +42,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-sync-invariant.sh` — vendored skills in `skills/` are byte-identical to `vendor/superpowers/skills/`
 - `check-spec-fixture.sh` — spec fixture has `slug`/`created`/`status` fields; all 8 status values round-trip
 - `check-templates.sh` — all 5 maxi templates + 2 fixtures have required fields and body sections
-- `check-skills-present.sh` — all 10 maxi-native skills exist
+- `check-skills-present.sh` — all 11 maxi-native skills exist
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
 - `check-hooks.sh` — `hooks/hooks.json` is valid; hook scripts exist and are executable
 - `check-vendored-doc.sh` — `VENDORED.md` has required version/date lines (regression guard for `bump-superpowers.sh`)
@@ -53,4 +53,4 @@ Run `bash tests/run-all.sh` after changes.
 ```
 bash tests/run-all.sh --integration
 ```
-Runs `tests/integration/run-all.sh`: 7 naive prompts that assert each maxi command skill (`/maxi:specify`, `/maxi:clarify`, `/maxi:plan`, `/maxi:tasks`, `/maxi:analyze`, `/maxi:implement`, `/maxi:constitution`) auto-triggers via the Skill tool.
+Runs `tests/integration/run-all.sh`: 8 naive prompts that assert each maxi command skill (`/maxi:specify`, `/maxi:clarify`, `/maxi:plan`, `/maxi:tasks`, `/maxi:analyze`, `/maxi:implement`, `/maxi:constitution`, `/maxi:board`) auto-triggers via the Skill tool.

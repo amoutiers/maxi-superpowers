@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Check that all 10 maxi-native skills exist as skills/<name>/SKILL.md
+# Check that all 11 maxi-native skills exist as skills/<name>/SKILL.md
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"

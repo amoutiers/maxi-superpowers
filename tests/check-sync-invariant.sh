@@ -17,20 +17,28 @@ fi
 
 for vendor_dir in "$VENDOR"/*/; do
   name=$(basename "$vendor_dir")
-  vendor_skill="$vendor_dir/SKILL.md"
-  skills_skill="$SKILLS/$name/SKILL.md"
 
-  if [ ! -f "$vendor_skill" ]; then
+  if [ ! -f "$vendor_dir/SKILL.md" ]; then
     echo "SKIP [$name]: no SKILL.md in vendor (unusual)" >&2
     continue
   fi
 
-  local_failures_before=$failures
+  skills_dir="$SKILLS/$name"
 
-  assert_file_exists "$skills_skill" "$name: skills/ copy"
-  if [ "$failures" -gt "$local_failures_before" ]; then continue; fi
+  if [ ! -d "$skills_dir" ]; then
+    echo "FAIL [$name: skills/ copy]: directory missing" >&2
+    failures=$((failures + 1))
+    continue
+  fi
 
-  assert_files_equal "$vendor_skill" "$skills_skill" "$name: SKILL.md in sync with vendor"
+  diff_output=$(diff -r "$vendor_dir" "$skills_dir" 2>&1 || true)
+  if [ -n "$diff_output" ]; then
+    echo "FAIL [$name: skill dir in sync with vendor]:" >&2
+    echo "$diff_output" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [$name: skill dir in sync with vendor]"
+  fi
 done
 
 summary_and_exit "vendor sync checks"
