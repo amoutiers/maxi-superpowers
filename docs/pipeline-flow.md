@@ -28,13 +28,6 @@ flowchart RL
         CANCELLED(["✗ cancelled\n(terminal)"])
     end
 
-    subgraph vendored["Superpowers (vendored)"]
-        BRAINSTORMING["maxi:brainstorming"]
-        WRITING_PLANS["maxi:writing-plans"]
-        EXECUTING_PLANS["maxi:executing-plans"]
-        CODE_REVIEW["maxi:requesting-code-review"]
-    end
-
     %% Main pipeline transitions (thick arrows)
     CONSTITUTION ==> SPECIFY
     SPECIFY ==>|"specified → clarified"| CLARIFY
@@ -53,6 +46,17 @@ flowchart RL
     RESUME -->|"back into pipeline\nat prior status"| CLARIFY
     CANCEL -->|"any active status"| CANCELLED
     REVISE -->|"rollback: clarified/planned/\ntasked/analyzed"| CLARIFY
+
+    subgraph vendored["Superpowers (vendored)"]
+        BRAINSTORMING["maxi:brainstorming"]
+        WRITING_PLANS["maxi:writing-plans"]
+        EXECUTING_PLANS["maxi:executing-plans"]
+        CODE_REVIEW["maxi:requesting-code-review"]
+    end
+
+    %% Invisible links to push vendored below lifecycle
+    PARKED ~~~ BRAINSTORMING
+    CANCELLED ~~~ CODE_REVIEW
 
     %% Delegations to superpowers (dashed arrows)
     SPECIFY -.->|"delegates"| BRAINSTORMING
