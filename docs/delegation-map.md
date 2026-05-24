@@ -4,6 +4,8 @@ This table shows which maxi pipeline skill delegates to which superpowers sub-sk
 
 ## Pipeline Delegation Table
 
+### Forward Pipeline
+
 | maxi skill | Required status | Delegates to | Status transition |
 |---|---|---|---|
 | `constitution` | — (always runs) | (none — writes `docs/maxi/constitution.md` directly) | — |
@@ -14,10 +16,23 @@ This table shows which maxi pipeline skill delegates to which superpowers sub-sk
 | `analyze` | `tasked`, `analyzed`, `implementing`, or `done` | (none — reads artifacts, writes analysis.md) | `tasked → analyzed` (once; reruns don't change status) |
 | `implement` | `analyzed` | `maxi:executing-plans`, then `maxi:requesting-code-review` | `analyzed → implementing → done` |
 
+### Lifecycle Skills
+
+| maxi skill | Required status | Delegates to | Status transition |
+|---|---|---|---|
+| `board` | any (read-only) | (none — terminal output only) | — |
+| `park` | any active status (not `parked`, `cancelled`, `done`) | (none — writes spec.md only) | `<any> → parked` (stores `parked_from:`) |
+| `resume` | `parked` | (none — reads `parked_from:`, writes spec.md) | `parked → <parked_from>` (clears `parked_from:`) |
+| `cancel` | any active status (not `parked`, `cancelled`, `done`) | (none — writes spec.md only) | `<any> → cancelled` (terminal) |
+| `revise` | `clarified` through `implementing` | (none — writes spec.md only) | `<any> → <rollback_target>` (A+ picker: `clarified`/`planned`/`tasked`/`analyzed`) |
+
 ### Notes
 
 - `/maxi:analyze` can be rerun at any status from `tasked` onward — it is non-destructive and never modifies source artifacts. Status does not change on subsequent runs.
 - `/maxi:implement` resumes from `implementing` if an earlier run was interrupted — it starts from the first unchecked `- [ ]` task.
+- `/maxi:revise` is the **only skill that makes `status:` go backwards**. It is consent-gated and leaves downstream artefacts in place (flagged stale in `## Clarifications`).
+- `/maxi:resume` restores the exact status stored in `parked_from:` — it never asks the user what status to restore to (unless `parked_from:` is missing).
+- `/maxi:cancel` is **terminal** — there is no un-cancel path in the pipeline.
 
 ## Accessing Superpowers Skills Directly
 

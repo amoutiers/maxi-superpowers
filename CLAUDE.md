@@ -29,9 +29,20 @@ Per-project artifacts live at the user's project root:
 ## Status Frontmatter
 
 Every `spec.md` has a YAML frontmatter `status:` field:
-`drafting | specified | clarified | planned | tasked | analyzed | implementing | done`
+`drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled`
 
 Skills read this to enforce phase gating. Never bypass it.
+
+## ⚠️ Pipeline Documentation — Mandatory Sync
+
+**Any change to the pipeline — new skill, new FSM status, new phase transition, changed gating rule — MUST update all four of these in the same commit:**
+
+1. **`docs/pipeline-flow.md`** — Mermaid diagram, legend, FSM status set diagram, and notes.
+2. **`docs/delegation-map.md`** — Forward pipeline table and lifecycle skills table (required status, delegates to, status transition).
+3. **`skills/using-maxi/SKILL.md`** — Phase gating table and status state machine string (injected at every session start — stale content misleads Claude from turn 0).
+4. **`CLAUDE.md`** (this file) — Skill count in Overview, status field values in Status Frontmatter, fast-tier descriptions, and integration test list.
+
+**This is not optional.** The 2026-05-28 design review found that `using-maxi` had been injecting a stale phase-gating table for every session after the strict-pipeline decision — because only the skill implementations were updated, not the documentation. That class of bug is prevented by updating all four files atomically.
 
 ## Testing
 
@@ -40,7 +51,7 @@ Run `bash tests/run-all.sh` after changes.
 **Fast tier** (~10s, no Claude runtime, runs by default):
 - `check-frontmatter.sh` — every `skills/*/SKILL.md` has valid YAML frontmatter
 - `check-sync-invariant.sh` — vendored skills in `skills/` are byte-identical to `vendor/superpowers/skills/`
-- `check-spec-fixture.sh` — spec fixture has `slug`/`created`/`status` fields; all 8 status values round-trip
+- `check-spec-fixture.sh` — spec fixture has `slug`/`created`/`status` fields; all 10 status values round-trip
 - `check-templates.sh` — all 5 maxi templates + 2 fixtures have required fields and body sections
 - `check-skills-present.sh` — all 15 maxi-native skills exist
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
