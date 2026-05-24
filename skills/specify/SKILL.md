@@ -67,9 +67,15 @@ Examples:
 Kebab-case the feature description. Max 5 words. Drop stop words (a, the, an, to, for, of). Lowercase.
 
 Examples:
-- "build a CSV to JSON converter" → `csv-to-json-converter`
+- "build a CSV to JSON converter" → `csv-json-converter`
 - "add user authentication with OAuth" → `user-authentication-oauth`
 - "send email notifications" → `send-email-notifications`
+
+**Slug collision check:** After deriving the slug-suffix, scan `docs/maxi/specs/` for any directory whose name (after the `NNNN-` prefix) is exactly equal to the derived suffix (exact character-for-character match — no fuzzy matching). If a match is found, stop and ask:
+
+> "The slug `<suffix>` already exists (used by `<MMMM-suffix>`). Please provide a disambiguating suffix. Suggested: `<suffix>-v2`."
+
+Wait for the user's input. Use the user-supplied suffix as the final slug-suffix. If `docs/maxi/specs/` does not exist or contains no `NNNN-*` directories, proceed directly (no collision possible).
 
 **Step 4 — Create directory and copy template**
 
