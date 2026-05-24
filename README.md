@@ -7,9 +7,11 @@ A Claude Code plugin that combines a spec-driven workflow (spec-kit) with superp
 ## Prerequisites
 
 - [Claude Code](https://claude.ai/code) with plugin support
+- [Antigravity CLI](https://antigravity.google) (or legacy Gemini CLI)
 
 ## Installation
 
+### For Claude Code
 ```bash
 # From the plugin marketplace (plugin name: maxi):
 claude plugin install maxi
@@ -18,6 +20,28 @@ claude plugin install maxi
 git clone https://github.com/amoutiers/maxi-superpowers
 cd maxi-superpowers
 claude plugin install .
+```
+
+### For Antigravity CLI
+```bash
+# Install locally:
+git clone https://github.com/amoutiers/maxi-superpowers
+cd maxi-superpowers
+agy plugin install .
+
+# Or import your legacy Gemini extensions:
+agy plugin import gemini
+```
+
+### For Legacy Gemini CLI
+```bash
+# Install from the GitHub repository:
+gemini extensions install https://github.com/amoutiers/maxi-superpowers
+
+# Or install locally:
+git clone https://github.com/amoutiers/maxi-superpowers
+cd maxi-superpowers
+gemini extensions install .
 ```
 
 ## Pipeline Commands

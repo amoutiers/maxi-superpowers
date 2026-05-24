@@ -1,0 +1,17 @@
+{
+  "_comment": "Claude Code plugin hook definition. session-start outputs platform-specific JSON to support Claude Code, Cursor, and Copilot when the script is invoked by each platform's own hook system.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${extensionPath}/hooks/run-hook.cmd\" session-start",
+            "async": false
+          }
+        ]
+      }
+    ]
+  }
+}

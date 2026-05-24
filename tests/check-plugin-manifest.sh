@@ -30,4 +30,17 @@ assert_jq "$MANIFEST" ".name" "maxi" "plugin.json: name is maxi"
 
 assert_jq "$MANIFEST" ".version | test(\"^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")" "true" "plugin.json: version is semver"
 
+# Validate root plugin.json for Antigravity
+ROOT_MANIFEST="$ROOT/plugin.json"
+assert_file_exists "$ROOT_MANIFEST" "root plugin.json"
+if [ -f "$ROOT_MANIFEST" ]; then
+  assert_json_valid "$ROOT_MANIFEST" "root plugin.json: valid JSON"
+  if diff -u "$MANIFEST" "$ROOT_MANIFEST" >/dev/null 2>&1; then
+    echo "OK  [root plugin.json matches .claude-plugin/plugin.json]"
+  else
+    echo "FAIL [root plugin.json matches .claude-plugin/plugin.json]: files differ" >&2
+    failures=$((failures + 1))
+  fi
+fi
+
 summary_and_exit "plugin manifest checks"
