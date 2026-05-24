@@ -30,8 +30,10 @@ Read each spec's YAML frontmatter and body. Extract:
 Bucket specs into the 8 pipeline statuses in order:
 
 ```
-drafting → specified → clarified → planned → tasked → analyzed → implementing → done
+drafting → specified → clarified → planned → tasked → analyzed → implementing → parked → done → cancelled
 ```
+
+`parked` = spec frozen in progress (non-terminal, resumable via `/maxi:resume`). `cancelled` = terminal, not actionable. Specs with missing or unrecognized `status` go into a trailing `unknown` bucket.
 
 The canonical status list is defined in `skills/specify/SKILL.md` and `skills/using-maxi/SKILL.md`. Specs with missing or unrecognized `status` go into a trailing `unknown` bucket.
 
@@ -41,7 +43,7 @@ Within each bucket, sort by `updated` ascending (oldest first), so stale work su
 
 ### Step 5 — Compute Staleness
 
-Staleness = today's date minus `updated` in calendar days. If > 30 days, append `, stale Nd` to the entry. Skip staleness for entries missing `updated`.
+Staleness = today's date minus `updated` in calendar days. If > 30 days, append `, stale Nd` to the entry. Skip staleness for entries missing `updated`. Skip staleness for specs at `cancelled` status — terminal status, quiet by design.
 
 ### Step 6 — Render
 
@@ -70,9 +72,15 @@ _empty_
 ## implementing (1)
 - 004-quux              — Quux                     (updated 05-25)
 
+## parked (0)
+_empty_
+
 ## done (12) — showing 2 from last 30d
 - 008-search            — Search                   (updated 05-15)
 - 009-export            — Export                   (updated 05-20)
+
+## cancelled (0)
+_empty_
 ```
 
 Rendering rules:
@@ -80,6 +88,8 @@ Rendering rules:
 - `done` heading: `## done (total) — showing K from last 30d`; body lists only entries where `updated` is within the last 30 days, oldest first; if none, print `_empty_`
 - `unknown` bucket (if any): render last; flag missing field per entry, e.g. `(no status field)`
 - Align `—` separators and date column within each bucket for readability
+- `parked` bucket: staleness applies normally (parked specs can go stale, surfacing them for review).
+- `cancelled` bucket: no staleness suffix (terminal status); entries shown with `updated` date only.
 
 ### Step 7 — Footer
 

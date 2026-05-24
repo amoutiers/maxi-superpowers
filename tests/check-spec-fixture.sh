@@ -6,7 +6,7 @@ ROOT="$(git rev-parse --show-toplevel)"
 source "$ROOT/tests/lib/test-helpers.sh"
 
 FIXTURE="$ROOT/tests/fixtures/sample-spec.md"
-VALID_STATUSES=(drafting specified clarified planned tasked analyzed implementing done)
+VALID_STATUSES=(drafting specified clarified planned tasked analyzed implementing done parked cancelled)
 failures=0
 
 if [ ! -f "$FIXTURE" ]; then

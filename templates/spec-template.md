@@ -3,7 +3,9 @@ slug: NNNN-feature-slug
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 status: drafting
-# Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done
+# Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled
+parked_from: null
+# parked_from: set by /maxi:park to the pre-park status; cleared to null by /maxi:resume
 ---
 
 # Feature Specification: [feature-name]
