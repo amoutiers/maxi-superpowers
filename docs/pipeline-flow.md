@@ -5,7 +5,7 @@ Visual map of the maxi command pipeline: phase sequence, status transitions, re-
 For the authoritative source on delegation and gating rules, see [delegation-map.md](delegation-map.md).
 
 ```mermaid
-flowchart TD
+flowchart LR
     subgraph pipeline["Main Pipeline (maxi-native)"]
         CONSTITUTION["/maxi:constitution\n─────────────\nwrites docs/maxi/constitution.md"]
         SPECIFY["/maxi:specify\n─────────────\ndrafting → specified"]
