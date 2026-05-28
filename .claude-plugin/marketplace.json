@@ -1,0 +1,20 @@
+{
+  "name": "maxi",
+  "description": "maxi-superpowers plugin marketplace",
+  "plugins": [
+    {
+      "name": "maxi",
+      "description": "Spec-driven development pipeline for Claude Code: constitution → specify → clarify → plan → tasks → analyze → implement",
+      "author": {
+        "name": "Antoine Moutiers"
+      },
+      "category": "productivity",
+      "source": {
+        "source": "git",
+        "url": "https://github.com/amoutiers/maxi-superpowers.git",
+        "ref": "master"
+      },
+      "homepage": "https://github.com/amoutiers/maxi-superpowers"
+    }
+  ]
+}
