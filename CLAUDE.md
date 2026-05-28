@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers is a dual-harness plugin for Claude Code and OpenCode. It vendors superpowers' skills via git subtree and adds 15 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 1 internal pipeline skill (`adr`), 1 session skill (`using-maxi`), and 1 migration utility (`migrate-from-speckit`).
+maxi-superpowers is a dual-harness plugin for Claude Code and OpenCode. It vendors superpowers' skills via git subtree and adds 16 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 1 internal pipeline skill (`adr`), 1 session skill (`using-maxi`), and 2 migration utilities (`migrate-from-speckit`, `migrate-adr`).
 
 ## Developing New Skills
 
@@ -53,7 +53,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-sync-invariant.sh` — vendored skills in `skills/` are byte-identical to `vendor/superpowers/skills/`
 - `check-spec-fixture.sh` — spec fixture has `slug`/`created`/`status` fields; all 10 status values round-trip
 - `check-templates.sh` — all 5 maxi templates + 2 fixtures have required fields and body sections
-- `check-skills-present.sh` — all 15 maxi-native skills exist
+- `check-skills-present.sh` — all 16 maxi-native skills exist
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
 - `check-hooks.sh` — `hooks/hooks.json` is valid; hook scripts exist and are executable
 - `check-vendored-doc.sh` — `VENDORED.md` has required version/date lines (regression guard for `bump-superpowers.sh`)
