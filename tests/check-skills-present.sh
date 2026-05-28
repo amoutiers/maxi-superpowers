@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Check that all 15 maxi-native skills exist as skills/<name>/SKILL.md
+# Check that all 16 maxi-native skills exist as skills/<name>/SKILL.md
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -9,7 +9,7 @@ SKILLS_DIR="$ROOT/skills"
 failures=0
 
 MAXI_SKILLS=(
-  adr analyze board cancel clarify constitution implement migrate-from-speckit park plan resume revise specify tasks using-maxi
+  adr analyze board cancel clarify constitution implement migrate-adr migrate-from-speckit park plan resume revise specify tasks using-maxi
 )
 
 for skill in "${MAXI_SKILLS[@]}"; do
