@@ -109,9 +109,13 @@ for raw_dir in "${spec_dirs[@]}"; do
   [[ "$sk_status" == "Shipped" || "$sk_status" == "Implemented" ]] && r="Status: $sk_status"
   [[ "$has_retro" -eq 1 ]] && r="${r:+$r + }retrospective.md"
   if [[ -z "$r" ]]; then
-    [[ "$has_tasks" -eq 1 ]] && r="tasks.md present"
-    [[ "$has_plan"  -eq 1 ]] && r="plan.md present"
-    [[ -z "$r" ]]             && r="spec.md only"
+    if [[ "$has_tasks" -eq 1 ]]; then
+      r="tasks.md present"
+    elif [[ "$has_plan" -eq 1 ]]; then
+      r="plan.md present"
+    else
+      r="spec.md only"
+    fi
   fi
 
   # Aux files summary
