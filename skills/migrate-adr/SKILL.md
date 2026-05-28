@@ -50,8 +50,10 @@ digraph migrate_adr {
     "Display summary table" [shape=box];
     "Consent gate: next proposal?" [shape=diamond];
     "Show full draft + ask yes/no/edit" [shape=box];
+    "Accept amendments inline" [shape=box];
     "Write ADR + regenerate README.md" [shape=box];
-    "Discard or write as deprecated" [shape=box];
+    "Discard (discovered)" [shape=box];
+    "Write as deprecated (imported)" [shape=box];
     "Done" [shape=box];
 
     "Check constitution" -> "STOP: run /maxi:constitution first" [label="missing"];
@@ -66,10 +68,14 @@ digraph migrate_adr {
     "Nothing to propose?" -> "Display summary table" [label="no"];
     "Display summary table" -> "Consent gate: next proposal?";
     "Consent gate: next proposal?" -> "Show full draft + ask yes/no/edit" [label="yes"];
-    "Show full draft + ask yes/no/edit" -> "Write ADR + regenerate README.md" [label="yes or edit"];
-    "Show full draft + ask yes/no/edit" -> "Discard or write as deprecated" [label="no"];
+    "Show full draft + ask yes/no/edit" -> "Write ADR + regenerate README.md" [label="yes"];
+    "Show full draft + ask yes/no/edit" -> "Accept amendments inline" [label="edit"];
+    "Accept amendments inline" -> "Write ADR + regenerate README.md";
+    "Show full draft + ask yes/no/edit" -> "Discard (discovered)" [label="no (discovered)"];
+    "Show full draft + ask yes/no/edit" -> "Write as deprecated (imported)" [label="no (imported)"];
     "Write ADR + regenerate README.md" -> "Consent gate: next proposal?";
-    "Discard or write as deprecated" -> "Consent gate: next proposal?";
+    "Discard (discovered)" -> "Consent gate: next proposal?";
+    "Write as deprecated (imported)" -> "Consent gate: next proposal?";
     "Consent gate: next proposal?" -> "Done" [label="no more"];
 }
 ```
@@ -88,6 +94,8 @@ Check `docs/maxi/constitution.md` exists.
 ## Step 2 — Read Exclusion Context
 
 If `docs/maxi/adr/` exists and contains `NNNN-*.md` files: read each one and extract domain labels (primary technology/category) from titles and Decision sections.
+
+Matching is case-insensitive substring: a new proposal's domain label matches an exclusion entry if either contains the other as a substring (e.g., "Tokio" matches "Use Tokio for async runtime").
 
 Pass this exclusion list to both subagents. Neither subagent may propose a domain already in the list.
 
@@ -142,7 +150,13 @@ Nygard supersession: if `## Status` contains "Supersedes ADR-NNN", set `supersed
 | Consequences subsection | `## Consequences` |
 | *(missing)* | `## Confirmation` — placeholder |
 
-**Plain Markdown:** Extract H1 as title. Look for date in filename (`YYYYMMDD-*` or `YYYY-MM-DD-*`) or first paragraph. Map body verbatim to `## Context`. All other sections → placeholders.
+**Plain Markdown:** Extract H1 as title. Look for date in filename (`YYYYMMDD-*` or `YYYY-MM-DD-*`) or first paragraph. Map body verbatim to `## Context`. All other sections → placeholders using the following explicit text:
+
+- `## Decision Drivers` → *"Not recorded in source document. Add drivers before accepting."*
+- `## Considered Options` → *"Not recorded in source document."*
+- `## Decision` → *"Not recorded in source document."*
+- `## Consequences` → *"Not recorded in source document."*
+- `## Confirmation` → *"Not recorded in source document."*
 
 **Frontmatter invariants for all imported ADRs:**
 
@@ -165,7 +179,7 @@ Analyze these layers:
 | Package manifests | `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `requirements.txt`, `pom.xml`, `build.gradle` |
 | Config files | `Dockerfile`, `docker-compose.yml`, `.github/workflows/`, `.gitlab-ci.yml`, `tsconfig.json`, `eslint.config.*`, `.prettierrc`, `.env.example` |
 | Directory structure | monorepo vs. polyrepo, layered/hexagonal/feature-based layout, test strategy |
-| Git history | `git log --oneline -200` — read full commit message for any commit containing: `chose`, `decided`, `switched`, `migrated`, `replaced`, `adopted`, `dropped`, `moved to` |
+| Git history | `git log -200 --format="%H %s%n%b"` — scan the output for commits whose subject OR body contains any of: `chose`, `decided`, `switched`, `migrated`, `replaced`, `adopted`, `dropped`, `moved to`; the full message body is already available in the output |
 
 Skip domains in exclusion context.
 
@@ -229,7 +243,7 @@ For each proposal: show the **full draft** and ask:
 | Response | Action |
 |----------|--------|
 | `yes` | Write with `status: accepted` |
-| `no` | Write with `status: deprecated` |
+| `no` | Write with `status: deprecated` (the historical decision is preserved even when you decline to adopt it — you can always supersede it later with `/maxi:adr`) |
 | `edit` | Accept amendments inline, write with `status: accepted` |
 
 **Discovered:**
@@ -241,8 +255,10 @@ For each proposal: show the **full draft** and ask:
 | `no` | Discard — no file written |
 | `edit` | Accept amendments inline, write with `status: accepted` |
 
-**Ambiguous responses** ("ok", "sure", "looks good", "cancel", "skip", silence): treat as `no`. Re-ask once:
-> *"To confirm: skip this decision? (yes to record / no to skip)"*
+**Ambiguous responses** ("ok", "sure", "looks good", "cancel", "skip", silence): treat as `no`. Re-ask once with a context-specific prompt:
+
+- For **imported** proposals: *"To confirm: import as ADR-NNNN with status deprecated? (yes to import as deprecated / no to discard entirely)"*
+- For **discovered** proposals: *"To confirm: skip recording this decision? (yes to record / no to discard)"*
 
 If still ambiguous: treat as `no`.
 
