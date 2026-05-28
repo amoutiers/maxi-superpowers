@@ -1,6 +1,11 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "maxi",
   "description": "maxi-superpowers plugin marketplace",
+  "owner": {
+    "name": "Antoine Moutiers",
+    "email": "amoutiers@gmail.com"
+  },
   "plugins": [
     {
       "name": "maxi",
