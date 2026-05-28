@@ -15,9 +15,9 @@
       },
       "category": "productivity",
       "source": {
-        "source": "git",
-        "url": "https://github.com/amoutiers/maxi-superpowers.git",
-        "ref": "master"
+        "source": "github",
+        "repo": "amoutiers/maxi-superpowers",
+        "commit": "d005459b0960a86e1dc5763b8128f5a64ed082ef"
       },
       "homepage": "https://github.com/amoutiers/maxi-superpowers"
     }
