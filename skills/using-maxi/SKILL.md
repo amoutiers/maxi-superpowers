@@ -22,6 +22,7 @@ maxi grafts a structured spec-driven workflow onto superpowers' implementation e
 /maxi:analyze       →  7-pass cross-artifact audit → analysis.md (status: analyzed)
 /maxi:implement     →  execute tasks, write code (status: implementing → done)
 /maxi:board         →  kanban overview of all specs grouped by status (read-only)
+/maxi:migrate-adr   →  import existing ADRs (Nygard/MADR/plain) + discover undocumented decisions from source code
 
 ADRs are captured automatically during /maxi:plan and /maxi:implement — the pipeline proposes ADRs for architectural choices and asks for your consent before writing.
 ```
@@ -82,6 +83,7 @@ maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `/ma
 ## Getting Started
 
 **Migrating from github-spec-kit?** Run `/maxi:migrate-from-speckit` first — it copies your existing specs and constitution into the maxi layout, non-destructively.
+**Bootstrapping your ADR log?** Run `/maxi:migrate-adr` to import existing ADRs from other formats and/or discover undocumented architectural decisions from your codebase.
 
 1. Run `/maxi:constitution` to establish your project's principles.
 2. Run `/maxi:specify "your feature description"` to start a new spec.
