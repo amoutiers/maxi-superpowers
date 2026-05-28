@@ -5,7 +5,7 @@ description: Use when the user invokes /maxi:specify or wants to create a new fe
 
 # specify
 
-Create a new feature specification. Invokes `maxi:brainstorming` for design dialogue, then formats output into `docs/maxi/specs/NNNN-slug/spec.md`.
+Create a new feature specification. Invokes `/maxi:brainstorming` for design dialogue, then formats output into `docs/maxi/specs/NNNN-slug/spec.md`.
 
 ## Prereqs
 
@@ -23,7 +23,7 @@ digraph specify {
     "Create docs/maxi/specs/NNNN-slug/" [shape=box];
     "Copy templates/spec-template.md" [shape=box];
     "Set status: drafting in frontmatter" [shape=box];
-    "Invoke maxi:brainstorming" [shape=box];
+    "Invoke /maxi:brainstorming" [shape=box];
     "Reformat output to spec-kit schema" [shape=box];
     "Write spec.md" [shape=box];
     "Set status: specified" [shape=box];
@@ -35,8 +35,8 @@ digraph specify {
     "Derive slug from description" -> "Create docs/maxi/specs/NNNN-slug/";
     "Create docs/maxi/specs/NNNN-slug/" -> "Copy templates/spec-template.md";
     "Copy templates/spec-template.md" -> "Set status: drafting in frontmatter";
-    "Set status: drafting in frontmatter" -> "Invoke maxi:brainstorming";
-    "Invoke maxi:brainstorming" -> "Reformat output to spec-kit schema";
+    "Set status: drafting in frontmatter" -> "Invoke /maxi:brainstorming";
+    "Invoke /maxi:brainstorming" -> "Reformat output to spec-kit schema";
     "Reformat output to spec-kit schema" -> "Write spec.md";
     "Write spec.md" -> "Set status: specified";
     "Set status: specified" -> "Report to user";
@@ -103,9 +103,9 @@ status: drafting
 ---
 ```
 
-**Step 6 — Invoke maxi:brainstorming**
+**Step 6 — Invoke /maxi:brainstorming**
 
-**REQUIRED SUB-SKILL:** Invoke `maxi:brainstorming` with the feature description as context.
+**REQUIRED SUB-SKILL:** Invoke `/maxi:brainstorming` with the feature description as context.
 
 Wait for brainstorming to complete its full elicitation dialogue. Do NOT write any spec content (FR-###, user stories, SC-###) before brainstorming completes.
 
@@ -150,7 +150,7 @@ Tell the user:
 - **Constitution first.** Hard stop if `docs/maxi/constitution.md` is missing. No exceptions.
 - **Template first.** Never write `spec.md` from scratch. Always copy `templates/spec-template.md` as the base.
 - **Compute NNNN, don't guess.** Scan `docs/maxi/specs/` for existing `NNNN-*` dirs. Take max + 1.
-- **brainstorming before content.** Do NOT write FR-### or user stories until `maxi:brainstorming` completes. This applies even if the feature is simple or the user wants a quick spec.
+- **brainstorming before content.** Do NOT write FR-### or user stories until `/maxi:brainstorming` completes. This applies even if the feature is simple or the user wants a quick spec.
 - **Schema compliance is not optional.** Every user story gets a priority (P1/P2/P3), an `Independent Test`, and `Acceptance Scenarios`. Every requirement is `FR-NNN`. Every success criterion is `SC-NNN`. "Feature is too simple" is not an exemption.
 - **Status transition is atomic.** Set `status: drafting` on creation. Set `status: specified` only after spec.md is fully written and verified.
 - **Path is fixed.** Specs live in `docs/maxi/specs/NNNN-slug/spec.md` — not `docs/specs/`, not `.specify/`, not the project root.
@@ -158,7 +158,7 @@ Tell the user:
 
 ## Red Flags
 
-- Creating `spec.md` before invoking `maxi:brainstorming` → wait for brainstorming first
+- Creating `spec.md` before invoking `/maxi:brainstorming` → wait for brainstorming first
 - Using `.specify/`, `docs/specs/`, `specs/`, or project root instead of `docs/maxi/specs/` → wrong path
 - Writing `Feature 1:` or `1.` instead of `FR-001:` → schema violation
 - Writing `### Requirements` without `FR-###` numbering → schema violation

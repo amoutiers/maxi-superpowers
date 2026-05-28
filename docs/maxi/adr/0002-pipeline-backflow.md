@@ -12,7 +12,7 @@ supersedes: null
 superseded_by: null
 ---
 
-# ADR-0002: Pipeline Backflow — maxi:revise
+# ADR-0002: Pipeline Backflow — /maxi:revise
 
 ## Context
 
@@ -29,7 +29,7 @@ Before this ADR, the only escape was to hand-edit `status:` — which `using-max
 
 ## Considered Options
 
-- **Option A: `maxi:revise` with A+ picker (suggested default + override)**
+- **Option A: `/maxi:revise` with A+ picker (suggested default + override)**
   Skill reads description of change → infers a suggested rollback target with a one-sentence justification → user confirms or overrides from `[clarified | planned | tasked | analyzed]` → writes `status:` rollback + `## Clarifications` entry → downstream artefacts left in place.
   - ✅ Satisfies driver: transparent inference (A+ picker shows reasoning before applying)
   - ✅ Satisfies driver: Principle V — change recorded with reason, date, rollback target
@@ -50,20 +50,20 @@ Before this ADR, the only escape was to hand-edit `status:` — which `using-max
 
 ## Decision
 
-Chose **Option A** — `maxi:revise` with the A+ picker pattern. A dedicated skill is more discoverable than a flag; the picker makes inference visible and correctable; artefact preservation maintains planning context.
+Chose **Option A** — `/maxi:revise` with the A+ picker pattern. A dedicated skill is more discoverable than a flag; the picker makes inference visible and correctable; artefact preservation maintains planning context.
 
 ## Consequences
 
 - **Good:** Requirements changes have a sanctioned, recorded path — no hand-edits needed.
 - **Good:** A+ picker is transparent: the inferred target and its justification are shown before any write happens.
 - **Good:** Downstream artefacts (plan.md, tasks.md) remain on disk after rollback, preserving context for re-planning.
-- **Bad:** `maxi:revise` is the first skill that makes `status:` go backwards — a conceptually new operation for the pipeline. Documentation and `using-maxi` must explicitly describe this.
+- **Bad:** `/maxi:revise` is the first skill that makes `status:` go backwards — a conceptually new operation for the pipeline. Documentation and `using-maxi` must explicitly describe this.
 - **Bad:** Stale artefacts have no mechanical enforcement (only a `## Clarifications` flag). Future F8 PreToolUse hook (out of scope for spec 0001) is the long-term solution.
 
 ## Confirmation
 
-- `maxi:revise` is invokable on specs at status `clarified` through `implementing`.
-- After `maxi:revise`, `status:` matches the chosen rollback target; `## Clarifications` contains a timestamped entry with reason and prior status.
+- `/maxi:revise` is invokable on specs at status `clarified` through `implementing`.
+- After `/maxi:revise`, `status:` matches the chosen rollback target; `## Clarifications` contains a timestamped entry with reason and prior status.
 - plan.md, tasks.md, analysis.md are present and unmodified after rollback (staleness flagged only in Clarifications).
-- `maxi:revise` is refused on specs at `drafting`, `specified`, `parked`, `cancelled`, `done`.
+- `/maxi:revise` is refused on specs at `drafting`, `specified`, `parked`, `cancelled`, `done`.
 - Integration test (`tests/integration/prompts/revise.txt`) triggers the skill automatically.

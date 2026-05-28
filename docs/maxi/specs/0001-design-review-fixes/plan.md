@@ -463,7 +463,7 @@
 
 ---
 
-### Task 9 — Write maxi:cancel skill (F5)
+### Task 9 — Write /maxi:cancel skill (F5)
 
 **Files:**
 - Create: `skills/cancel/SKILL.md` (via `superpowers:writing-skills`)
@@ -474,7 +474,7 @@
 
 **⚠ Note:** After writing cancel/park/resume/revise, the skill count becomes 15 (11 + 4). Update CLAUDE.md in Task 13 after all new skills are written.
 
-- [ ] **Step 1: Write behavioral spec for maxi:cancel**
+- [ ] **Step 1: Write behavioral spec for /maxi:cancel**
 
   Invoke `superpowers:writing-skills` with this specification:
 
@@ -532,7 +532,7 @@
 
 ---
 
-### Task 10 — Write maxi:park and maxi:resume skills (F5)
+### Task 10 — Write /maxi:park and /maxi:resume skills (F5)
 
 **Files:**
 - Create: `skills/park/SKILL.md` (via `superpowers:writing-skills`)
@@ -541,7 +541,7 @@
 - Create: `tests/integration/prompts/park.txt`
 - Create: `tests/integration/prompts/resume.txt`
 
-- [ ] **Step 1: Write behavioral spec for maxi:park**
+- [ ] **Step 1: Write behavioral spec for /maxi:park**
 
   Invoke `superpowers:writing-skills` with this specification:
 
@@ -576,7 +576,7 @@
   - Never modify plan.md, tasks.md, constitution.md, or ADRs.
   ```
 
-- [ ] **Step 2: Write behavioral spec for maxi:resume**
+- [ ] **Step 2: Write behavioral spec for /maxi:resume**
 
   Invoke `superpowers:writing-skills` with this specification:
 
@@ -639,23 +639,23 @@
 
   ```bash
   git add templates/spec-template.md tests/fixtures/sample-spec.md tests/check-spec-fixture.sh skills/board/SKILL.md skills/cancel/SKILL.md skills/park/SKILL.md skills/resume/SKILL.md tests/check-skills-present.sh tests/integration/prompts/cancel.txt tests/integration/prompts/park.txt tests/integration/prompts/resume.txt
-  git commit -m "feat(f5): add parked/cancelled statuses + maxi:cancel, maxi:park, maxi:resume skills"
+  git commit -m "feat(f5): add parked/cancelled statuses + /maxi:cancel, /maxi:park, /maxi:resume skills"
   ```
 
 ---
 
-## Phase 5 — P1 Backflow: maxi:revise (F4)
+## Phase 5 — P1 Backflow: /maxi:revise (F4)
 
 ---
 
-### Task 11 — Write maxi:revise skill (F4)
+### Task 11 — Write /maxi:revise skill (F4)
 
 **Files:**
 - Create: `skills/revise/SKILL.md` (via `superpowers:writing-skills`)
 - Modify: `tests/check-skills-present.sh`
 - Create: `tests/integration/prompts/revise.txt`
 
-- [ ] **Step 1: Write behavioral spec for maxi:revise**
+- [ ] **Step 1: Write behavioral spec for /maxi:revise**
 
   Invoke `superpowers:writing-skills` with this specification:
 
@@ -734,7 +734,7 @@
 
   ```bash
   git add skills/revise/SKILL.md tests/check-skills-present.sh tests/integration/prompts/revise.txt CLAUDE.md
-  git commit -m "feat(f4): add maxi:revise skill for spec backflow + update skills inventory to 15"
+  git commit -m "feat(f4): add /maxi:revise skill for spec backflow + update skills inventory to 15"
   ```
 
 ---
@@ -814,15 +814,15 @@
 
 ## Post-Plan: ADR Proposals
 
-After the plan is written, `/maxi:plan` (Step 5) would normally invoke `maxi:adr` for non-obvious architectural choices. Two choices in this plan qualify:
+After the plan is written, `/maxi:plan` (Step 5) would normally invoke `/maxi:adr` for non-obvious architectural choices. Two choices in this plan qualify:
 
 **ADR-1 — FSM status set expansion (parked + cancelled)**
 The core contract of the pipeline (8 statuses) is being expanded to 10. This is a breaking change for any tooling that enumerates the status set. Architectural choice: `parked` is non-terminal with a `parked_from:` restoration field; `cancelled` is terminal. Alternatives considered: single `inactive` status (rejected — conflates reversible and irreversible); no lifecycle management (rejected — see F5).
 
-**ADR-2 — Backflow in the pipeline (maxi:revise)**
+**ADR-2 — Backflow in the pipeline (/maxi:revise)**
 The first skill that makes `status:` go backwards. The pipeline has been strictly forward-only. Architectural choice: rollback is consent-gated + A+ picker; downstream artefacts are stale but not deleted; rollback cannot go below `clarified`. Alternatives considered: hard delete artefacts on rollback (rejected — loses context); always roll back to `clarified` (option C — rejected, loses phase granularity).
 
-Invoke `maxi:adr` twice, once per proposal, after the plan is written and before implementation begins.
+Invoke `/maxi:adr` twice, once per proposal, after the plan is written and before implementation begins.
 
 ---
 

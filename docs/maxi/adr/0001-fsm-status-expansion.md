@@ -24,13 +24,13 @@ Without lifecycle statuses, abandoned specs accumulated as `implementing` entrie
 
 - **Principle III — Strict Pipeline, No Skipping**: No hand-editing of `status:` is permitted. The pipeline must have a sanctioned path for every lifecycle transition, including pausing and abandoning.
 - **Principle V — Artifacts Over Chat**: Decisions to pause or cancel a feature must be recorded in the spec artifact with a reason and date — not just acknowledged in conversation.
-- **Consistency with consent-gated ADR pattern**: All destructive or lifecycle-altering operations in maxi are consent-gated (see `maxi:adr`, `maxi:migrate-from-speckit`). New lifecycle skills must follow the same pattern.
+- **Consistency with consent-gated ADR pattern**: All destructive or lifecycle-altering operations in maxi are consent-gated (see `/maxi:adr`, `/maxi:migrate-from-speckit`). New lifecycle skills must follow the same pattern.
 - **Terminal vs. reversible**: A paused spec may be resumed; a cancelled spec is final. The FSM must distinguish these two states to enforce the right constraints.
 
 ## Considered Options
 
 - **Option A: Two new statuses — `parked` (non-terminal) + `cancelled` (terminal)**
-  New skills `maxi:park`, `maxi:resume`, `maxi:cancel` manage the transitions. `parked_from:` frontmatter field stores the pre-park status for restore. Both statuses are consent-gated.
+  New skills `/maxi:park`, `/maxi:resume`, `/maxi:cancel` manage the transitions. `parked_from:` frontmatter field stores the pre-park status for restore. Both statuses are consent-gated.
   - ✅ Satisfies driver: Principle V — decision recorded with reason and date
   - ✅ Satisfies driver: Principle III — no hand-editing needed
   - ✅ Satisfies driver: terminal vs. reversible distinction enforced at the skill level
@@ -49,7 +49,7 @@ Without lifecycle statuses, abandoned specs accumulated as `implementing` entrie
 
 ## Decision
 
-Chose **Option A**. Two statuses (`parked`, `cancelled`) with three consent-gated skills (`maxi:park`, `maxi:resume`, `maxi:cancel`) and a `parked_from:` frontmatter field for non-destructive resume.
+Chose **Option A**. Two statuses (`parked`, `cancelled`) with three consent-gated skills (`/maxi:park`, `/maxi:resume`, `/maxi:cancel`) and a `parked_from:` frontmatter field for non-destructive resume.
 
 ## Consequences
 
@@ -64,4 +64,4 @@ Chose **Option A**. Two statuses (`parked`, `cancelled`) with three consent-gate
 - `tests/check-spec-fixture.sh` validates `parked` and `cancelled` round-trip in the VALID_STATUSES array.
 - `templates/spec-template.md` allowed-values comment lists all 10 statuses.
 - `/maxi:board` displays `parked` and `cancelled` buckets (even when empty).
-- No direct `status:` edit to `parked` or `cancelled` is possible without running `maxi:park` or `maxi:cancel` respectively (enforced by convention; future F8 PreToolUse hook will enforce mechanically).
+- No direct `status:` edit to `parked` or `cancelled` is possible without running `/maxi:park` or `/maxi:cancel` respectively (enforced by convention; future F8 PreToolUse hook will enforce mechanically).

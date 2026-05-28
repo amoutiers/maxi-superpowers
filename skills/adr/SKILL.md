@@ -7,7 +7,7 @@ description: Use when the plan or implement skill has detected an architectural 
 
 ## Overview
 
-This is an **internal pipeline skill** — it is invoked by `maxi:plan` and `maxi:implement`, not by the user directly. It is not listed in the `/maxi:*` command menu.
+This is an **internal pipeline skill** — it is invoked by `/maxi:plan` and `/maxi:implement`, not by the user directly. It is not listed in the `/maxi:*` command menu.
 
 **Core principle:** ADRs capture the *why* behind architectural choices. They are **never written silently** — the agent always drafts the ADR, shows it to the user, and waits for explicit approval before any file is created.
 

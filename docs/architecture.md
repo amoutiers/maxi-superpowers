@@ -77,12 +77,12 @@ See [delegation-map.md](delegation-map.md) for the full table, and [pipeline-flo
 | maxi skill | Delegates to |
 |---|---|
 | `constitution` | (none — writes directly) |
-| `specify` | `maxi:brainstorming` |
+| `specify` | `/maxi:brainstorming` |
 | `clarify` | (none — interactive dialogue) |
-| `plan` | `maxi:writing-plans`, then `maxi:adr` per detected architectural choice |
+| `plan` | `/maxi:writing-plans`, then `/maxi:adr` per detected architectural choice |
 | `tasks` | (none — extraction only) |
 | `analyze` | (none — reads artifacts + ADRs, writes analysis.md with 7-pass audit) |
-| `implement` | `maxi:executing-plans`, then `maxi:adr` on unplanned forks, then `maxi:requesting-code-review` |
+| `implement` | `/maxi:executing-plans`, then `/maxi:adr` on unplanned forks, then `/maxi:requesting-code-review` |
 | `adr` | (internal — invoked by plan + implement; never invoked by user directly) |
 
 ## Architecture Decision Records
@@ -100,7 +100,7 @@ docs/
         └── NNNN-feature-slug/
 ```
 
-**Trigger points:** `/maxi:plan` scans the produced plan for tech-stack and architecture choices; `/maxi:implement` watches for unplanned forks reported by subagents. Both invoke `maxi:adr`, which drafts the ADR, shows it to the user, and writes only on explicit consent.
+**Trigger points:** `/maxi:plan` scans the produced plan for tech-stack and architecture choices; `/maxi:implement` watches for unplanned forks reported by subagents. Both invoke `/maxi:adr`, which drafts the ADR, shows it to the user, and writes only on explicit consent.
 
 **Append-only:** ADR body is immutable after creation. Only `status`, `supersedes`, and `superseded_by` frontmatter fields may change. To revise a decision, create a new ADR that supersedes the old one.
 

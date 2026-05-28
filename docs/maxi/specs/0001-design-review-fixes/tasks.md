@@ -44,8 +44,8 @@ updated: 2026-05-24
 
 **⚠️ ADRs FIRST**: Constitution Principle IV — "ADRs proposed automatically during `/maxi:plan`, written only with explicit consent." These must exist before Phases 5 and 6 begin.
 
-- [ ] T007 Invoke `maxi:adr` for ADR-1 — FSM status set expansion: adding `parked` (non-terminal, reversible) and `cancelled` (terminal) statuses. Context from plan.md "ADR Proposals" section. Write to `docs/maxi/adr/0001-fsm-status-expansion.md`.
-- [ ] T008 Invoke `maxi:adr` for ADR-2 — Backflow in the pipeline (`maxi:revise`): first skill that makes `status:` go backwards. A+ picker, consent-gated, artefacts left in place. Write to `docs/maxi/adr/0002-pipeline-backflow.md`.
+- [ ] T007 Invoke `/maxi:adr` for ADR-1 — FSM status set expansion: adding `parked` (non-terminal, reversible) and `cancelled` (terminal) statuses. Context from plan.md "ADR Proposals" section. Write to `docs/maxi/adr/0001-fsm-status-expansion.md`.
+- [ ] T008 Invoke `/maxi:adr` for ADR-2 — Backflow in the pipeline (`/maxi:revise`): first skill that makes `status:` go backwards. A+ picker, consent-gated, artefacts left in place. Write to `docs/maxi/adr/0002-pipeline-backflow.md`.
 - [ ] T009 Update `docs/architecture.md` strict-pipeline Consequences section — extend to document the migration exception for statuses `planned`/`tasked`/`done` explicitly (this is architecture documentation, not a formal ADR; the formal ADR for the exception is superseded by the migration design intent documented here)
 - [ ] T010 Read `skills/migrate-from-speckit/migrate.sh` lines 90–115 to locate status-inference block and `target_spec` write; then append Migration Notes generation block (bash `case` on inferred status → append `## Migration Notes` section to spec.md)
 - [ ] T011 Add one sentence to reporting step in `skills/migrate-from-speckit/SKILL.md`: inform user that migrated specs above `specified` status will have a `## Migration Notes` section
@@ -99,7 +99,7 @@ updated: 2026-05-24
 
 ---
 
-## Phase 6: US4 — Spec Backflow via maxi:revise (Priority: P2)
+## Phase 6: US4 — Spec Backflow via /maxi:revise (Priority: P2)
 
 **Goal**: A spec at any status ≥ `clarified` can be rolled back with a documented reason, without hand-editing. Downstream artefacts stay on disk; a `## Clarifications` entry flags them as stale.
 

@@ -27,16 +27,16 @@ flowchart TD
             TASKS["/maxi:tasks\n─────────────\nplanned → tasked\n(extraction only)"]
             ANALYZE["/maxi:analyze\n─────────────\ntasked → analyzed\n(7-pass audit)"]
             IMPLEMENT["/maxi:implement\n─────────────\nanalyzed → implementing → done"]
-            ADR["maxi:adr\n─────────────\n(internal — never\ninvoked by user)"]
+            ADR["/maxi:adr\n─────────────\n(internal — never\ninvoked by user)"]
             DONE(["✓ done"])
         end
     end
 
     subgraph vendored["Superpowers (vendored)"]
-        BRAINSTORMING["maxi:brainstorming"]
-        WRITING_PLANS["maxi:writing-plans"]
-        EXECUTING_PLANS["maxi:executing-plans"]
-        CODE_REVIEW["maxi:requesting-code-review"]
+        BRAINSTORMING["/maxi:brainstorming"]
+        WRITING_PLANS["/maxi:writing-plans"]
+        EXECUTING_PLANS["/maxi:executing-plans"]
+        CODE_REVIEW["/maxi:requesting-code-review"]
     end
 
     %% Main pipeline transitions (thick arrows)
@@ -86,7 +86,7 @@ flowchart TD
 - `/maxi:constitution` has no status prerequisite — it can run at any time.
 - Every forward phase is mandatory and must run in order — no phase may be skipped.
 - `/maxi:analyze` is non-destructive and can be re-run at any status from `tasked` onward; status does not change after the first run.
-- `maxi:adr` is internal and is never invoked directly by the user.
+- `/maxi:adr` is internal and is never invoked directly by the user.
 - **Lifecycle skills** (`park`, `resume`, `cancel`, `revise`) operate on any in-flight spec — they are orthogonal to the main forward pipeline.
 - `/maxi:revise` is the only skill that makes `status:` go backwards. `RESUME` restores to the exact prior status stored in `parked_from:` — the `CLARIFY` node in the diagram is illustrative.
 - `/maxi:board` is read-only — it never changes status.

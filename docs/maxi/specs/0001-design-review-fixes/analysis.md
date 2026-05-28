@@ -34,7 +34,7 @@ Clarified: `tests/integration/prompts/board.txt` and `tests/integration/run-all.
 ## Accepted Medium Findings
 
 **MEDIUM — A+ picker inference rules in plan.md not echoed in spec (Pass B)**
-Accepted: plan.md Task 11 Step 1 is the canonical behavioral spec for `maxi:revise`. Spec.md intentionally delegates implementation details to plan.md — this is correct maxi pipeline separation. `superpowers:writing-skills` will receive the plan.md spec directly.
+Accepted: plan.md Task 11 Step 1 is the canonical behavioral spec for `/maxi:revise`. Spec.md intentionally delegates implementation details to plan.md — this is correct maxi pipeline separation. `superpowers:writing-skills` will receive the plan.md spec directly.
 
 **MEDIUM — Slug collision: undefined behavior when `docs/maxi/specs/` does not exist (Pass C)**
 Accepted: If `docs/maxi/specs/` does not exist, there are no existing slugs → no collision possible → proceed normally. The skill should handle the non-existent dir case as "no collision." This is implied by the spec and does not need explicit FR text.
@@ -79,7 +79,7 @@ Accepted: `set -euo pipefail` is already in the script; if `$PWD` is unset, bash
 
 Two architectural choices require ADRs before implementation:
 - **ADR-1** (T007): FSM status expansion — `parked` + `cancelled`
-- **ADR-2** (T008): Pipeline backflow — `maxi:revise`
+- **ADR-2** (T008): Pipeline backflow — `/maxi:revise`
 
 Both are scheduled in Phase 3 (before Phases 5 and 6). ✅
 

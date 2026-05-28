@@ -136,8 +136,8 @@ As a user working in a non-maxi project, when I start a Claude Code session, the
 - **FR-002**: `tests/check-sync-invariant.sh` MUST perform a recursive directory diff, not just a `SKILL.md` comparison, for all vendored skills.
 - **FR-003**: `CLAUDE.md` MUST accurately document 11 maxi-native skills including `board`; `check-skills-present.sh` comment MUST match the array count.
 - **FR-004**: The integration test suite MUST include a test for `/maxi:board` auto-trigger.
-- **FR-005**: A `maxi:revise` skill MUST exist that rolls back `status:` to the appropriate phase after consent, appends a timestamped `## Clarifications` entry, bumps `updated:`, and re-queues the pipeline from that phase.
-- **FR-006**: `maxi:park` and `maxi:resume` skills MUST exist; `maxi:cancel` MUST exist. All three are consent-gated. `parked_from:` frontmatter field records the pre-park status for resume.
+- **FR-005**: A `/maxi:revise` skill MUST exist that rolls back `status:` to the appropriate phase after consent, appends a timestamped `## Clarifications` entry, bumps `updated:`, and re-queues the pipeline from that phase.
+- **FR-006**: `/maxi:park` and `/maxi:resume` skills MUST exist; `/maxi:cancel` MUST exist. All three are consent-gated. `parked_from:` frontmatter field records the pre-park status for resume.
 - **FR-007**: `templates/spec-template.md` allowed-values comment MUST include `parked` and `cancelled`. `tests/check-spec-fixture.sh` MUST validate all 10 statuses round-trip.
 - **FR-008**: `skills/board/SKILL.md` MUST display `parked` and `cancelled` buckets (always shown, even if empty).
 - **FR-009**: `specify/SKILL.md` stop-word list and examples MUST be consistent: "to" is a stop-word in all cases.
@@ -149,12 +149,12 @@ As a user working in a non-maxi project, when I start a Claude Code session, the
 
 - **spec.md frontmatter**: adds `parked_from: <status>` field (null when not parked).
 - **FSM status set**: expands from 8 to 10 values: `drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled`.
-- **maxi:revise skill**: new skill, consent-gated, modifies `status:` and appends `## Clarifications`.
-- **maxi:park / maxi:resume / maxi:cancel skills**: new skills, consent-gated lifecycle management.
+- **/maxi:revise skill**: new skill, consent-gated, modifies `status:` and appends `## Clarifications`.
+- **/maxi:park / /maxi:resume / /maxi:cancel skills**: new skills, consent-gated lifecycle management.
 
 ## Clarifications
 
-**Q1 (2026-05-24) — How does `maxi:revise` determine the rollback target status?**
+**Q1 (2026-05-24) — How does `/maxi:revise` determine the rollback target status?**
 A: A+ picker (suggested default). The skill reads the change description, proposes a target status with a one-sentence justification (e.g. "change touches requirements → I suggest `clarified`"), and the user either accepts the default or overrides from the list `[clarified | planned | tasked | analyzed]`. The inference is visible and correctable — no hidden magic.
 
 **Q2 (2026-05-24) — What happens to downstream artefacts (plan.md, tasks.md, analysis.md) on rollback?**
@@ -177,7 +177,7 @@ A: Exact suffix match only. The derived suffix (post-`NNNN-`) must be character-
 
 ## Assumptions
 
-- The `superpowers:writing-skills` TDD cycle will be used to author `maxi:revise`, `maxi:park`, `maxi:resume`, and `maxi:cancel`.
+- The `superpowers:writing-skills` TDD cycle will be used to author `/maxi:revise`, `/maxi:park`, `/maxi:resume`, and `/maxi:cancel`.
 - The `parked_from:` field is added to `spec-template.md` with a default value of `null`; migration for existing specs is not required (field is absent = not parked).
 - `migrate-from-speckit` ADR exception (F6 option B) will be documented in `docs/architecture.md` rather than requiring a new ADR — the strict-pipeline ADR will be amended.
 - F8 (PreToolUse hook for FSM validation) and F9-C (payload reduction) are out of scope for this spec; they will be separate specs after stabilization.
