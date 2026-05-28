@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers is a Claude Code plugin. It vendors superpowers' skills via git subtree and adds 15 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 1 internal pipeline skill (`adr`), 1 session skill (`using-maxi`), and 1 migration utility (`migrate-from-speckit`).
+maxi-superpowers is a dual-harness plugin for Claude Code and OpenCode. It vendors superpowers' skills via git subtree and adds 15 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 1 internal pipeline skill (`adr`), 1 session skill (`using-maxi`), and 1 migration utility (`migrate-from-speckit`).
 
 ## Developing New Skills
 
@@ -59,6 +59,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-vendored-doc.sh` — `VENDORED.md` has required version/date lines (regression guard for `bump-superpowers.sh`)
 - `check-sync-script.sh` — `sync-superpowers.sh` copies vendor skills and leaves maxi-native skills untouched
 - `check-bump-script.sh` — `_update-vendored-md.sh` correctly updates version and date lines
+- `check-opencode-plugin.sh` — `.opencode/plugins/maxi.js` exports required hooks, has bootstrap caching and conditional injection
 
 **Integration tier** (opt-in, requires `claude` CLI, ~minutes):
 ```

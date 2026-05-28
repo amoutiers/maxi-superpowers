@@ -43,6 +43,7 @@ run_check "$TESTS_DIR/check-vendored-doc.sh"     "VENDORED.md validation"
 run_check "$TESTS_DIR/check-sync-script.sh"      "Sync script behavior"
 run_check "$TESTS_DIR/check-bump-script.sh"          "Bump script behavior"
 run_check "$TESTS_DIR/check-migrate-from-speckit.sh" "migrate-from-speckit script behavior"
+run_check "$TESTS_DIR/check-opencode-plugin.sh"      "OpenCode plugin validation"
 
 if [ "$failures" -gt 0 ]; then
   echo "FAILED: $failures check(s) failed" >&2

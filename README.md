@@ -2,12 +2,7 @@
 
 ![maxi-superpowers](assets/logo.svg)
 
-A Claude Code plugin that combines a spec-driven workflow (spec-kit) with superpowers' battle-tested implementation engine. You write features through a structured pipeline — constitution, spec, clarification, plan, tasks, analysis, implementation — and maxi enforces phase gating so nothing ships without the artifacts to back it.
-
-## Prerequisites
-
-- [Claude Code](https://claude.ai/code) with plugin support
-- [Antigravity CLI](https://antigravity.google) (or legacy Gemini CLI)
+A spec-driven workflow plugin that combines structured feature design (spec-kit) with superpowers' battle-tested implementation engine. You write features through a structured pipeline — constitution, spec, clarification, plan, tasks, analysis, implementation — and maxi enforces phase gating so nothing ships without the artifacts to back it.
 
 ## Installation
 
@@ -32,6 +27,15 @@ agy plugin install .
 # Or import your legacy Gemini extensions:
 agy plugin import gemini
 ```
+
+### For OpenCode
+Add to your `opencode.json`:
+```json
+{
+  "plugin": ["maxi-superpowers@git+https://github.com/amoutiers/maxi-superpowers.git"]
+}
+```
+Then restart OpenCode. See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for details.
 
 ### For Legacy Gemini CLI
 ```bash
