@@ -38,4 +38,10 @@ assert_grep "$MIGRATE" "append its domain label" "FR-011 discovered skip appends
 assert_grep "$MIGRATE" "not logged" "FR-012 imported skip not logged"
 assert_grep "$MIGRATE" "bookkeeping" "FR-014 .rejected exempt from Iron Rule"
 
+# --- US5: subagent return contract + constitution use (FR-015, 016) ---
+assert_grep "$MIGRATE" "domain_label" "FR-015 schema domain_label"
+assert_grep "$MIGRATE" "source_path" "FR-015 schema source_path"
+assert_grep "$MIGRATE" "Return schema" "FR-015 explicit return-schema block"
+assert_grep "$MIGRATE" "constitution's principles" "FR-016 principles passed to Discoverer"
+
 summary_and_exit "migrate-adr invariant checks"

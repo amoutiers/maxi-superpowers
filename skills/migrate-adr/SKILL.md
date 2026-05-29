@@ -112,7 +112,20 @@ Pass this exclusion list to both subagents. Neither subagent may propose a domai
 
 ## Step 3 — Dispatch Subagents in Parallel
 
-Use `maxi:dispatching-parallel-agents`. Pass exclusion context to both. With `--import-only`, dispatch only Subagent A.
+Use `maxi:dispatching-parallel-agents`. Pass exclusion context to both. Also pass **the constitution's principles** (names/titles from `docs/maxi/constitution.md`) to Subagent B. With `--import-only`, dispatch only Subagent A.
+
+**Return schema (both subagents MUST produce this).** Each subagent returns a list of proposals. Every proposal object includes:
+
+| Field | Source | Notes |
+|-------|--------|-------|
+| `source` | both | `import` or `discover` |
+| `domain_label` | both | primary technology/category (used for dedup + exclusion matching) |
+| `title` | both | ADR title line |
+| `body` | both | the full drafted ADR markdown |
+| `format` | importer only | `nygard` \| `madr` \| `plain` |
+| `source_path` | importer only | original file path (feeds the `source:` frontmatter) |
+
+Steps 4 (deduplicate) and 5 (summary table) consume this structured list.
 
 ### Subagent A — Importer
 
@@ -196,6 +209,8 @@ Analyze these layers:
 | Git history | `git log -200 --format="%H %s%n%b"` — scan the output for commits whose subject OR body contains any of: `chose`, `decided`, `switched`, `migrated`, `replaced`, `adopted`, `dropped`, `moved to`; the full message body is already available in the output |
 
 Skip domains in exclusion context.
+
+**Constitution linkage.** You are given the constitution's principles (Step 3). When a discovered decision relates to a named principle, set `related_principles` to that principle and note the link in the draft's `## Context`. If no principle relates, leave `related_principles: []` — never fabricate a link.
 
 **Default frontmatter for all discovered ADRs:**
 

@@ -123,11 +123,11 @@ updated: 2026-05-29
 
 ### Tests for User Story 5
 
-- [ ] T013 [US5] Add FR-015/016 assertions to `tests/check-migrate-adr.sh` (`domain_label`, `source_path`, `related_principles`); verify RED — plan Task 6 Steps 1–2
+- [x] T013 [US5] Add FR-015/016 assertions to `tests/check-migrate-adr.sh` (`domain_label`, `source_path`, `related_principles`); verify RED — plan Task 6 Steps 1–2
 
 ### Implementation for User Story 5
 
-- [ ] T014 [US5] Via `superpowers:writing-skills`, add the return-schema block to Step 3 and constitution-principle passing + `related_principles` logic to Subagent B in `skills/migrate-adr/SKILL.md`; verify GREEN; **full-suite gate (D1)**; commit — plan Task 6 Steps 3–5
+- [x] T014 [US5] Via `superpowers:writing-skills`, add the return-schema block to Step 3 and constitution-principle passing + `related_principles` logic to Subagent B in `skills/migrate-adr/SKILL.md`; verify GREEN; **full-suite gate (D1)**; commit — plan Task 6 Steps 3–5
 
 **Checkpoint**: US5 complete and independently testable.
 
