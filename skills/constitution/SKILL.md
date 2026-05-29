@@ -51,6 +51,7 @@ Ask one question at a time. Elicit 3–7 principles. Stop at 7.
 - "What is the single most important constraint this project must never violate?"
 - "If a new developer breaks this rule, what should they be told?"
 - "What trade-off has your team made that might surprise an outsider?"
+- If an answer names a specific technology or a reversible choice, note that it is an architectural decision for an ADR (the pipeline captures these via `/maxi:adr` during `/maxi:plan`/`/maxi:implement` — not here) and steer the principle toward the underlying invariant instead.
 
 **Development Conventions (preferred practices)** — ask:
 - "What's your testing philosophy? TDD, test-after, integration-focused?"
@@ -58,7 +59,7 @@ Ask one question at a time. Elicit 3–7 principles. Stop at 7.
 
 **Constraints (external requirements)** — ask:
 - "Any compliance, security, or deployment requirements that constrain the design?"
-- "Third-party dependencies that are locked in or forbidden?"
+- "Third-party dependencies that are locked in or forbidden?" (A dependency *mandated* or *banned* with no real alternative is a Constraint; one *chosen* among viable options is a decision → ADR, not the constitution.)
 
 ## Critical Rules
 
@@ -68,6 +69,11 @@ Ask one question at a time. Elicit 3–7 principles. Stop at 7.
 - **CLAUDE.md is not a constitution.** If the user says "use my CLAUDE.md" or points to any existing file, explain that the constitution must follow the template format and be verified through elicitation. You may use the existing file as context for asking better questions, but never copy its content verbatim or use it as a substitute for elicitation.
 - **No codebase inference.** Never generate principles by reading source files, configs, or commit history. Principles must come from the user's stated values, not from what you observe in the code.
 - **Keep categories separate.** Core Principles ≠ Development Conventions ≠ Constraints. Conflating them makes the constitution unactionable for `/maxi:analyze`.
+- **Principles, not decisions.** A constitution holds *invariants that constrain all future decisions* — not the decisions themselves. Route each candidate by the litmus test:
+  - **Decision → ADR, not here.** It names a specific technology, is contestable (real alternatives exist), or could be reversed by a later choice. The pipeline captures these via `/maxi:adr` during `/maxi:plan`/`/maxi:implement`.
+  - **Principle → here.** A durable rule every future decision must satisfy.
+  - **Constraint → here.** An externally-imposed requirement with no real alternative (e.g. a compliance-mandated platform) is *not* contestable, so it stays in the constitution.
+  - Example: *"Every storage choice must be justified against data-durability needs"* is a principle; *"We use PostgreSQL"* is a decision (ADR).
 - **Minimum 3, maximum 7.** Fewer than 3 is incomplete. More than 7 is noise.
 - **Verify on write.** After writing, confirm the file exists at `docs/maxi/constitution.md`. If it doesn't, diagnose and retry.
 
@@ -79,4 +85,5 @@ Ask one question at a time. Elicit 3–7 principles. Stop at 7.
 - User pointed to `CLAUDE.md` or another file and you copied its content → **delete draft, explain format mismatch, elicit first**
 - You read source files or configs to infer principles without asking the user → **delete draft, elicit first**
 - Mixing "use TypeScript strict mode" (convention) with "never store PII unencrypted" (constraint) in the same section → **separate them**
+- Writing a concrete tech/tool choice ("we use PostgreSQL", "deploy on Vercel", "MAJOR.MINOR.BUILD versioning") as a Core Principle → **that's a decision, not a principle; record the underlying invariant here — the concrete choice is destined for an ADR, captured later during `/maxi:plan`/`/maxi:implement`**
 - Writing 10+ principles → **consolidate to 7 maximum**
