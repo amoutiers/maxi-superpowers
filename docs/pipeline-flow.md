@@ -27,6 +27,7 @@ flowchart TD
             TASKS["/maxi:tasks\n─────────────\nplanned → tasked\n(extraction only)"]
             ANALYZE["/maxi:analyze\n─────────────\ntasked → analyzed\n(7-pass audit)"]
             IMPLEMENT["/maxi:implement\n─────────────\nanalyzed → implementing → done"]
+            DEVELOP["/maxi:develop\n─────────────\nsubagent execution\n(called by implement)"]
             ADR["/maxi:adr\n─────────────\n(internal — never\ninvoked by user)"]
             DONE(["✓ done"])
         end
@@ -35,7 +36,6 @@ flowchart TD
     subgraph vendored["Superpowers (vendored)"]
         BRAINSTORMING["/maxi:brainstorming"]
         WRITING_PLANS["/maxi:writing-plans"]
-        EXECUTING_PLANS["/maxi:executing-plans"]
         CODE_REVIEW["/maxi:requesting-code-review"]
     end
 
@@ -61,14 +61,13 @@ flowchart TD
     %% Invisible links to anchor vendored below both blocks
     DONE ~~~ BRAINSTORMING
     DONE ~~~ WRITING_PLANS
-    CANCELLED ~~~ EXECUTING_PLANS
     CANCELLED ~~~ CODE_REVIEW
 
     %% Delegations to superpowers (dashed arrows)
     SPECIFY -.->|"delegates"| BRAINSTORMING
     PLAN -.->|"delegates"| WRITING_PLANS
     PLAN -.->|"arch choice detected"| ADR
-    IMPLEMENT -.->|"delegates"| EXECUTING_PLANS
+    IMPLEMENT -.->|"delegates"| DEVELOP
     IMPLEMENT -.->|"unplanned fork"| ADR
     IMPLEMENT -.->|"delegates"| CODE_REVIEW
 ```

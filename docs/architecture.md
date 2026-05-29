@@ -87,7 +87,7 @@ See [delegation-map.md](delegation-map.md) for the full table, and [pipeline-flo
 | `plan` | `/maxi:writing-plans`, then `/maxi:adr` per detected architectural choice |
 | `tasks` | (none — extraction only) |
 | `analyze` | (none — reads artifacts + ADRs, writes analysis.md with 7-pass audit) |
-| `implement` | `/maxi:executing-plans`, then `/maxi:adr` on unplanned forks, then `/maxi:requesting-code-review` |
+| `implement` | `/maxi:develop`, then `/maxi:adr` on unplanned forks, then `/maxi:requesting-code-review` |
 | `adr` | (internal — invoked by plan + implement; never invoked by user directly) |
 
 ## Architecture Decision Records

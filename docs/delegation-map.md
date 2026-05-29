@@ -14,7 +14,7 @@ This table shows which maxi pipeline skill delegates to which superpowers sub-sk
 | `plan` | `clarified` | `/maxi:writing-plans` | `clarified → planned` |
 | `tasks` | `planned` | (none — extraction from plan.md) | `planned → tasked` |
 | `analyze` | `tasked`, `analyzed`, `implementing`, or `done` | (none — reads artifacts, writes analysis.md) | `tasked → analyzed` (once; reruns don't change status) |
-| `implement` | `analyzed` | `/maxi:executing-plans`, then `/maxi:requesting-code-review` | `analyzed → implementing → done` |
+| `implement` | `analyzed` | `/maxi:develop`, then `/maxi:requesting-code-review` | `analyzed → implementing → done` |
 
 ### Lifecycle Skills
 
