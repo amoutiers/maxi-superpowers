@@ -8,10 +8,11 @@ maxi-superpowers is a dual-harness plugin for Claude Code and OpenCode. It vendo
 
 All new skills MUST be authored using `superpowers:writing-skills`. Do not hand-write SKILL.md files.
 
-The writing-skills TDD cycle:
-1. RED: run pressure scenario WITHOUT skill — document failures
-2. GREEN: invoke `superpowers:writing-skills` with behavioral spec
-3. REFACTOR: add explicit counters for any new rationalizations
+The authoring flow:
+1. **brainstorm** — explore intent and design (`superpowers:brainstorming`)
+2. **spec** — write the spec (`/maxi:specify`)
+3. **plan** — write the implementation plan (`superpowers:writing-plans`, via `/maxi:plan`)
+4. **writing-skills** — author/edit the SKILL.md (`superpowers:writing-skills`), which runs its own RED/GREEN/REFACTOR cycle internally
 
 ## Vendored Skills
 

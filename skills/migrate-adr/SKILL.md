@@ -49,11 +49,12 @@ digraph migrate_adr {
     "Report: nothing found, exit" [shape=box];
     "Display summary table" [shape=box];
     "Consent gate: next proposal?" [shape=diamond];
-    "Show full draft + ask yes/no/edit" [shape=box];
+    "Show full draft + ask accept/skip/deprecate/edit" [shape=box];
     "Accept amendments inline" [shape=box];
-    "Write ADR + regenerate README.md" [shape=box];
-    "Discard (discovered)" [shape=box];
-    "Write as deprecated (imported)" [shape=box];
+    "Write ADR" [shape=box];
+    "Skip (no file written)" [shape=box];
+    "Write as deprecated (imported only)" [shape=box];
+    "Regenerate README.md (once, on loop exit)" [shape=box];
     "Done" [shape=box];
 
     "Check constitution" -> "STOP: run /maxi:constitution first" [label="missing"];
@@ -67,16 +68,17 @@ digraph migrate_adr {
     "Nothing to propose?" -> "Report: nothing found, exit" [label="yes"];
     "Nothing to propose?" -> "Display summary table" [label="no"];
     "Display summary table" -> "Consent gate: next proposal?";
-    "Consent gate: next proposal?" -> "Show full draft + ask yes/no/edit" [label="yes"];
-    "Show full draft + ask yes/no/edit" -> "Write ADR + regenerate README.md" [label="yes"];
-    "Show full draft + ask yes/no/edit" -> "Accept amendments inline" [label="edit"];
-    "Accept amendments inline" -> "Write ADR + regenerate README.md";
-    "Show full draft + ask yes/no/edit" -> "Discard (discovered)" [label="no (discovered)"];
-    "Show full draft + ask yes/no/edit" -> "Write as deprecated (imported)" [label="no (imported)"];
-    "Write ADR + regenerate README.md" -> "Consent gate: next proposal?";
-    "Discard (discovered)" -> "Consent gate: next proposal?";
-    "Write as deprecated (imported)" -> "Consent gate: next proposal?";
-    "Consent gate: next proposal?" -> "Done" [label="no more"];
+    "Consent gate: next proposal?" -> "Show full draft + ask accept/skip/deprecate/edit" [label="yes"];
+    "Show full draft + ask accept/skip/deprecate/edit" -> "Write ADR" [label="accept"];
+    "Show full draft + ask accept/skip/deprecate/edit" -> "Accept amendments inline" [label="edit"];
+    "Accept amendments inline" -> "Write ADR";
+    "Show full draft + ask accept/skip/deprecate/edit" -> "Skip (no file written)" [label="skip / ambiguous x2"];
+    "Show full draft + ask accept/skip/deprecate/edit" -> "Write as deprecated (imported only)" [label="deprecate"];
+    "Write ADR" -> "Consent gate: next proposal?";
+    "Skip (no file written)" -> "Consent gate: next proposal?";
+    "Write as deprecated (imported only)" -> "Consent gate: next proposal?";
+    "Consent gate: next proposal?" -> "Regenerate README.md (once, on loop exit)" [label="no more"];
+    "Regenerate README.md (once, on loop exit)" -> "Done";
 }
 ```
 
@@ -93,22 +95,46 @@ Check `docs/maxi/constitution.md` exists.
 
 ## Step 2 — Read Exclusion Context
 
-If `docs/maxi/adr/` exists and contains `NNNN-*.md` files: read each one and extract domain labels (primary technology/category) from titles and Decision sections.
+If `docs/maxi/adr/` exists and contains `NNNN-*.md` files: read each one and extract domain labels (primary technology/category) from titles and Decision sections. Also read `docs/maxi/adr/.rejected` if present (treat missing as empty) and add its labels to the exclusion context — see Step 6.
 
-Matching is case-insensitive substring: a new proposal's domain label matches an exclusion entry if either contains the other as a substring (e.g., "Tokio" matches "Use Tokio for async runtime").
+**Matching rule (token-set, not substring).** Normalize each label: lowercase, then **strip stopwords** (`use`, `for`, `the`, `a`, `as`, `with`, `to`). Build the **set of proper-noun (capitalized) tokens** from the original label; if a label has no proper-noun token, its longest remaining token of **3+ characters** forms a single-element set.
 
-Pass this exclusion list to both subagents. Neither subagent may propose a domain already in the list.
+Compare a new proposal's set against each exclusion entry's set:
+
+- **Equal sets** → exclude (already covered).
+- **Partial overlap** (share ≥1 token but the sets are not equal) → **flag for the user, do NOT auto-exclude**.
+- **No overlap** → keep.
+- **No qualifying token** (all stopwords, or every candidate token is **shorter than 3 characters**, e.g. `go`, `js`) → flag for the user, never auto-exclude.
+
+This biases against false exclusions: a generic residue token like `primary` or `store` never silently drops a proposal. On partial overlap the matcher must flag, not exclude. `.rejected` labels pass through the same normalization before matching.
+
+Pass this exclusion list to both subagents. Neither subagent may propose a domain whose set is equal to an entry in the list; partial-overlap and no-qualifying-token cases are surfaced to the user instead.
 
 ---
 
 ## Step 3 — Dispatch Subagents in Parallel
 
-Use `maxi:dispatching-parallel-agents`. Pass exclusion context to both. With `--import-only`, dispatch only Subagent A.
+Use `maxi:dispatching-parallel-agents`. Pass exclusion context to both. Also pass **the constitution's principles** (names/titles from `docs/maxi/constitution.md`) to Subagent B. With `--import-only`, dispatch only Subagent A.
+
+**Return schema (both subagents MUST produce this).** Each subagent returns a list of proposals. Every proposal object includes:
+
+| Field | Source | Notes |
+|-------|--------|-------|
+| `source` | both | `import` or `discover` |
+| `domain_label` | both | primary technology/category (used for dedup + exclusion matching) |
+| `title` | both | ADR title line |
+| `body` | both | the full drafted ADR markdown |
+| `format` | importer only | `nygard` \| `madr` \| `plain` |
+| `source_path` | importer only | original file path (feeds the `source:` frontmatter) |
+
+Steps 4 (deduplicate) and 5 (summary table) consume this structured list.
 
 ### Subagent A — Importer
 
 Scan these directories for `.md` files:
 `doc/adr/`, `docs/adr/`, `docs/decisions/`, `docs/architecture/`, `adr/`, `ADRs/`
+
+**Filename blocklist (skip before format detection):** ignore any file whose basename (case-insensitive) is `README.md`, `index.md`, `template.md`, or `CONTRIBUTING.md`. These are not ADRs; without the blocklist a project `README.md` would be imported via the Plain-Markdown catch-all. Do **not** use a subjective "does the H1 look like a decision" heuristic — the blocklist plus the format-detection table below is the filter.
 
 **Detect format per file:**
 
@@ -163,12 +189,15 @@ Nygard supersession: if `## Status` contains "Supersedes ADR-NNN", set `supersed
 ```yaml
 date: [preserved from source, or "[unknown]" if not found]
 updated: [today]
+source: [original file path the ADR was imported from, or "[unknown]" if undeterminable]
 related_specs: []
 related_principles: []
 related_requirements: []
 supersedes: null
 superseded_by: null
 ```
+
+The `source:` field records provenance so every imported ADR points back at its original file.
 
 ### Subagent B — Discoverer
 
@@ -179,9 +208,13 @@ Analyze these layers:
 | Package manifests | `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `requirements.txt`, `pom.xml`, `build.gradle` |
 | Config files | `Dockerfile`, `docker-compose.yml`, `.github/workflows/`, `.gitlab-ci.yml`, `tsconfig.json`, `eslint.config.*`, `.prettierrc`, `.env.example` |
 | Directory structure | monorepo vs. polyrepo, layered/hexagonal/feature-based layout, test strategy |
-| Git history | `git log -200 --format="%H %s%n%b"` — scan the output for commits whose subject OR body contains any of: `chose`, `decided`, `switched`, `migrated`, `replaced`, `adopted`, `dropped`, `moved to`; the full message body is already available in the output |
+| Git history | `git log -n 200 --format="%H %s%n%b"` — scan the output for commits whose subject OR body contains any of: `chose`, `decided`, `switched`, `migrated`, `replaced`, `adopted`, `dropped`, `moved to`; the full message body is already available in the output |
 
 Skip domains in exclusion context.
+
+**Significance rubric.** Propose a decision only if it meets at least one of: it is **costly to reverse**, it **constrains future choices**, or it **was contested** (a real alternative was weighed). A bare dependency in a manifest or a git-log keyword hit is **not** sufficient on its own — drop easily-reversible, uncontested choices (e.g. a code formatter). The consent gate is the user's filter, not the only filter; do not flood it with trivia.
+
+**Constitution linkage.** You are given the constitution's principles (Step 3). When a discovered decision relates to a named principle, set `related_principles` to that principle and note the link in the draft's `## Context`. If no principle relates, leave `related_principles: []` — never fabricate a link.
 
 **Default frontmatter for all discovered ADRs:**
 
@@ -220,11 +253,13 @@ Import-only and discover-only proposals are kept as-is.
 ```
 Found N imported ADRs + M discovered decisions (K already covered by existing ADRs).
 
-| #  | Source    | Topic                        | Tentative ADR |
-|----|-----------|------------------------------|---------------|
-|  1 | import    | PostgreSQL as primary store  | ADR-0003 (t)  |
-|  2 | discover  | TypeScript strict mode       | ADR-0004 (t)  |
-(t) = tentative number, assigned at write time
+| #  | Source    | Topic                        |
+|----|-----------|------------------------------|
+|  1 | import    | PostgreSQL as primary store  |
+|  2 | discover  | TypeScript strict mode       |
+
+Final ADR numbers are assigned sequentially at write time (from the current
+max in docs/maxi/adr/), not shown here — the # column is just a row index.
 ```
 
 If nothing to propose: output *"Nothing to migrate and no architectural decisions detected. Use `/maxi:adr` to record decisions manually."* — exit cleanly.
@@ -235,36 +270,39 @@ If nothing to propose: output *"Nothing to migrate and no architectural decision
 
 Process imported proposals first, then discovered proposals.
 
-For each proposal: show the **full draft** and ask:
+For each proposal: show the **full draft** and ask. The prompt offers explicit **verbs** — never a bare yes/no — so intent is never inferred. The verbs mean the same thing in both cases.
 
 **Imported:**
-> *"Import this as ADR-NNNN? (yes / no = import as deprecated / edit)"*
+> *"Import this as ADR-NNNN? (accept / skip / deprecate / edit)"*
 
 | Response | Action |
 |----------|--------|
-| `yes` | Write with `status: accepted` |
-| `no` | Write with `status: deprecated` (the historical decision is preserved even when you decline to adopt it — you can always supersede it later with `/maxi:adr`) |
+| `accept` | Write with `status: accepted` |
+| `skip` | No file written |
+| `deprecate` | Write with `status: deprecated` (preserve the historical decision without adopting it — you can supersede it later with `/maxi:adr`) |
 | `edit` | Accept amendments inline, write with `status: accepted` |
 
 **Discovered:**
-> *"Record this as ADR-NNNN? (yes / no = discard / edit)"*
+> *"Record this as ADR-NNNN? (accept / skip / edit)"*
 
 | Response | Action |
 |----------|--------|
-| `yes` | Write with `status: accepted` |
-| `no` | Discard — no file written |
+| `accept` | Write with `status: accepted` |
+| `skip` | Discard — no file written |
 | `edit` | Accept amendments inline, write with `status: accepted` |
 
-**Ambiguous responses** ("ok", "sure", "looks good", "cancel", "skip", silence): treat as `no`. Re-ask once with a context-specific prompt:
+**Ambiguous responses** ("ok", "sure", "looks good", "yes", "no", "cancel", silence): do not infer intent. Re-ask once, naming the explicit verbs for that case:
 
-- For **imported** proposals: *"To confirm: import as ADR-NNNN with status deprecated? (yes to import as deprecated / no to discard entirely)"*
-- For **discovered** proposals: *"To confirm: skip recording this decision? (yes to record / no to discard)"*
+- For **imported** proposals: *"Please choose a verb: accept (write accepted) / skip (no file) / deprecate (write deprecated)."*
+- For **discovered** proposals: *"Please choose a verb: accept (write accepted) / skip (no file)."*
 
-If still ambiguous: treat as `no`.
+If the **second** response is still ambiguous, default to `skip` — no file is written. Never write on an unresolved response.
+
+**Rejection log (`docs/maxi/adr/.rejected`).** On `skip` of a **discovered** proposal, **append its domain label** to `docs/maxi/adr/.rejected` (one label per line; create the file with a leading `#`-comment header explaining its purpose on first write). Step 2 reads this file into the exclusion context, so a later re-run does not re-propose the same decision. On `skip` of an **imported** proposal, do nothing — imported skips are **not logged**, because the original source file on disk is already the record. Writing to `.rejected` is internal **bookkeeping**, not an ADR; it is therefore exempt from the consent gate / Iron Rule (which governs ADR file creation only).
 
 **NNNN is computed from the current max in `docs/maxi/adr/` at write time** — not at proposal time.
 
-After each write: regenerate `docs/maxi/adr/README.md` as a table with columns: ADR number, title, status, date, related specs.
+Regeneration rule: regenerate `docs/maxi/adr/README.md` **once**, after the consent loop completes (on early exit, regenerate for whatever was written) — not after every write. The README is a table with columns: ADR number, title, status, date, related specs.
 
 ---
 
@@ -295,10 +333,10 @@ After each write: regenerate `docs/maxi/adr/README.md` as a table with columns: 
 
 | Mistake | Correct behaviour |
 |---------|-------------------|
-| Writing any file before showing the draft | Always show draft first, wait for yes/no/edit |
+| Writing any file before showing the draft | Always show draft first, wait for accept/skip/deprecate/edit |
 | Skipping a proposal without asking | Every proposal must go through the consent gate |
-| Treating "ok" or silence as yes | Ambiguous = no; re-ask once |
+| Treating "ok" or silence as accept | Ambiguous = re-ask once naming the verbs; second ambiguous defaults to `skip` (no file) |
 | Computing NNNN at proposal time | Compute NNNN from current max **at write time** |
-| Forgetting to regenerate README.md | Regenerate after every write |
+| Regenerating README.md after every write | Regenerate **once** at the end of the consent loop (partial regen on early exit) |
 | Proposing a domain already in exclusion context | Check exclusion list before proposing |
 | Dispatching subagents without exclusion context | Pass exclusion list to both A and B |
