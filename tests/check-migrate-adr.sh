@@ -48,4 +48,11 @@ assert_grep "$MIGRATE" "constitution's principles" "FR-016 principles passed to 
 assert_grep "$MIGRATE" "costly to reverse" "FR-017 rubric in Discoverer"
 assert_grep "$ADR" "costly to reverse" "FR-018 rubric in adr description"
 
+# --- US7: polish (FR-019..021) ---
+assert_grep "$MIGRATE" "git log -n 200" "FR-019 git log -n 200"
+assert_not_grep "$MIGRATE" "git log -200" "FR-019 old flag removed"
+assert_not_grep "$MIGRATE" "(t) = tentative" "FR-020 tentative numbers removed"
+assert_grep "$MIGRATE" "assigned sequentially at write time" "FR-020 write-time note"
+assert_grep "$MIGRATE" "regenerate.*README.*once" "FR-021 single regen"
+
 summary_and_exit "migrate-adr invariant checks"

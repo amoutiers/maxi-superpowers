@@ -157,11 +157,11 @@ updated: 2026-05-29
 
 ### Tests for User Story 7
 
-- [ ] T017 [US7] Add FR-019..021 assertions to `tests/check-migrate-adr.sh` (`git log -n 200` present + old flag gone, `(t) = tentative` gone + write-time note, "regenerate … once"); verify RED — plan Task 8 Steps 1–2
+- [x] T017 [US7] Add FR-019..021 assertions to `tests/check-migrate-adr.sh` (`git log -n 200` present + old flag gone, `(t) = tentative` gone + write-time note, "regenerate … once"); verify RED — plan Task 8 Steps 1–2
 
 ### Implementation for User Story 7
 
-- [ ] T018 [US7] Via `superpowers:writing-skills`, fix the git command, Step 5 table/legend, and Step 6 README-regen wording in `skills/migrate-adr/SKILL.md`; verify GREEN; **full-suite gate (D1)**; commit — plan Task 8 Steps 3–5
+- [x] T018 [US7] Via `superpowers:writing-skills`, fix the git command, Step 5 table/legend, and Step 6 README-regen wording in `skills/migrate-adr/SKILL.md`; verify GREEN; **full-suite gate (D1)**; commit — plan Task 8 Steps 3–5
 
 **Checkpoint**: US7 complete and independently testable.
 

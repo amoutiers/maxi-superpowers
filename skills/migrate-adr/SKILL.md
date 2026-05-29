@@ -206,7 +206,7 @@ Analyze these layers:
 | Package manifests | `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `requirements.txt`, `pom.xml`, `build.gradle` |
 | Config files | `Dockerfile`, `docker-compose.yml`, `.github/workflows/`, `.gitlab-ci.yml`, `tsconfig.json`, `eslint.config.*`, `.prettierrc`, `.env.example` |
 | Directory structure | monorepo vs. polyrepo, layered/hexagonal/feature-based layout, test strategy |
-| Git history | `git log -200 --format="%H %s%n%b"` — scan the output for commits whose subject OR body contains any of: `chose`, `decided`, `switched`, `migrated`, `replaced`, `adopted`, `dropped`, `moved to`; the full message body is already available in the output |
+| Git history | `git log -n 200 --format="%H %s%n%b"` — scan the output for commits whose subject OR body contains any of: `chose`, `decided`, `switched`, `migrated`, `replaced`, `adopted`, `dropped`, `moved to`; the full message body is already available in the output |
 
 Skip domains in exclusion context.
 
@@ -251,11 +251,13 @@ Import-only and discover-only proposals are kept as-is.
 ```
 Found N imported ADRs + M discovered decisions (K already covered by existing ADRs).
 
-| #  | Source    | Topic                        | Tentative ADR |
-|----|-----------|------------------------------|---------------|
-|  1 | import    | PostgreSQL as primary store  | ADR-0003 (t)  |
-|  2 | discover  | TypeScript strict mode       | ADR-0004 (t)  |
-(t) = tentative number, assigned at write time
+| #  | Source    | Topic                        |
+|----|-----------|------------------------------|
+|  1 | import    | PostgreSQL as primary store  |
+|  2 | discover  | TypeScript strict mode       |
+
+Final ADR numbers are assigned sequentially at write time (from the current
+max in docs/maxi/adr/), not shown here — the # column is just a row index.
 ```
 
 If nothing to propose: output *"Nothing to migrate and no architectural decisions detected. Use `/maxi:adr` to record decisions manually."* — exit cleanly.
@@ -298,7 +300,7 @@ If the **second** response is still ambiguous, default to `skip` — no file is 
 
 **NNNN is computed from the current max in `docs/maxi/adr/` at write time** — not at proposal time.
 
-After each write: regenerate `docs/maxi/adr/README.md` as a table with columns: ADR number, title, status, date, related specs.
+Regeneration rule: regenerate `docs/maxi/adr/README.md` **once**, after the consent loop completes (on early exit, regenerate for whatever was written) — not after every write. The README is a table with columns: ADR number, title, status, date, related specs.
 
 ---
 
