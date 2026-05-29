@@ -119,6 +119,8 @@ Use `maxi:dispatching-parallel-agents`. Pass exclusion context to both. With `--
 Scan these directories for `.md` files:
 `doc/adr/`, `docs/adr/`, `docs/decisions/`, `docs/architecture/`, `adr/`, `ADRs/`
 
+**Filename blocklist (skip before format detection):** ignore any file whose basename (case-insensitive) is `README.md`, `index.md`, `template.md`, or `CONTRIBUTING.md`. These are not ADRs; without the blocklist a project `README.md` would be imported via the Plain-Markdown catch-all. Do **not** use a subjective "does the H1 look like a decision" heuristic — the blocklist plus the format-detection table below is the filter.
+
 **Detect format per file:**
 
 | Format | Signal |
@@ -172,12 +174,15 @@ Nygard supersession: if `## Status` contains "Supersedes ADR-NNN", set `supersed
 ```yaml
 date: [preserved from source, or "[unknown]" if not found]
 updated: [today]
+source: [original file path the ADR was imported from, or "[unknown]" if undeterminable]
 related_specs: []
 related_principles: []
 related_requirements: []
 supersedes: null
 superseded_by: null
 ```
+
+The `source:` field records provenance so every imported ADR points back at its original file.
 
 ### Subagent B — Discoverer
 

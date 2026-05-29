@@ -28,4 +28,9 @@ assert_grep "$MIGRATE" "partial.*overlap.*flag" "FR-007 partial overlap flags"
 assert_grep "$MIGRATE" "shorter than 3 characters" "FR-008 short token flagged"
 assert_not_grep "$MIGRATE" "either contains the other" "FR-006 old substring rule removed"
 
+# --- US3: importer hardening (FR-009, 010) ---
+assert_grep "$MIGRATE" "blocklist" "FR-009 filename blocklist"
+assert_grep "$MIGRATE" "CONTRIBUTING.md" "FR-009 blocklist includes CONTRIBUTING"
+assert_grep "$MIGRATE" "source:" "FR-010 source provenance field"
+
 summary_and_exit "migrate-adr invariant checks"

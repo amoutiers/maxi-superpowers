@@ -89,11 +89,11 @@ updated: 2026-05-29
 
 ### Tests for User Story 3
 
-- [ ] T009 [US3] Add FR-009/010 assertions to `tests/check-migrate-adr.sh` (blocklist `README.md`/`CONTRIBUTING.md`, `source:` field); verify RED — plan Task 4 Steps 1–2
+- [x] T009 [US3] Add FR-009/010 assertions to `tests/check-migrate-adr.sh` (blocklist `README.md`/`CONTRIBUTING.md`, `source:` field); verify RED — plan Task 4 Steps 1–2
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Via `superpowers:writing-skills`, add the blocklist to Subagent A and `source:` to the imported-ADR frontmatter invariants in `skills/migrate-adr/SKILL.md`; verify GREEN; **full-suite gate (D1)**; commit — plan Task 4 Steps 3–5
+- [x] T010 [US3] Via `superpowers:writing-skills`, add the blocklist to Subagent A and `source:` to the imported-ADR frontmatter invariants in `skills/migrate-adr/SKILL.md`; verify GREEN; **full-suite gate (D1)**; commit — plan Task 4 Steps 3–5
 
 **Checkpoint**: US3 complete and independently testable.
 
