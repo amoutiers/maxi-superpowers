@@ -44,4 +44,8 @@ assert_grep "$MIGRATE" "source_path" "FR-015 schema source_path"
 assert_grep "$MIGRATE" "Return schema" "FR-015 explicit return-schema block"
 assert_grep "$MIGRATE" "constitution's principles" "FR-016 principles passed to Discoverer"
 
+# --- US6: significance rubric (FR-017, 018) ---
+assert_grep "$MIGRATE" "costly to reverse" "FR-017 rubric in Discoverer"
+assert_grep "$ADR" "costly to reverse" "FR-018 rubric in adr description"
+
 summary_and_exit "migrate-adr invariant checks"

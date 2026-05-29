@@ -1,6 +1,6 @@
 ---
 name: adr
-description: Use when the plan or implement skill has detected an architectural decision (tech stack choice, storage selection, framework pick, significant trade-off) that should be recorded as an Architecture Decision Record in the current maxi project
+description: Use when the plan or implement skill has detected an architectural decision worth recording — one that is costly to reverse, constrains future choices, or was contested (a real alternative was weighed) — that should be captured as an Architecture Decision Record in the current maxi project
 ---
 
 # maxi: Recording Architecture Decision Records (ADRs)

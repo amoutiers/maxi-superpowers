@@ -140,11 +140,11 @@ updated: 2026-05-29
 
 ### Tests for User Story 6
 
-- [ ] T015 [US6] Add FR-017/018 assertions to `tests/check-migrate-adr.sh` (`costly to reverse` in both `migrate-adr` and `adr` SKILL.md); verify RED — plan Task 7 Steps 1–2
+- [x] T015 [US6] Add FR-017/018 assertions to `tests/check-migrate-adr.sh` (`costly to reverse` in both `migrate-adr` and `adr` SKILL.md); verify RED — plan Task 7 Steps 1–2
 
 ### Implementation for User Story 6
 
-- [ ] T016 [US6] Via `superpowers:writing-skills`, add the rubric to Subagent B in `skills/migrate-adr/SKILL.md` and rewrite the `description:` in `skills/adr/SKILL.md`; verify GREEN (incl. `check-frontmatter.sh`); **full-suite gate (D1)**; commit — plan Task 7 Steps 3–5
+- [x] T016 [US6] Via `superpowers:writing-skills`, add the rubric to Subagent B in `skills/migrate-adr/SKILL.md` and rewrite the `description:` in `skills/adr/SKILL.md`; verify GREEN (incl. `check-frontmatter.sh`); **full-suite gate (D1)**; commit — plan Task 7 Steps 3–5
 
 **Checkpoint**: US6 complete; `adr` frontmatter still valid.
 

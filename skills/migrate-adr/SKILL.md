@@ -210,6 +210,8 @@ Analyze these layers:
 
 Skip domains in exclusion context.
 
+**Significance rubric.** Propose a decision only if it meets at least one of: it is **costly to reverse**, it **constrains future choices**, or it **was contested** (a real alternative was weighed). A bare dependency in a manifest or a git-log keyword hit is **not** sufficient on its own — drop easily-reversible, uncontested choices (e.g. a code formatter). The consent gate is the user's filter, not the only filter; do not flood it with trivia.
+
 **Constitution linkage.** You are given the constitution's principles (Step 3). When a discovered decision relates to a named principle, set `related_principles` to that principle and note the link in the draft's `## Context`. If no principle relates, leave `related_principles: []` — never fabricate a link.
 
 **Default frontmatter for all discovered ADRs:**
