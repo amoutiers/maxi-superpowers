@@ -6,7 +6,7 @@ ROOT="$(git rev-parse --show-toplevel)"
 source "$ROOT/tests/lib/test-helpers.sh"
 
 MIGRATE="$ROOT/skills/migrate-adr/SKILL.md"
-ADR="$ROOT/skills/adr/SKILL.md"
+ADR="$ROOT/skills/x-adr/SKILL.md"
 CLAUDEMD="$ROOT/CLAUDE.md"
 CONSTITUTION="$ROOT/docs/maxi/constitution.md"
 failures=0

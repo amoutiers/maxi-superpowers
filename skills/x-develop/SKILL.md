@@ -1,5 +1,5 @@
 ---
-name: develop
+name: x-develop
 description: Use when /maxi:implement delegates execution, or when executing a maxi plan
   via subagent-driven development. Patches known gaps in superpowers:subagent-driven-development.
 ---

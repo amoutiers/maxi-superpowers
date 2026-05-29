@@ -21,7 +21,6 @@ maxi grafts a structured spec-driven workflow onto superpowers' implementation e
 /maxi:tasks         →  extract tasks.md from plan (status: tasked)
 /maxi:analyze       →  7-pass cross-artifact audit → analysis.md (status: analyzed)
 /maxi:implement     →  execute tasks, write code (status: implementing → done)
-/maxi:develop       →  dispatch subagents to implement tasks (called by /maxi:implement)
 /maxi:board         →  kanban overview of all specs grouped by status (read-only)
 /maxi:migrate-adr   →  import existing ADRs (Nygard/MADR/plain) + discover undocumented decisions from source code
 

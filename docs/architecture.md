@@ -4,7 +4,7 @@
 
 maxi-superpowers is a Claude Code plugin with two layers:
 
-1. **spec-kit pipeline** — 16 maxi-native skills: 12 user-facing commands, 1 internal skill (`adr`), 1 session skill (`using-maxi`), and 2 migration utilities (`migrate-from-speckit`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
+1. **spec-kit pipeline** — 17 maxi-native skills: 12 user-facing commands, 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 2 migration utilities (`migrate-from-speckit`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
 
 2. **superpowers implementation engine** — vendored superpowers v5.1.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
 
@@ -32,7 +32,7 @@ maxi-superpowers/
 │   ├── resume/
 │   ├── cancel/
 │   ├── revise/
-│   ├── adr/                 # internal ADR capture skill (invoked by plan + implement)
+│   ├── x-adr/                # internal ADR capture skill (invoked by plan + implement)
 │   ├── using-maxi/          # maxi-native session skill
 │   ├── migrate-from-speckit/ # maxi-native migration utilities
 │   ├── migrate-adr/
@@ -52,7 +52,7 @@ maxi-superpowers/
 │   └── using-superpowers/
 │   # Each artifact template lives in its owning skill's directory:
 │   #   constitution/constitution-template.md, specify/spec-template.md,
-│   #   plan/plan-template.md, tasks/tasks-template.md, adr/adr-template.md
+│   #   plan/plan-template.md, tasks/tasks-template.md, x-adr/adr-template.md
 ├── scripts/
 │   ├── sync-superpowers.sh  # re-sync vendored skills from vendor/superpowers/
 │   └── bump-superpowers.sh  # pull new superpowers tag into vendor/
@@ -84,11 +84,11 @@ See [delegation-map.md](delegation-map.md) for the full table, and [pipeline-flo
 | `constitution` | (none — writes directly) |
 | `specify` | `/maxi:brainstorming` |
 | `clarify` | (none — interactive dialogue) |
-| `plan` | `/maxi:writing-plans`, then `/maxi:adr` per detected architectural choice |
+| `plan` | `/maxi:writing-plans`, then `/maxi:x-adr` per detected architectural choice |
 | `tasks` | (none — extraction only) |
 | `analyze` | (none — reads artifacts + ADRs, writes analysis.md with 7-pass audit) |
-| `implement` | `/maxi:develop`, then `/maxi:adr` on unplanned forks, then `/maxi:requesting-code-review` |
-| `adr` | (internal — invoked by plan + implement; never invoked by user directly) |
+| `implement` | `/maxi:x-develop`, then `/maxi:x-adr` on unplanned forks, then `/maxi:requesting-code-review` |
+| `x-adr` | (internal — invoked by plan + implement; never invoked by user directly) |
 
 ## Architecture Decision Records
 
@@ -105,7 +105,7 @@ docs/
         └── NNNN-feature-slug/
 ```
 
-**Trigger points:** `/maxi:plan` scans the produced plan for tech-stack and architecture choices; `/maxi:implement` watches for unplanned forks reported by subagents. Both invoke `/maxi:adr`, which drafts the ADR, shows it to the user, and writes only on explicit consent.
+**Trigger points:** `/maxi:plan` scans the produced plan for tech-stack and architecture choices; `/maxi:implement` watches for unplanned forks reported by subagents. Both invoke `/maxi:x-adr`, which drafts the ADR, shows it to the user, and writes only on explicit consent.
 
 **Append-only:** ADR body is immutable after creation. Only `status`, `supersedes`, and `superseded_by` frontmatter fields may change. To revise a decision, create a new ADR that supersedes the old one.
 

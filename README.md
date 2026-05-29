@@ -109,7 +109,7 @@ Skipping or reversing a status is blocked by the skill that owns each transition
 
 ## Vendored Superpowers Skills
 
-maxi-superpowers vendors [superpowers v5.1.0](https://github.com/obra/superpowers) via git subtree. All superpowers skills are available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:executing-plans`). The pipeline skills delegate to them at the right moments — you don't invoke them directly.
+maxi-superpowers vendors [superpowers v5.1.0](https://github.com/obra/superpowers) via git subtree. All superpowers skills are available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:test-driven-development`). The pipeline skills delegate to them at the right moments — you don't invoke them directly.
 
 ## Migrating from spec-kit
 

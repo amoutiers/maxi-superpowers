@@ -2,7 +2,11 @@
 
 ## Overview
 
-maxi-superpowers is a dual-harness plugin for Claude Code and OpenCode. It vendors superpowers' skills via git subtree and adds 17 maxi-native skills: 13 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `develop`, `board`, `cancel`, `park`, `resume`, `revise`), 1 internal pipeline skill (`adr`), 1 session skill (`using-maxi`), and 2 migration utilities (`migrate-from-speckit`, `migrate-adr`).
+maxi-superpowers is a dual-harness plugin for Claude Code and OpenCode. It vendors superpowers' skills via git subtree and adds 17 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 2 migration utilities (`migrate-from-speckit`, `migrate-adr`).
+
+## Git
+
+**Never commit without explicit user consent.** Stage changes and show what will be committed, then wait for approval before running `git commit`.
 
 ## Developing New Skills
 

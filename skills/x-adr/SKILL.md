@@ -1,5 +1,5 @@
 ---
-name: adr
+name: x-adr
 description: Use when the plan or implement skill has detected an architectural decision worth recording — one that is costly to reverse, constrains future choices, or was contested (a real alternative was weighed) — that should be captured as an Architecture Decision Record in the current maxi project
 ---
 

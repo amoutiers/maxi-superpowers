@@ -51,7 +51,7 @@ Ask one question at a time. Elicit 3–7 principles. Stop at 7.
 - "What is the single most important constraint this project must never violate?"
 - "If a new developer breaks this rule, what should they be told?"
 - "What trade-off has your team made that might surprise an outsider?"
-- If an answer names a specific technology or a reversible choice, note that it is an architectural decision for an ADR (the pipeline captures these via `/maxi:adr` during `/maxi:plan`/`/maxi:implement` — not here) and steer the principle toward the underlying invariant instead.
+- If an answer names a specific technology or a reversible choice, note that it is an architectural decision for an ADR (the pipeline captures these via `/maxi:x-adr` during `/maxi:plan`/`/maxi:implement` — not here) and steer the principle toward the underlying invariant instead.
 
 **Development Conventions (preferred practices)** — ask:
 - "What's your testing philosophy? TDD, test-after, integration-focused?"
@@ -70,7 +70,7 @@ Ask one question at a time. Elicit 3–7 principles. Stop at 7.
 - **No codebase inference.** Never generate principles by reading source files, configs, or commit history. Principles must come from the user's stated values, not from what you observe in the code.
 - **Keep categories separate.** Core Principles ≠ Development Conventions ≠ Constraints. Conflating them makes the constitution unactionable for `/maxi:analyze`.
 - **Principles, not decisions.** A constitution holds *invariants that constrain all future decisions* — not the decisions themselves. Route each candidate by the litmus test:
-  - **Decision → ADR, not here.** It names a specific technology, is contestable (real alternatives exist), or could be reversed by a later choice. The pipeline captures these via `/maxi:adr` during `/maxi:plan`/`/maxi:implement`.
+  - **Decision → ADR, not here.** It names a specific technology, is contestable (real alternatives exist), or could be reversed by a later choice. The pipeline captures these via `/maxi:x-adr` during `/maxi:plan`/`/maxi:implement`.
   - **Principle → here.** A durable rule every future decision must satisfy.
   - **Constraint → here.** An externally-imposed requirement with no real alternative (e.g. a compliance-mandated platform) is *not* contestable, so it stays in the constitution.
   - Example: *"Every storage choice must be justified against data-durability needs"* is a principle; *"We use PostgreSQL"* is a decision (ADR).
