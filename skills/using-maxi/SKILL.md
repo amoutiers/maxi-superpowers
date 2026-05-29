@@ -67,12 +67,22 @@ Each skill enforces the required status strictly:
 
 | Skill | Required status | Tolerance | Produces |
 |---|---|---|---|
-| `/maxi:specify` | none | — | `specified` |
+| `/maxi:specify` | constitution exists | — | `specified` |
 | `/maxi:clarify` | `specified` | none | `clarified` |
 | `/maxi:plan` | `clarified` | none | `planned` |
 | `/maxi:tasks` | `planned` | none | `tasked` |
 | `/maxi:analyze` | `tasked`+ | re-run ok on `analyzed`/`implementing`/`done` | `analyzed` |
 | `/maxi:implement` | `analyzed` | none | `implementing` → `done` |
+
+Lifecycle skills act on a spec's status outside the forward flow:
+
+| Skill | Required status | Produces |
+|---|---|---|
+| `/maxi:board` | any (read-only) | — |
+| `/maxi:park` | any active (not `parked`/`cancelled`/`done`) | `parked` |
+| `/maxi:resume` | `parked` | restores `parked_from` |
+| `/maxi:cancel` | any active (not `parked`/`cancelled`/`done`) | `cancelled` |
+| `/maxi:revise` | `clarified` through `implementing` | rolls back to `clarified`/`planned`/`tasked`/`analyzed` |
 
 > **Note:** Skills are designed to be cheap when there is nothing to do. `/maxi:clarify` completes in seconds if the spec has no ambiguities. `/maxi:analyze` produces a clean report instantly if there are no issues. The discipline cost is bounded; the value is not.
 

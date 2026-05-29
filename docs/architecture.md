@@ -4,7 +4,7 @@
 
 maxi-superpowers is a Claude Code plugin with two layers:
 
-1. **spec-kit pipeline** — 7 user-facing commands plus 1 internal skill (`adr`), totalling 8 maxi-native skills. Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
+1. **spec-kit pipeline** — 16 maxi-native skills: 12 user-facing commands, 1 internal skill (`adr`), 1 session skill (`using-maxi`), and 2 migration utilities (`migrate-from-speckit`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
 
 2. **superpowers implementation engine** — vendored superpowers v5.1.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
 
@@ -20,15 +20,22 @@ maxi-superpowers/
 │   ├── run-hook.cmd
 │   └── session-start
 ├── skills/
-│   ├── constitution/        # maxi-native pipeline skills
+│   ├── constitution/        # maxi-native pipeline commands
 │   ├── specify/
 │   ├── clarify/
 │   ├── plan/
 │   ├── tasks/
 │   ├── analyze/
 │   ├── implement/
+│   ├── board/               # maxi-native lifecycle commands
+│   ├── park/
+│   ├── resume/
+│   ├── cancel/
+│   ├── revise/
 │   ├── adr/                 # internal ADR capture skill (invoked by plan + implement)
-│   ├── using-maxi/          # maxi-native meta skill
+│   ├── using-maxi/          # maxi-native session skill
+│   ├── migrate-from-speckit/ # maxi-native migration utilities
+│   ├── migrate-adr/
 │   ├── brainstorming/       # vendored from superpowers (do not hand-edit)
 │   ├── writing-plans/
 │   ├── executing-plans/
@@ -53,13 +60,14 @@ maxi-superpowers/
 │   └── superpowers/         # git subtree of superpowers upstream
 ├── tests/
 │   ├── run-all.sh
-│   ├── check-frontmatter.sh
-│   ├── check-sync-invariant.sh
-│   ├── check-spec-fixture.sh
+│   ├── check-*.sh           # 13 fast-tier checks (see CLAUDE.md for the list)
+│   ├── integration/         # opt-in integration tier
 │   └── fixtures/
 ├── docs/
 │   ├── architecture.md      # this file
-│   └── delegation-map.md
+│   ├── delegation-map.md    # forward + lifecycle skill tables
+│   ├── pipeline-flow.md     # Mermaid diagram + FSM
+│   └── maxi/                # per-project artifacts (constitution, adr/, specs/)
 ├── CLAUDE.md                # contributor guidelines
 ├── VENDORED.md              # vendored dependency record
 └── package.json
