@@ -93,11 +93,20 @@ Check `docs/maxi/constitution.md` exists.
 
 ## Step 2 — Read Exclusion Context
 
-If `docs/maxi/adr/` exists and contains `NNNN-*.md` files: read each one and extract domain labels (primary technology/category) from titles and Decision sections.
+If `docs/maxi/adr/` exists and contains `NNNN-*.md` files: read each one and extract domain labels (primary technology/category) from titles and Decision sections. Also read `docs/maxi/adr/.rejected` if present (treat missing as empty) and add its labels to the exclusion context — see Step 6.
 
-Matching is case-insensitive substring: a new proposal's domain label matches an exclusion entry if either contains the other as a substring (e.g., "Tokio" matches "Use Tokio for async runtime").
+**Matching rule (token-set, not substring).** Normalize each label: lowercase, then **strip stopwords** (`use`, `for`, `the`, `a`, `as`, `with`, `to`). Build the **set of proper-noun (capitalized) tokens** from the original label; if a label has no proper-noun token, its longest remaining token of **3+ characters** forms a single-element set.
 
-Pass this exclusion list to both subagents. Neither subagent may propose a domain already in the list.
+Compare a new proposal's set against each exclusion entry's set:
+
+- **Equal sets** → exclude (already covered).
+- **Partial overlap** (share ≥1 token but the sets are not equal) → **flag for the user, do NOT auto-exclude**.
+- **No overlap** → keep.
+- **No qualifying token** (all stopwords, or every candidate token is **shorter than 3 characters**, e.g. `go`, `js`) → flag for the user, never auto-exclude.
+
+This biases against false exclusions: a generic residue token like `primary` or `store` never silently drops a proposal. On partial overlap the matcher must flag, not exclude. `.rejected` labels pass through the same normalization before matching.
+
+Pass this exclusion list to both subagents. Neither subagent may propose a domain whose set is equal to an entry in the list; partial-overlap and no-qualifying-token cases are surfaced to the user instead.
 
 ---
 

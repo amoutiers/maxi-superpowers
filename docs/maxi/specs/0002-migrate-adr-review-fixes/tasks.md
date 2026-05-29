@@ -72,11 +72,11 @@ updated: 2026-05-29
 
 ### Tests for User Story 2
 
-- [ ] T007 [US2] Add FR-006..008/013 assertions to `tests/check-migrate-adr.sh` (stopword strip, proper-noun set, partial-overlap→flag, <3-char→flag, old "either contains the other" gone); verify RED — plan Task 3 Steps 1–2
+- [x] T007 [US2] Add FR-006..008/013 assertions to `tests/check-migrate-adr.sh` (stopword strip, proper-noun set, partial-overlap→flag, <3-char→flag, old "either contains the other" gone); verify RED — plan Task 3 Steps 1–2
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Via `superpowers:writing-skills`, replace the Step 2 matching rule in `skills/migrate-adr/SKILL.md` (set-based; equal→exclude, partial→flag, none→keep; note `.rejected` normalization); verify GREEN; **full-suite gate (D1)**; commit — plan Task 3 Steps 3–5
+- [x] T008 [US2] Via `superpowers:writing-skills`, replace the Step 2 matching rule in `skills/migrate-adr/SKILL.md` (set-based; equal→exclude, partial→flag, none→keep; note `.rejected` normalization); verify GREEN; **full-suite gate (D1)**; commit — plan Task 3 Steps 3–5
 
 **Checkpoint**: Both P1 stories complete — correctness core of the skill is fixed.
 

@@ -21,4 +21,11 @@ assert_grep "$MIGRATE" "deprecate.*status: deprecated" "FR-003 deprecate writes 
 assert_grep "$MIGRATE" "second ambiguous.*skip" "FR-005 ambiguous defaults to skip"
 assert_not_grep "$MIGRATE" "no = import as deprecated" "FR-001 old binary prompt removed"
 
+# --- US2: exclusion matching (FR-006..008, 013) ---
+assert_grep "$MIGRATE" "strip stopwords" "FR-006 stopword strip"
+assert_grep "$MIGRATE" "proper-noun" "FR-007 proper-noun set"
+assert_grep "$MIGRATE" "partial.*overlap.*flag" "FR-007 partial overlap flags"
+assert_grep "$MIGRATE" "shorter than 3 characters" "FR-008 short token flagged"
+assert_not_grep "$MIGRATE" "either contains the other" "FR-006 old substring rule removed"
+
 summary_and_exit "migrate-adr invariant checks"
