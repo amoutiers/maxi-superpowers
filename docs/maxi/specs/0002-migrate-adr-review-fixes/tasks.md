@@ -28,8 +28,8 @@ updated: 2026-05-29
 
 **Purpose**: Stand up the fast-tier check harness that every story extends.
 
-- [ ] T001 Create `tests/check-migrate-adr.sh` skeleton (shebang, `set -euo pipefail`, source `tests/lib/test-helpers.sh`, define `MIGRATE`/`ADR`/`CLAUDEMD`/`CONSTITUTION` vars, single `assert_file_exists` on the skill, `summary_and_exit`) — plan Task 1 Step 1
-- [ ] T002 `chmod +x tests/check-migrate-adr.sh` — plan Task 1 Step 2
+- [x] T001 Create `tests/check-migrate-adr.sh` skeleton (shebang, `set -euo pipefail`, source `tests/lib/test-helpers.sh`, define `MIGRATE`/`ADR`/`CLAUDEMD`/`CONSTITUTION` vars, single `assert_file_exists` on the skill, `summary_and_exit`) — plan Task 1 Step 1
+- [x] T002 `chmod +x tests/check-migrate-adr.sh` — plan Task 1 Step 2
 
 **Checkpoint**: Check script exists and is executable.
 
@@ -41,8 +41,8 @@ updated: 2026-05-29
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete — every story adds assertions to this registered script.
 
-- [ ] T003 Register `check-migrate-adr.sh` in `tests/run-all.sh` (add `run_check` line after `check-skills-present.sh`) — plan Task 1 Step 3
-- [ ] T004 Run `bash tests/run-all.sh`, confirm green skeleton, then commit (`test(migrate-adr): add fast-tier check skeleton`) — full-suite gate (D1) before commit — plan Task 1 Steps 4–5
+- [x] T003 Register `check-migrate-adr.sh` in `tests/run-all.sh` (add `run_check` line after `check-skills-present.sh`) — plan Task 1 Step 3
+- [x] T004 Run `bash tests/run-all.sh`, confirm green skeleton, then commit (`test(migrate-adr): add fast-tier check skeleton`) — full-suite gate (D1) before commit — plan Task 1 Steps 4–5
 
 **Checkpoint**: Foundation ready — user story phases can begin.
 
@@ -55,11 +55,11 @@ updated: 2026-05-29
 
 ### Tests for User Story 1
 
-- [ ] T005 [US1] Add FR-001..005 assertions to `tests/check-migrate-adr.sh` (4 verbs, `skip`=no file, `deprecate`=deprecated, ambiguous→skip, old `no = import as deprecated` gone); run and verify RED — plan Task 2 Steps 1–2
+- [x] T005 [US1] Add FR-001..005 assertions to `tests/check-migrate-adr.sh` (4 verbs, `skip`=no file, `deprecate`=deprecated, ambiguous→skip, old `no = import as deprecated` gone); run and verify RED — plan Task 2 Steps 1–2
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Via `superpowers:writing-skills`, rewrite Step 6 consent gate in `skills/migrate-adr/SKILL.md` (imported `accept/skip/deprecate/edit`, discovered `accept/skip/edit`, re-ask + default-skip; update digraph + Common Mistakes); verify GREEN; **full-suite gate (D1)**; commit — plan Task 2 Steps 3–5
+- [x] T006 [US1] Via `superpowers:writing-skills`, rewrite Step 6 consent gate in `skills/migrate-adr/SKILL.md` (imported `accept/skip/deprecate/edit`, discovered `accept/skip/edit`, re-ask + default-skip; update digraph + Common Mistakes); verify GREEN; **full-suite gate (D1)**; commit — plan Task 2 Steps 3–5
 
 **Checkpoint**: US1 complete and independently testable. **This is the MVP** (US2 is also P1 — see Phase 4).
 

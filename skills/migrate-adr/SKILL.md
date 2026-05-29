@@ -49,11 +49,11 @@ digraph migrate_adr {
     "Report: nothing found, exit" [shape=box];
     "Display summary table" [shape=box];
     "Consent gate: next proposal?" [shape=diamond];
-    "Show full draft + ask yes/no/edit" [shape=box];
+    "Show full draft + ask accept/skip/deprecate/edit" [shape=box];
     "Accept amendments inline" [shape=box];
     "Write ADR + regenerate README.md" [shape=box];
-    "Discard (discovered)" [shape=box];
-    "Write as deprecated (imported)" [shape=box];
+    "Skip (no file written)" [shape=box];
+    "Write as deprecated (imported only)" [shape=box];
     "Done" [shape=box];
 
     "Check constitution" -> "STOP: run /maxi:constitution first" [label="missing"];
@@ -67,15 +67,15 @@ digraph migrate_adr {
     "Nothing to propose?" -> "Report: nothing found, exit" [label="yes"];
     "Nothing to propose?" -> "Display summary table" [label="no"];
     "Display summary table" -> "Consent gate: next proposal?";
-    "Consent gate: next proposal?" -> "Show full draft + ask yes/no/edit" [label="yes"];
-    "Show full draft + ask yes/no/edit" -> "Write ADR + regenerate README.md" [label="yes"];
-    "Show full draft + ask yes/no/edit" -> "Accept amendments inline" [label="edit"];
+    "Consent gate: next proposal?" -> "Show full draft + ask accept/skip/deprecate/edit" [label="yes"];
+    "Show full draft + ask accept/skip/deprecate/edit" -> "Write ADR + regenerate README.md" [label="accept"];
+    "Show full draft + ask accept/skip/deprecate/edit" -> "Accept amendments inline" [label="edit"];
     "Accept amendments inline" -> "Write ADR + regenerate README.md";
-    "Show full draft + ask yes/no/edit" -> "Discard (discovered)" [label="no (discovered)"];
-    "Show full draft + ask yes/no/edit" -> "Write as deprecated (imported)" [label="no (imported)"];
+    "Show full draft + ask accept/skip/deprecate/edit" -> "Skip (no file written)" [label="skip / ambiguous x2"];
+    "Show full draft + ask accept/skip/deprecate/edit" -> "Write as deprecated (imported only)" [label="deprecate"];
     "Write ADR + regenerate README.md" -> "Consent gate: next proposal?";
-    "Discard (discovered)" -> "Consent gate: next proposal?";
-    "Write as deprecated (imported)" -> "Consent gate: next proposal?";
+    "Skip (no file written)" -> "Consent gate: next proposal?";
+    "Write as deprecated (imported only)" -> "Consent gate: next proposal?";
     "Consent gate: next proposal?" -> "Done" [label="no more"];
 }
 ```
@@ -235,32 +235,33 @@ If nothing to propose: output *"Nothing to migrate and no architectural decision
 
 Process imported proposals first, then discovered proposals.
 
-For each proposal: show the **full draft** and ask:
+For each proposal: show the **full draft** and ask. The prompt offers explicit **verbs** — never a bare yes/no — so intent is never inferred. The verbs mean the same thing in both cases.
 
 **Imported:**
-> *"Import this as ADR-NNNN? (yes / no = import as deprecated / edit)"*
+> *"Import this as ADR-NNNN? (accept / skip / deprecate / edit)"*
 
 | Response | Action |
 |----------|--------|
-| `yes` | Write with `status: accepted` |
-| `no` | Write with `status: deprecated` (the historical decision is preserved even when you decline to adopt it — you can always supersede it later with `/maxi:adr`) |
+| `accept` | Write with `status: accepted` |
+| `skip` | No file written |
+| `deprecate` | Write with `status: deprecated` (preserve the historical decision without adopting it — you can supersede it later with `/maxi:adr`) |
 | `edit` | Accept amendments inline, write with `status: accepted` |
 
 **Discovered:**
-> *"Record this as ADR-NNNN? (yes / no = discard / edit)"*
+> *"Record this as ADR-NNNN? (accept / skip / edit)"*
 
 | Response | Action |
 |----------|--------|
-| `yes` | Write with `status: accepted` |
-| `no` | Discard — no file written |
+| `accept` | Write with `status: accepted` |
+| `skip` | Discard — no file written |
 | `edit` | Accept amendments inline, write with `status: accepted` |
 
-**Ambiguous responses** ("ok", "sure", "looks good", "cancel", "skip", silence): treat as `no`. Re-ask once with a context-specific prompt:
+**Ambiguous responses** ("ok", "sure", "looks good", "yes", "no", "cancel", silence): do not infer intent. Re-ask once, naming the explicit verbs for that case:
 
-- For **imported** proposals: *"To confirm: import as ADR-NNNN with status deprecated? (yes to import as deprecated / no to discard entirely)"*
-- For **discovered** proposals: *"To confirm: skip recording this decision? (yes to record / no to discard)"*
+- For **imported** proposals: *"Please choose a verb: accept (write accepted) / skip (no file) / deprecate (write deprecated)."*
+- For **discovered** proposals: *"Please choose a verb: accept (write accepted) / skip (no file)."*
 
-If still ambiguous: treat as `no`.
+If the **second** response is still ambiguous, default to `skip` — no file is written. Never write on an unresolved response.
 
 **NNNN is computed from the current max in `docs/maxi/adr/` at write time** — not at proposal time.
 
@@ -295,9 +296,9 @@ After each write: regenerate `docs/maxi/adr/README.md` as a table with columns: 
 
 | Mistake | Correct behaviour |
 |---------|-------------------|
-| Writing any file before showing the draft | Always show draft first, wait for yes/no/edit |
+| Writing any file before showing the draft | Always show draft first, wait for accept/skip/deprecate/edit |
 | Skipping a proposal without asking | Every proposal must go through the consent gate |
-| Treating "ok" or silence as yes | Ambiguous = no; re-ask once |
+| Treating "ok" or silence as accept | Ambiguous = re-ask once naming the verbs; second ambiguous defaults to `skip` (no file) |
 | Computing NNNN at proposal time | Compute NNNN from current max **at write time** |
 | Forgetting to regenerate README.md | Regenerate after every write |
 | Proposing a domain already in exclusion context | Check exclusion list before proposing |

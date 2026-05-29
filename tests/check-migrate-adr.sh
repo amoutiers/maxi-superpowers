@@ -13,6 +13,12 @@ failures=0
 
 assert_file_exists "$MIGRATE" "migrate-adr SKILL.md"
 
-# --- assertions added incrementally by later tasks ---
+# --- US1: consent gate (FR-001..005) ---
+assert_grep "$MIGRATE" "accept / skip / deprecate / edit" "FR-001 imported verbs"
+assert_grep "$MIGRATE" "accept / skip / edit" "FR-004 discovered verbs"
+assert_grep "$MIGRATE" "skip.*no file written" "FR-002 skip = no file"
+assert_grep "$MIGRATE" "deprecate.*status: deprecated" "FR-003 deprecate writes deprecated"
+assert_grep "$MIGRATE" "second ambiguous.*skip" "FR-005 ambiguous defaults to skip"
+assert_not_grep "$MIGRATE" "no = import as deprecated" "FR-001 old binary prompt removed"
 
 summary_and_exit "migrate-adr invariant checks"
