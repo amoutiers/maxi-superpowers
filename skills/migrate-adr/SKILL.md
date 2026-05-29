@@ -51,9 +51,10 @@ digraph migrate_adr {
     "Consent gate: next proposal?" [shape=diamond];
     "Show full draft + ask accept/skip/deprecate/edit" [shape=box];
     "Accept amendments inline" [shape=box];
-    "Write ADR + regenerate README.md" [shape=box];
+    "Write ADR" [shape=box];
     "Skip (no file written)" [shape=box];
     "Write as deprecated (imported only)" [shape=box];
+    "Regenerate README.md (once, on loop exit)" [shape=box];
     "Done" [shape=box];
 
     "Check constitution" -> "STOP: run /maxi:constitution first" [label="missing"];
@@ -68,15 +69,16 @@ digraph migrate_adr {
     "Nothing to propose?" -> "Display summary table" [label="no"];
     "Display summary table" -> "Consent gate: next proposal?";
     "Consent gate: next proposal?" -> "Show full draft + ask accept/skip/deprecate/edit" [label="yes"];
-    "Show full draft + ask accept/skip/deprecate/edit" -> "Write ADR + regenerate README.md" [label="accept"];
+    "Show full draft + ask accept/skip/deprecate/edit" -> "Write ADR" [label="accept"];
     "Show full draft + ask accept/skip/deprecate/edit" -> "Accept amendments inline" [label="edit"];
-    "Accept amendments inline" -> "Write ADR + regenerate README.md";
+    "Accept amendments inline" -> "Write ADR";
     "Show full draft + ask accept/skip/deprecate/edit" -> "Skip (no file written)" [label="skip / ambiguous x2"];
     "Show full draft + ask accept/skip/deprecate/edit" -> "Write as deprecated (imported only)" [label="deprecate"];
-    "Write ADR + regenerate README.md" -> "Consent gate: next proposal?";
+    "Write ADR" -> "Consent gate: next proposal?";
     "Skip (no file written)" -> "Consent gate: next proposal?";
     "Write as deprecated (imported only)" -> "Consent gate: next proposal?";
-    "Consent gate: next proposal?" -> "Done" [label="no more"];
+    "Consent gate: next proposal?" -> "Regenerate README.md (once, on loop exit)" [label="no more"];
+    "Regenerate README.md (once, on loop exit)" -> "Done";
 }
 ```
 
@@ -335,6 +337,6 @@ Regeneration rule: regenerate `docs/maxi/adr/README.md` **once**, after the cons
 | Skipping a proposal without asking | Every proposal must go through the consent gate |
 | Treating "ok" or silence as accept | Ambiguous = re-ask once naming the verbs; second ambiguous defaults to `skip` (no file) |
 | Computing NNNN at proposal time | Compute NNNN from current max **at write time** |
-| Forgetting to regenerate README.md | Regenerate after every write |
+| Regenerating README.md after every write | Regenerate **once** at the end of the consent loop (partial regen on early exit) |
 | Proposing a domain already in exclusion context | Check exclusion list before proposing |
 | Dispatching subagents without exclusion context | Pass exclusion list to both A and B |

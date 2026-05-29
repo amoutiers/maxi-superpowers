@@ -54,6 +54,8 @@ assert_not_grep "$MIGRATE" "git log -200" "FR-019 old flag removed"
 assert_not_grep "$MIGRATE" "(t) = tentative" "FR-020 tentative numbers removed"
 assert_grep "$MIGRATE" "assigned sequentially at write time" "FR-020 write-time note"
 assert_grep "$MIGRATE" "regenerate.*README.*once" "FR-021 single regen"
+assert_not_grep "$MIGRATE" "Regenerate after every write" "FR-021 no stale per-write regen"
+assert_not_grep "$MIGRATE" "Write ADR + regenerate README.md" "FR-021 digraph not per-write regen"
 
 # --- US8: docs authoring flow (FR-022) ---
 assert_grep "$CLAUDEMD" "brainstorm" "FR-022 brainstorm in flow"
