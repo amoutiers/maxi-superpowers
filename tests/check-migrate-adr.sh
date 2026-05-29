@@ -55,4 +55,14 @@ assert_not_grep "$MIGRATE" "(t) = tentative" "FR-020 tentative numbers removed"
 assert_grep "$MIGRATE" "assigned sequentially at write time" "FR-020 write-time note"
 assert_grep "$MIGRATE" "regenerate.*README.*once" "FR-021 single regen"
 
+# --- US8: docs authoring flow (FR-022) ---
+assert_grep "$CLAUDEMD" "brainstorm" "FR-022 brainstorm in flow"
+assert_grep "$CLAUDEMD" "writing-skills" "FR-022 writing-skills in flow"
+assert_not_grep "$CLAUDEMD" "RED: run pressure scenario WITHOUT skill" "FR-022 old TDD cycle removed"
+
+# --- US8: constitution decoupling + amendment (FR-024, 025) ---
+assert_not_grep "$CONSTITUTION" "RED/GREEN/REFACTOR" "FR-024 no RGR ref"
+assert_not_grep "$CONSTITUTION" "CLAUDE.md" "FR-024 no CLAUDE.md ref"
+assert_not_grep "$CONSTITUTION" 'version: "1.1.0"' "FR-025 version bumped"
+
 summary_and_exit "migrate-adr invariant checks"
