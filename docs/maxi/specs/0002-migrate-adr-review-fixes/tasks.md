@@ -175,12 +175,12 @@ updated: 2026-05-29
 ### Tests for User Story 8
 
 - [x] T019 [US8] Add FR-022 assertions to `tests/check-migrate-adr.sh` (CLAUDE.md has `brainstorm`+`writing-skills`, old `RED: run pressure scenario WITHOUT skill` gone); verify RED — plan Task 9 Steps 1–2
-- [ ] T020 [US8] Add FR-024/025 assertions to `tests/check-migrate-adr.sh` (constitution: no `RED/GREEN/REFACTOR`, no `CLAUDE.md`, not `version: "1.1.0"`); verify RED — plan Task 10 Steps 1–2
+- [x] T020 [US8] Add FR-024/025 assertions to `tests/check-migrate-adr.sh` (constitution: no `RED/GREEN/REFACTOR`, no `CLAUDE.md`, not `version: "1.1.0"`); verify RED — plan Task 10 Steps 1–2
 
 ### Implementation for User Story 8
 
 - [x] T021 [P] [US8] Edit `CLAUDE.md` "Developing New Skills" section to the 4-step flow (FR-022); verify GREEN; **full-suite gate (D1)**; commit — plan Task 9 Steps 3–5
-- [ ] T022 [P] [US8] Edit `docs/maxi/constitution.md` Contributor Workflow (drop CLAUDE.md/RGR ref, FR-024) + bump `version`→1.2.0 / `last_amended`→2026-05-29 (FR-025); invoke `/maxi:adr` for "Constitution decoupled from CLAUDE.md (one-way dependency)"; verify GREEN; **full-suite gate (D1)**; commit — plan Task 10 Steps 3–7
+- [x] T022 [P] [US8] Edit `docs/maxi/constitution.md` Contributor Workflow (drop CLAUDE.md/RGR ref, FR-024) + bump `version`→1.2.0 / `last_amended`→2026-05-29 (FR-025); invoke `/maxi:adr` for "Constitution decoupled from CLAUDE.md (one-way dependency)"; verify GREEN; **full-suite gate (D1)**; commit — plan Task 10 Steps 3–7
 
 **Checkpoint**: US8 complete; constitution amended with consenting ADR.
 

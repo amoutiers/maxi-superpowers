@@ -1,7 +1,7 @@
 ---
-version: "1.1.0"
+version: "1.2.0"
 ratified: 2026-05-24
-last_amended: 2026-05-24
+last_amended: 2026-05-29
 ---
 
 # maxi-superpowers Constitution
@@ -38,7 +38,7 @@ Every design decision must persist in a file. `spec.md`, `plan.md`, `tasks.md`, 
 
 ## Contributor Workflow
 
-- Every new maxi-native skill is authored via `superpowers:writing-skills` (RED/GREEN/REFACTOR cycle documented in `CLAUDE.md`).
+- Every new maxi-native skill is authored via `superpowers:writing-skills`. The constitution defines this requirement; harness docs and skills reference the constitution, never the reverse.
 - Bugs and design flaws in the pipeline itself follow the maxi pipeline: spec → clarify → plan → tasks → analyze → implement.
 - An ADR is required for any change that modifies a gating rule, adds a status to the FSM, or changes the maxi ↔ superpowers relationship.
 
@@ -46,4 +46,4 @@ Every design decision must persist in a file. `spec.md`, `plan.md`, `tasks.md`, 
 
 The constitution takes precedence over any other practice documented in this repo. In case of conflict between a skill and the constitution, the constitution wins — the skill must be updated. Any amendment to the constitution bumps `version` (semver), updates `last_amended`, and generates an ADR.
 
-**Version**: 1.1.0 | **Ratified**: 2026-05-24 | **Last Amended**: 2026-05-24
+**Version**: 1.2.0 | **Ratified**: 2026-05-24 | **Last Amended**: 2026-05-29
