@@ -65,4 +65,9 @@ assert_not_grep "$CONSTITUTION" "RED/GREEN/REFACTOR" "FR-024 no RGR ref"
 assert_not_grep "$CONSTITUTION" "CLAUDE.md" "FR-024 no CLAUDE.md ref"
 assert_not_grep "$CONSTITUTION" 'version: "1.1.0"' "FR-025 version bumped"
 
+# --- FR-023: preserved non-defective behavior ---
+assert_grep "$MIGRATE" "Subagent A" "FR-023 importer preserved"
+assert_grep "$MIGRATE" "Subagent B" "FR-023 discoverer preserved"
+assert_grep "$MIGRATE" "Nygard" "FR-023 format-detection tables preserved"
+
 summary_and_exit "migrate-adr invariant checks"

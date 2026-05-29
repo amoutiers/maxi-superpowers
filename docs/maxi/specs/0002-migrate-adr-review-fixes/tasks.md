@@ -190,10 +190,10 @@ updated: 2026-05-29
 
 **Purpose**: Preservation guarantee and full-suite verification across all stories.
 
-- [ ] T023 Add FR-023 preservation assertions to `tests/check-migrate-adr.sh` (Subagent A, Subagent B, Nygard tables still present); run and verify PASS — plan Task 11 Step 1
-- [ ] T024 Run `bash tests/run-all.sh`; confirm `All fast checks passed.` incl. `check-frontmatter.sh`, `check-skills-present.sh`, `check-sync-invariant.sh` (SC-005) — plan Task 11 Step 2
-- [ ] T025 Run `bash tests/run-all.sh --integration`; if migrate-adr behavior is uncovered, log it (do not silently skip) — plan Task 11 Step 3
-- [ ] T026 Spec-coverage sanity pass (SC-001..004 mapped to assertions; note any manual-verification items); final commit if fixups — **full-suite gate (D1)** before commit — plan Task 11 Steps 4–5
+- [x] T023 Add FR-023 preservation assertions to `tests/check-migrate-adr.sh` (Subagent A, Subagent B, Nygard tables still present); run and verify PASS — plan Task 11 Step 1
+- [x] T024 Run `bash tests/run-all.sh`; confirm `All fast checks passed.` incl. `check-frontmatter.sh`, `check-skills-present.sh`, `check-sync-invariant.sh` (SC-005) — plan Task 11 Step 2
+- [x] T025 Run `bash tests/run-all.sh --integration`; if migrate-adr behavior is uncovered, log it (do not silently skip) — plan Task 11 Step 3
+- [x] T026 Spec-coverage sanity pass (SC-001..004 mapped to assertions; note any manual-verification items); final commit if fixups — **full-suite gate (D1)** before commit — plan Task 11 Steps 4–5
 
 ---
 
