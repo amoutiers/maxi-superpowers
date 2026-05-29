@@ -21,6 +21,7 @@ maxi grafts a structured spec-driven workflow onto superpowers' implementation e
 /maxi:tasks         →  extract tasks.md from plan (status: tasked)
 /maxi:analyze       →  7-pass cross-artifact audit → analysis.md (status: analyzed)
 /maxi:implement     →  execute tasks, write code (status: implementing → done)
+/maxi:develop       →  dispatch subagents to implement tasks (called by /maxi:implement)
 /maxi:board         →  kanban overview of all specs grouped by status (read-only)
 /maxi:migrate-adr   →  import existing ADRs (Nygard/MADR/plain) + discover undocumented decisions from source code
 
@@ -88,7 +89,7 @@ Lifecycle skills act on a spec's status outside the forward flow:
 
 ## Vendored Superpowers Skills
 
-maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:executing-plans`, `/maxi:test-driven-development`). You do not need a separate superpowers installation.
+maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:test-driven-development`). You do not need a separate superpowers installation.
 
 ## Getting Started
 
