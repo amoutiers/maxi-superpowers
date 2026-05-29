@@ -2,7 +2,7 @@
 slug: 0002-migrate-adr-review-fixes
 created: 2026-05-29
 updated: 2026-05-29
-status: analyzed
+status: done
 # Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled
 parked_from: null
 # parked_from: set by /maxi:park to the pre-park status; cleared to null by /maxi:resume
