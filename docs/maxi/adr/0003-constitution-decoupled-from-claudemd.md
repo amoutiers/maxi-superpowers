@@ -2,7 +2,7 @@
 adr: 0003
 slug: 0003-constitution-decoupled-from-claudemd
 status: accepted
-date: 2026-05-29
+created: 2026-05-29
 updated: 2026-05-29
 decider: "Antoine Moutiers"
 related_specs: ["0002-migrate-adr-review-fixes"]
@@ -30,7 +30,7 @@ and an ADR.
 ## Decision Drivers
 
 - **Governance clause**: "Any amendment to the constitution bumps `version`
-  (semver), updates `last_amended`, and generates an ADR." (related_requirements: FR-025)
+  (semver), refreshes the `updated` date, and generates an ADR." (related_requirements: FR-025)
 - **Single source of truth**: the constitution must be the authoritative
   baseline, not a document that depends on a lower-tier file.
 - **No circular doc dependencies**: a reference cycle makes either document
@@ -56,7 +56,7 @@ Chose **Option A**. The constitution's Contributor Workflow now reads:
 "Every new maxi-native skill is authored via `superpowers:writing-skills`.
 The constitution defines this requirement; harness docs and skills reference
 the constitution, never the reverse." Version bumped 1.1.0 → 1.2.0,
-`last_amended` set to 2026-05-29.
+`updated` set to 2026-05-29.
 
 ## Consequences
 

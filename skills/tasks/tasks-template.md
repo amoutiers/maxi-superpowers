@@ -7,6 +7,8 @@ updated: YYYY-MM-DD
 
 # Tasks: [feature-name]
 
+> **Filled in by `/maxi:tasks`.** See `SKILL.md` in this directory for the workflow.
+
 **Input**: Design documents from `docs/maxi/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
@@ -27,23 +29,20 @@ updated: YYYY-MM-DD
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
 - Paths shown below assume single project - adjust based on plan.md structure
 
-<!-- 
-  ============================================================================
-  IMPORTANT: The tasks below are SAMPLE TASKS for illustration purposes only.
-  
+<!--
+  ACTION REQUIRED: The tasks below are SAMPLE TASKS for illustration only.
   The /maxi:tasks command MUST replace these with actual tasks based on:
   - User stories from spec.md (with their priorities P1, P2, P3...)
   - Feature requirements from plan.md
   - Entities from data-model.md
   - Endpoints from contracts/
-  
+
   Tasks MUST be organized by user story so each story can be:
   - Implemented independently
   - Tested independently
   - Delivered as an MVP increment
-  
+
   DO NOT keep these sample tasks in the generated tasks.md file.
-  ============================================================================
 -->
 
 ## Phase 1: Setup (Shared Infrastructure)

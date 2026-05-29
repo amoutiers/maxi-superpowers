@@ -1,11 +1,13 @@
 ---
 version: "[constitution-version]"
-ratified: YYYY-MM-DD
-last_amended: YYYY-MM-DD
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
 ---
 
 # [project-name] Constitution
 <!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+
+> **Filled in by `/maxi:constitution`.** See `SKILL.md` in this directory for the workflow.
 
 ## Core Principles
 
@@ -52,5 +54,5 @@ last_amended: YYYY-MM-DD
 [governance-rules]
 <!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
 
-**Version**: [constitution-version] | **Ratified**: YYYY-MM-DD | **Last Amended**: YYYY-MM-DD
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: [constitution-version] | **Created**: YYYY-MM-DD | **Updated**: YYYY-MM-DD
+<!-- Example: Version: 2.1.1 | Created: 2025-06-13 | Updated: 2025-07-16 -->

@@ -139,7 +139,7 @@ The "Developing New Skills" section of `CLAUDE.md` documents the flow brainstorm
 
 1. **Given** `CLAUDE.md`, **When** the "Developing New Skills" section is read, **Then** it documents brainstorm → spec → writing-plans → writing-skills.
 2. **Given** the constitution's Contributor Workflow, **When** it is read, **Then** it no longer references CLAUDE.md or the RED/GREEN/REFACTOR cycle; the dependency direction points one way only (CLAUDE.md/skills → constitution).
-3. **Given** the constitution is amended, **When** the change lands, **Then** `version` is bumped, `last_amended` updated, and an ADR recording the amendment is written.
+3. **Given** the constitution is amended, **When** the change lands, **Then** `version` is bumped, the `updated` date is refreshed, and an ADR recording the amendment is written.
 
 ---
 
@@ -179,7 +179,7 @@ The "Developing New Skills" section of `CLAUDE.md` documents the flow brainstorm
 - **FR-022**: `CLAUDE.md`'s "Developing New Skills" section MUST document the flow brainstorm → spec → `writing-plans` → `superpowers:writing-skills`.
 - **FR-023**: All edits MUST preserve `migrate-adr`'s existing non-defective behavior (two-subagent architecture, Nygard/MADR/Plain detection tables, dedup precedence).
 - **FR-024**: The constitution's Contributor Workflow MUST be reworded to remove its reference to CLAUDE.md and the RED/GREEN/REFACTOR cycle; the constitution MUST NOT depend on CLAUDE.md. The dependency direction is one-way: CLAUDE.md and skills may reference the constitution, never the reverse.
-- **FR-025**: Amending the constitution (FR-024) MUST bump its `version` (semver), update `last_amended`, and generate an ADR recording the amendment, per `constitution.md` Governance.
+- **FR-025**: Amending the constitution (FR-024) MUST bump its `version` (semver), refresh its `updated` date, and generate an ADR recording the amendment, per `constitution.md` Governance.
 
 ### Key Entities *(include if feature involves data)*
 

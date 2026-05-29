@@ -7,7 +7,7 @@ updated: YYYY-MM-DD
 
 # Implementation Plan: [feature-name]
 
-**Note**: This template is filled in by the `/maxi:plan` command. See `skills/plan/SKILL.md` for the execution workflow.
+> **Filled in by `/maxi:plan`.** See `SKILL.md` in this directory for the workflow.
 
 ## Summary
 

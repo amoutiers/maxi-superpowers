@@ -168,7 +168,7 @@ Nygard supersession: if `## Status` contains "Supersedes ADR-NNN", set `supersed
 | `title:` | slug + ADR title line |
 | `status:` | `status:` frontmatter |
 | `deciders:` | `decider:` frontmatter |
-| `date:` | `date:` frontmatter |
+| `date:` | `created:` frontmatter |
 | Context and Problem Statement | `## Context` |
 | Decision Drivers | `## Decision Drivers` |
 | Considered Options + Pros/Cons | `## Considered Options` |
@@ -187,7 +187,7 @@ Nygard supersession: if `## Status` contains "Supersedes ADR-NNN", set `supersed
 **Frontmatter invariants for all imported ADRs:**
 
 ```yaml
-date: [preserved from source, or "[unknown]" if not found]
+created: [preserved from source, or "[unknown]" if not found]
 updated: [today]
 source: [original file path the ADR was imported from, or "[unknown]" if undeterminable]
 related_specs: []
@@ -225,7 +225,7 @@ related_principles: []
 related_requirements: []
 supersedes: null
 superseded_by: null
-date: [today]
+created: [today]
 updated: [today]
 ```
 
@@ -302,7 +302,7 @@ If the **second** response is still ambiguous, default to `skip` — no file is 
 
 **NNNN is computed from the current max in `docs/maxi/adr/` at write time** — not at proposal time.
 
-Regeneration rule: regenerate `docs/maxi/adr/README.md` **once**, after the consent loop completes (on early exit, regenerate for whatever was written) — not after every write. The README is a table with columns: ADR number, title, status, date, related specs.
+Regeneration rule: regenerate `docs/maxi/adr/README.md` **once**, after the consent loop completes (on early exit, regenerate for whatever was written) — not after every write. The README is a table with columns: ADR number, title, status, created, related specs.
 
 ---
 

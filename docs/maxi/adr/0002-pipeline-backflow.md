@@ -2,7 +2,7 @@
 adr: 0002
 slug: 0002-pipeline-backflow
 status: accepted
-date: 2026-05-24
+created: 2026-05-24
 updated: 2026-05-24
 decider: "Antoine Moutiers"
 related_specs: ["0001-design-review-fixes"]

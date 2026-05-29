@@ -10,6 +10,8 @@ parked_from: null
 
 # Feature Specification: [feature-name]
 
+> **Filled in by `/maxi:specify`.** See `SKILL.md` in this directory for the workflow.
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--

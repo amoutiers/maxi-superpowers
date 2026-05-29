@@ -81,14 +81,14 @@ Read every `docs/maxi/adr/NNNN-*.md` (where status = `accepted`) and scan their 
 
 ### 3. Draft the ADR
 
-Verify `templates/adr-template.md` exists (Read tool) before proceeding; if missing, stop: *"Cannot proceed — `templates/adr-template.md` is missing. Please reinstall the maxi plugin."*
+Verify `adr-template.md` exists (Read tool) before proceeding; if missing, stop: *"Cannot proceed — `adr-template.md` is missing. Please reinstall the maxi plugin."*
 
-Use `templates/adr-template.md` as the base. Fill in:
+Use `adr-template.md` as the base. Fill in:
 
 - `adr:` — the 4-digit number
 - `slug:` — `NNNN-[short-kebab-title]`
 - `status: proposed` ← draft state; transitions to `accepted` when user confirms
-- `date:` — today in YYYY-MM-DD
+- `created:` — today in YYYY-MM-DD
 - `updated:` — today in YYYY-MM-DD
 - `decider:` — name or role of the decision-maker (ask user if unknown)
 - `related_specs:` — spec slug(s) this decision applies to, if known
@@ -152,8 +152,8 @@ After every successful write, rewrite the index by scanning all `.md` files in `
 ```markdown
 # Architecture Decision Records
 
-| ADR | Title | Status | Date | Related Specs |
-|-----|-------|--------|------|---------------|
+| ADR | Title | Status | Created | Related Specs |
+|-----|-------|--------|---------|---------------|
 | [001](001-slug.md) | Title of decision | accepted | 2026-05-08 | 001-csv-to-json |
 | [002](002-slug.md) | Another decision | superseded | 2026-05-15 | — |
 ```
@@ -169,7 +169,7 @@ Once an ADR is written, its **content is immutable**. These fields MAY be update
 
 These fields and the body sections MUST NOT be edited on an existing ADR:
 - Any body section (Context, Decision Drivers, Options, Decision, Consequences, Confirmation)
-- `adr`, `slug`, `date`, `related_specs`, `related_principles`, `related_requirements`
+- `adr`, `slug`, `created`, `related_specs`, `related_principles`, `related_requirements`
 
 If the user wants to revise a past decision, create a new ADR that supersedes the old one. The old one stays as a historical record.
 
@@ -181,7 +181,7 @@ If the user wants to revise a past decision, create a new ADR that supersedes th
 |---------|-------------------|
 | Writing the file before showing the draft | Always show draft first, wait for yes |
 | Deciding "this isn't really a contradiction" silently | Surface any resemblance, let user decide |
-| Using a manually constructed frontmatter | Use `templates/adr-template.md` as base |
+| Using a manually constructed frontmatter | Use `adr-template.md` as base |
 | Picking a number without counting existing files | Count `docs/maxi/adr/*.md` (excluding README), add 1 |
 | Forgetting to regenerate README.md | Always regenerate after every write |
 | Editing the body of an existing ADR | Decline; offer to supersede instead |

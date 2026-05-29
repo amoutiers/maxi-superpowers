@@ -20,7 +20,7 @@ Create a technical implementation plan for an existing spec. Delegates to `/maxi
 1. **Read artifacts** — load `spec.md` (FRs, SCs, user stories) and `constitution.md` (principles, constraints)
 2. **Constitution check** — before planning: does anything in the spec contradict constitution principles? Flag violations to the user before proceeding. (Do NOT silently discard violating requirements — surface them.)
 3. **Invoke /maxi:writing-plans** — **REQUIRED SUB-SKILL.** Pass the spec and constitution as context. Let writing-plans run its full planning process including file structure decisions and task decomposition.
-4. **Post-format into plan schema** — write output to `docs/maxi/specs/NNNN-slug/plan.md` following `templates/plan-template.md` structure. Set plan.md frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
+4. **Post-format into plan schema** — write output to `docs/maxi/specs/NNNN-slug/plan.md` following `plan-template.md` structure. Set plan.md frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
 5. **ADR scan (post-planning)** — scan the just-written `plan.md` for non-obvious architectural choices. Look for: Tech Stack sections, storage/database/runtime/framework picks, phrases like "we chose X over Y because" or "considered A, B, chose C". For each detected choice, invoke `/maxi:adr` — it will draft the ADR, show it to the user, and write it only if the user consents. If the user declines all ADR proposals, the plan is still complete; ADR capture is opt-out, not mandatory. Do not invoke `/maxi:adr` for trivial choices (e.g., variable naming conventions, test library defaults).
 6. **Transition status** — update spec.md frontmatter `status → planned`; also set `updated: [today's ISO date]` on spec.md and on plan.md
 7. **Report** — *"Plan written to `docs/maxi/specs/NNNN-slug/plan.md` (status: `planned`). Next: `/maxi:tasks`."*
@@ -48,7 +48,7 @@ All written to `docs/maxi/specs/NNNN-slug/`:
 
 | Artifact | Required | Notes |
 |---|---|---|
-| `plan.md` | Always | Verify `templates/plan-template.md` exists (Read tool) before writing; if missing, stop: *"Cannot proceed — `templates/plan-template.md` is missing. Please reinstall the maxi plugin."* Then follow the template schema |
+| `plan.md` | Always | Verify `plan-template.md` exists (Read tool) before writing; if missing, stop: *"Cannot proceed — `plan-template.md` is missing. Please reinstall the maxi plugin."* Then follow the template schema |
 | `research.md` | If needed | Technology choices, library comparisons |
 | `data-model.md` | If needed | Entities, relationships, schemas |
 | `contracts/` | If needed | API endpoint definitions |
@@ -57,7 +57,7 @@ All written to `docs/maxi/specs/NNNN-slug/`:
 
 - **Constitution check before planning.** Never skip the pre-flight constitution alignment check. Applies regardless of spec size, user assertions, or perceived simplicity.
 - **writing-plans delegation is mandatory.** Do NOT write plan.md content directly without invoking `/maxi:writing-plans`. This applies even for "simple" or "small" features — there is no complexity threshold below which direct writing is allowed.
-- **Template schema required.** Plan must follow `templates/plan-template.md` structure — not free-form notes. Always copy the template structure first.
+- **Template schema required.** Plan must follow `plan-template.md` structure — not free-form notes. Always copy the template structure first.
 - **All artifacts in `docs/maxi/specs/NNNN-slug/`.** Never write to project root, `docs/`, `.specify/`, or the user's current working directory.
 - **status: planned only when all artifacts written.** Transition happens after all files are on disk.
 
@@ -84,4 +84,4 @@ All written to `docs/maxi/specs/NNNN-slug/`:
 | "This is a simple feature, writing-plans is overkill" | Feature complexity does not determine whether the sub-skill is invoked. Invoke writing-plans unconditionally. |
 | "I'll write plan.md here since that's where we're working" | The plan lives in `docs/maxi/specs/NNNN-slug/plan.md`. Working directory is irrelevant. |
 | "The user says skip the constitution check" | The constitution check is a pipeline gate, not an optional step. It cannot be skipped by user request. |
-| "I'll adapt the template from a previous plan" | Always copy `templates/plan-template.md`. Previous plans may have customizations that corrupt the schema. |
+| "I'll adapt the template from a previous plan" | Always copy `plan-template.md`. Previous plans may have customizations that corrupt the schema. |

@@ -43,12 +43,9 @@ maxi-superpowers/
 │   ├── requesting-code-review/
 │   ├── receiving-code-review/
 │   └── using-superpowers/
-├── templates/               # Artifact templates
-│   ├── constitution-template.md
-│   ├── spec-template.md
-│   ├── plan-template.md
-│   ├── tasks-template.md
-│   └── adr-template.md
+│   # Each artifact template lives in its owning skill's directory:
+│   #   constitution/constitution-template.md, specify/spec-template.md,
+│   #   plan/plan-template.md, tasks/tasks-template.md, adr/adr-template.md
 ├── scripts/
 │   ├── sync-superpowers.sh  # re-sync vendored skills from vendor/superpowers/
 │   └── bump-superpowers.sh  # pull new superpowers tag into vendor/

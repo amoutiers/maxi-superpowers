@@ -21,7 +21,7 @@ digraph specify {
     "Compute next NNNN" [shape=box];
     "Derive slug from description" [shape=box];
     "Create docs/maxi/specs/NNNN-slug/" [shape=box];
-    "Copy templates/spec-template.md" [shape=box];
+    "Copy spec-template.md" [shape=box];
     "Set status: drafting in frontmatter" [shape=box];
     "Invoke /maxi:brainstorming" [shape=box];
     "Reformat output to spec-kit schema" [shape=box];
@@ -33,8 +33,8 @@ digraph specify {
     "Check docs/maxi/constitution.md" -> "Compute next NNNN" [label="exists"];
     "Compute next NNNN" -> "Derive slug from description";
     "Derive slug from description" -> "Create docs/maxi/specs/NNNN-slug/";
-    "Create docs/maxi/specs/NNNN-slug/" -> "Copy templates/spec-template.md";
-    "Copy templates/spec-template.md" -> "Set status: drafting in frontmatter";
+    "Create docs/maxi/specs/NNNN-slug/" -> "Copy spec-template.md";
+    "Copy spec-template.md" -> "Set status: drafting in frontmatter";
     "Set status: drafting in frontmatter" -> "Invoke /maxi:brainstorming";
     "Invoke /maxi:brainstorming" -> "Reformat output to spec-kit schema";
     "Reformat output to spec-kit schema" -> "Write spec.md";
@@ -81,9 +81,9 @@ Wait for the user's input. Use the user-supplied suffix as the final slug-suffix
 
 Create `docs/maxi/specs/NNNN-slug/`.
 
-Verify `templates/spec-template.md` exists (Read tool) before copying; if missing, stop: *"Cannot proceed — `templates/spec-template.md` is missing. Please reinstall the maxi plugin."*
+Verify `spec-template.md` exists (Read tool) before copying; if missing, stop: *"Cannot proceed — `spec-template.md` is missing. Please reinstall the maxi plugin."*
 
-Copy `templates/spec-template.md` to `docs/maxi/specs/NNNN-slug/spec.md`.
+Copy `spec-template.md` to `docs/maxi/specs/NNNN-slug/spec.md`.
 
 **NEVER write spec.md from scratch.** Always start from the template. This applies even if:
 - The feature is simple
@@ -148,13 +148,13 @@ Tell the user:
 ## Critical Rules
 
 - **Constitution first.** Hard stop if `docs/maxi/constitution.md` is missing. No exceptions.
-- **Template first.** Never write `spec.md` from scratch. Always copy `templates/spec-template.md` as the base.
+- **Template first.** Never write `spec.md` from scratch. Always copy `spec-template.md` as the base.
 - **Compute NNNN, don't guess.** Scan `docs/maxi/specs/` for existing `NNNN-*` dirs. Take max + 1.
 - **brainstorming before content.** Do NOT write FR-### or user stories until `/maxi:brainstorming` completes. This applies even if the feature is simple or the user wants a quick spec.
 - **Schema compliance is not optional.** Every user story gets a priority (P1/P2/P3), an `Independent Test`, and `Acceptance Scenarios`. Every requirement is `FR-NNN`. Every success criterion is `SC-NNN`. "Feature is too simple" is not an exemption.
 - **Status transition is atomic.** Set `status: drafting` on creation. Set `status: specified` only after spec.md is fully written and verified.
 - **Path is fixed.** Specs live in `docs/maxi/specs/NNNN-slug/spec.md` — not `docs/specs/`, not `.specify/`, not the project root.
-- **Never copy a previous spec as the template.** Even if the feature is similar to an existing spec, always copy `templates/spec-template.md`. Previous specs may have customizations that corrupt the schema.
+- **Never copy a previous spec as the template.** Even if the feature is similar to an existing spec, always copy `spec-template.md`. Previous specs may have customizations that corrupt the schema.
 
 ## Red Flags
 
@@ -165,6 +165,6 @@ Tell the user:
 - Setting `status: specified` before spec.md is fully written → premature transition
 - Setting `status: done`, `status: draft`, or any value other than `drafting` at creation → wrong value
 - NNNN made up instead of computed → always scan `docs/maxi/specs/` for the next number
-- Copying a previous spec as a starting point instead of the template → always use `templates/spec-template.md`
+- Copying a previous spec as a starting point instead of the template → always use `spec-template.md`
 - User said "just a quick spec" or "this is simple, skip the details" → schema compliance is mandatory regardless of perceived simplicity
 - Skipping `Independent Test` field on a user story → every story requires one

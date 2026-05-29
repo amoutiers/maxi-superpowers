@@ -180,7 +180,7 @@ updated: 2026-05-29
 ### Implementation for User Story 8
 
 - [x] T021 [P] [US8] Edit `CLAUDE.md` "Developing New Skills" section to the 4-step flow (FR-022); verify GREEN; **full-suite gate (D1)**; commit — plan Task 9 Steps 3–5
-- [x] T022 [P] [US8] Edit `docs/maxi/constitution.md` Contributor Workflow (drop CLAUDE.md/RGR ref, FR-024) + bump `version`→1.2.0 / `last_amended`→2026-05-29 (FR-025); invoke `/maxi:adr` for "Constitution decoupled from CLAUDE.md (one-way dependency)"; verify GREEN; **full-suite gate (D1)**; commit — plan Task 10 Steps 3–7
+- [x] T022 [P] [US8] Edit `docs/maxi/constitution.md` Contributor Workflow (drop CLAUDE.md/RGR ref, FR-024) + bump `version`→1.2.0 / `updated`→2026-05-29 (FR-025); invoke `/maxi:adr` for "Constitution decoupled from CLAUDE.md (one-way dependency)"; verify GREEN; **full-suite gate (D1)**; commit — plan Task 10 Steps 3–7
 
 **Checkpoint**: US8 complete; constitution amended with consenting ADR.
 

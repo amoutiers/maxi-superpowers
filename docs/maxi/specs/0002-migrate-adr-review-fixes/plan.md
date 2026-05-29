@@ -540,7 +540,7 @@ git commit -m "docs(CLAUDE): authoring flow brainstorm→spec→plan→writing-s
 
 **Files:**
 - Modify: `tests/check-migrate-adr.sh`
-- Modify: `docs/maxi/constitution.md` (Contributor Workflow + version/last_amended)
+- Modify: `docs/maxi/constitution.md` (Contributor Workflow + version/updated)
 - Create: `docs/maxi/adr/NNNN-*.md` (via `/maxi:adr`)
 
 - [ ] **Step 1: Add assertions (RED)**
@@ -568,9 +568,9 @@ to:
 
 > Every new maxi-native skill is authored via `superpowers:writing-skills`. The constitution defines this requirement; harness docs and skills reference the constitution, never the reverse.
 
-- [ ] **Step 4: Bump version + last_amended (direct edit)**
+- [ ] **Step 4: Bump version + updated (direct edit)**
 
-Frontmatter: `version: "1.1.0"` → `version: "1.2.0"`; `last_amended: 2026-05-24` → `last_amended: 2026-05-29`. Update the footer line `**Version**: 1.1.0 ... **Last Amended**: 2026-05-24` to match.
+Frontmatter: `version: "1.1.0"` → `version: "1.2.0"`; `updated: 2026-05-24` → `updated: 2026-05-29`. Update the footer line `**Version**: 1.1.0 ... **Updated**: 2026-05-24` to match.
 
 - [ ] **Step 5: Run to verify GREEN**
 

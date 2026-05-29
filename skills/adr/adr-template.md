@@ -3,7 +3,7 @@ adr: NNNN
 slug: NNNN-[short-decision-slug]
 status: proposed
 # Note: transitions to "accepted" when user confirms the ADR
-date: YYYY-MM-DD
+created: YYYY-MM-DD
 updated: YYYY-MM-DD
 decider: "[name-or-role]"
 related_specs: []
@@ -14,6 +14,8 @@ superseded_by: null
 ---
 
 # ADR-NNNN: [Short Title — One Line]
+
+> **Filled in by the `adr` skill** (invoked during `/maxi:plan` and `/maxi:implement`). See `SKILL.md` in this directory for the workflow.
 
 ## Context
 
