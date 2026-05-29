@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for git-cliff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+
+      - name: Find previous tag
+        id: prev_tag
+        run: |
+          # Sort by semantic version — reliable regardless of fetch order
+          PREV=$(git tag --list 'v*' --sort=-version:refname | sed -n '2p')
+          echo "prev_tag=${PREV}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        run: |
+          RANGE="${{ steps.prev_tag.outputs.prev_tag }}"
+          TAG="${{ github.ref_name }}"
+          CLIFF_ARGS=(--tag "$TAG")
+          [ -n "$RANGE" ] && CLIFF_ARGS+=("${RANGE}..HEAD")
+          git cliff "${CLIFF_ARGS[@]}" --output /tmp/RELEASE_NOTES.md
+          cat /tmp/RELEASE_NOTES.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: /tmp/RELEASE_NOTES.md
+          update_existing_release: true
