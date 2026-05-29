@@ -32,13 +32,13 @@ last_amended: YYYY-MM-DD
 ### [principle-name]
 <!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
 [principle-description]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: versions follow a predictable, documented scheme; Or: Start simple, YAGNI principles -->
 
 ## [section-name]
 <!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
 
 [section-content]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+<!-- Example: forbidden or locked-in dependencies, compliance standards, deployment policies, etc. Concrete technology *choices* (e.g. "use PostgreSQL") are decisions — they belong in an ADR (captured during planning/implementation), not here. -->
 
 ## [section-name]
 <!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
