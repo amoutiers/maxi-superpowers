@@ -33,4 +33,9 @@ assert_grep "$MIGRATE" "blocklist" "FR-009 filename blocklist"
 assert_grep "$MIGRATE" "CONTRIBUTING.md" "FR-009 blocklist includes CONTRIBUTING"
 assert_grep "$MIGRATE" "source:" "FR-010 source provenance field"
 
+# --- US4: rejection log (FR-011, 012, 014) ---
+assert_grep "$MIGRATE" "append its domain label" "FR-011 discovered skip appends to .rejected"
+assert_grep "$MIGRATE" "not logged" "FR-012 imported skip not logged"
+assert_grep "$MIGRATE" "bookkeeping" "FR-014 .rejected exempt from Iron Rule"
+
 summary_and_exit "migrate-adr invariant checks"

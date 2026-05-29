@@ -106,11 +106,11 @@ updated: 2026-05-29
 
 ### Tests for User Story 4
 
-- [ ] T011 [US4] Add FR-011/014 assertions to `tests/check-migrate-adr.sh` (`.rejected` path present, `bookkeeping` exemption noted); verify RED — plan Task 5 Steps 1–2
+- [x] T011 [US4] Add FR-011/014 assertions to `tests/check-migrate-adr.sh` (`.rejected` path present, `bookkeeping` exemption noted); verify RED — plan Task 5 Steps 1–2
 
 ### Implementation for User Story 4
 
-- [ ] T012 [US4] Via `superpowers:writing-skills`, add discovered-skip→`.rejected` append (FR-011), imported-skip exclusion (FR-012), Iron-Rule exemption (FR-014) in Step 6, and `.rejected` read in Step 2 (FR-013) of `skills/migrate-adr/SKILL.md`; verify GREEN; **full-suite gate (D1)**; commit — plan Task 5 Steps 3–5
+- [x] T012 [US4] Via `superpowers:writing-skills`, add discovered-skip→`.rejected` append (FR-011), imported-skip exclusion (FR-012), Iron-Rule exemption (FR-014) in Step 6, and `.rejected` read in Step 2 (FR-013) of `skills/migrate-adr/SKILL.md`; verify GREEN; **full-suite gate (D1)**; commit — plan Task 5 Steps 3–5
 
 **Checkpoint**: US4 complete and independently testable.
 

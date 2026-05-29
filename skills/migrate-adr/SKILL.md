@@ -277,6 +277,8 @@ For each proposal: show the **full draft** and ask. The prompt offers explicit *
 
 If the **second** response is still ambiguous, default to `skip` — no file is written. Never write on an unresolved response.
 
+**Rejection log (`docs/maxi/adr/.rejected`).** On `skip` of a **discovered** proposal, **append its domain label** to `docs/maxi/adr/.rejected` (one label per line; create the file with a leading `#`-comment header explaining its purpose on first write). Step 2 reads this file into the exclusion context, so a later re-run does not re-propose the same decision. On `skip` of an **imported** proposal, do nothing — imported skips are **not logged**, because the original source file on disk is already the record. Writing to `.rejected` is internal **bookkeeping**, not an ADR; it is therefore exempt from the consent gate / Iron Rule (which governs ADR file creation only).
+
 **NNNN is computed from the current max in `docs/maxi/adr/` at write time** — not at proposal time.
 
 After each write: regenerate `docs/maxi/adr/README.md` as a table with columns: ADR number, title, status, date, related specs.
