@@ -1,3 +1,48 @@
+
+## [1.1.0] - 2026-05-29
+
+### Features
+
+- Add maxi:migrate-adr — import and discover ADRs
+- Rejection log for skipped discoveries (FR-011,012,014)
+- Subagent return contract + constitution-informed discovery (FR-015,016)
+- Shared significance rubric (FR-017,018)
+- Guard against recording decisions as principles
+
+### Bug Fixes
+
+- Clarify no-writes deprecated, fix git log, add placeholder text, matching rule, diagram
+- Explicit consent verbs, skip never writes (FR-001..005)
+- Set-based exclusion matching, flag don't drop (FR-006..008,013)
+- Importer blocklist + source provenance (FR-009,010)
+- Polish git flag, honest table, single README regen (FR-019..021)
+- Clear stale per-write README regen refs (code review)
+
+### Documentation
+
+- Bump maxi skill count to 16, add migrate-adr to overview
+- Add /maxi:migrate-adr to command list and getting started
+- Spec+plan+tasks+analysis for migrate-adr review fixes
+- Authoring flow brainstorm->spec->plan->writing-skills (FR-022)
+- Decouple from CLAUDE.md, v1.2.0 + amendment ADR (FR-024,025)
+
+### Testing
+
+- Add fast-tier check skeleton for spec 0002
+- Preservation assertions + full-suite verification (FR-023, SCs)
+
+### Internal
+
+- Mark spec done — migrate-adr review fixes complete
+- Co-locate templates with skills + uniformize to maxi format
+- Add doc-consistency skill + fix documentation drift
+
+## [maxi--v1.0.0] - 2026-05-28
+
+### Internal
+
+- Pin marketplace.json to v1.0.0 release commit
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
