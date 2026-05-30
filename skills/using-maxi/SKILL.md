@@ -88,7 +88,7 @@ Lifecycle skills act on a spec's status outside the forward flow:
 
 ## Vendored Superpowers Skills
 
-maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:executing-plans`, `/maxi:test-driven-development`). You do not need a separate superpowers installation.
+maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:test-driven-development`). You do not need a separate superpowers installation.
 
 ## Getting Started
 

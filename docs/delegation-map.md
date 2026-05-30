@@ -1,6 +1,6 @@
 # Delegation Map
 
-This table shows which maxi pipeline skill delegates to which superpowers sub-skill, what status the spec must be in before the skill runs, and what status it transitions to on success.
+This table shows which maxi pipeline skill delegates to which sub-skill, what status the spec must be in before the skill runs, and what status it transitions to on success.
 
 ## Pipeline Delegation Table
 
@@ -14,7 +14,7 @@ This table shows which maxi pipeline skill delegates to which superpowers sub-sk
 | `plan` | `clarified` | `/maxi:writing-plans` | `clarified → planned` |
 | `tasks` | `planned` | (none — extraction from plan.md) | `planned → tasked` |
 | `analyze` | `tasked`, `analyzed`, `implementing`, or `done` | (none — reads artifacts, writes analysis.md) | `tasked → analyzed` (once; reruns don't change status) |
-| `implement` | `analyzed` | `/maxi:executing-plans`, then `/maxi:requesting-code-review` | `analyzed → implementing → done` |
+| `implement` | `analyzed` | `/maxi:x-develop`, then `/maxi:requesting-code-review` | `analyzed → implementing → done` |
 
 ### Lifecycle Skills
 
@@ -42,7 +42,7 @@ All vendored superpowers skills are available to Claude under the `maxi:` namesp
 |---|---|
 | `/maxi:brainstorming` | Guided design dialogue to explore requirements and constraints |
 | `/maxi:writing-plans` | Structured technical planning with file layout and task decomposition |
-| `/maxi:executing-plans` | Step-by-step plan execution with checkpoints |
+| `/maxi:executing-plans` | Step-by-step plan execution with checkpoints (available directly; no longer the pipeline delegate — see `/maxi:x-develop`) |
 | `/maxi:writing-skills` | Author new SKILL.md files using TDD (required for all new maxi skills) |
 | `/maxi:systematic-debugging` | Root-cause analysis before proposing fixes |
 | `/maxi:test-driven-development` | Red-green-refactor cycle before writing implementation code |
@@ -50,7 +50,7 @@ All vendored superpowers skills are available to Claude under the `maxi:` namesp
 | `/maxi:finishing-a-development-branch` | Structured options for merge, PR, or cleanup |
 | `/maxi:using-git-worktrees` | Isolated workspace setup for feature work |
 | `/maxi:dispatching-parallel-agents` | Spawn independent sub-agents for parallel tasks |
-| `/maxi:subagent-driven-development` | Execute parallel independent tasks in the current session |
+| `/maxi:subagent-driven-development` | Dispatch fresh subagents per task with two-stage review |
 | `/maxi:requesting-code-review` | Verify work meets requirements before merging |
 | `/maxi:receiving-code-review` | Process review feedback with technical rigor |
 

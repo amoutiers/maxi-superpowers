@@ -48,7 +48,7 @@ check_template() {
 
 # adr-template
 check_template \
-  "$ROOT/skills/adr/adr-template.md" "adr-template.md" "true" \
+  "$ROOT/skills/x-adr/adr-template.md" "adr-template.md" "true" \
   "adr:" "slug:" "status:" "created:" "updated:" "decider:" "related_specs:" "related_principles:" "related_requirements:" "supersedes:" "superseded_by:" \
   "--" \
   "^## Context" "^## Decision Drivers" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
