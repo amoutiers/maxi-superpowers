@@ -65,6 +65,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-sync-script.sh` — `sync-superpowers.sh` copies vendor skills and leaves maxi-native skills untouched
 - `check-bump-script.sh` — `_update-vendored-md.sh` correctly updates version and date lines
 - `check-opencode-plugin.sh` — `.opencode/plugins/maxi.js` exports required hooks, has bootstrap caching and conditional injection
+- `check-bootstrap-parity.sh` — the `<EXTREMELY_IMPORTANT>` bootstrap preamble is identical across `hooks/session-start` and `.opencode/plugins/maxi.js`
 - `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly
 - `check-migrate-from-speckit.sh` — `migrate-from-speckit` detects `.specify/` and migrates non-destructively
 
