@@ -1,8 +1,8 @@
 ---
 slug: 0001-design-review-fixes
 created: 2026-05-24
-updated: 2026-05-24
-status: analyzed
+updated: 2026-05-30
+status: done
 # Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done
 ---
 
