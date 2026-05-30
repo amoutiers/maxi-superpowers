@@ -72,4 +72,10 @@ assert_grep "$MIGRATE" "Subagent A" "FR-023 importer preserved"
 assert_grep "$MIGRATE" "Subagent B" "FR-023 discoverer preserved"
 assert_grep "$MIGRATE" "Nygard" "FR-023 format-detection tables preserved"
 
+# --- C1 (2026-05-30 review): no stale /maxi:adr after the x-adr rename ---
+ADR_README="$ROOT/docs/maxi/adr/README.md"
+assert_not_grep "$MIGRATE" "maxi:adr" "C1: no stale /maxi:adr in migrate-adr SKILL.md"
+assert_file_exists "$ADR_README" "adr README.md"
+assert_not_grep "$ADR_README" "maxi:adr" "C1: no stale /maxi:adr in adr README.md"
+
 summary_and_exit "migrate-adr invariant checks"

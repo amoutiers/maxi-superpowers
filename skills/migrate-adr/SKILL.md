@@ -262,7 +262,7 @@ Final ADR numbers are assigned sequentially at write time (from the current
 max in docs/maxi/adr/), not shown here — the # column is just a row index.
 ```
 
-If nothing to propose: output *"Nothing to migrate and no architectural decisions detected. Use `/maxi:adr` to record decisions manually."* — exit cleanly.
+If nothing to propose: output *"Nothing to migrate and no architectural decisions detected. Use `/maxi:x-adr` to record decisions manually."* — exit cleanly.
 
 ---
 
@@ -279,7 +279,7 @@ For each proposal: show the **full draft** and ask. The prompt offers explicit *
 |----------|--------|
 | `accept` | Write with `status: accepted` |
 | `skip` | No file written |
-| `deprecate` | Write with `status: deprecated` (preserve the historical decision without adopting it — you can supersede it later with `/maxi:adr`) |
+| `deprecate` | Write with `status: deprecated` (preserve the historical decision without adopting it — you can supersede it later with `/maxi:x-adr`) |
 | `edit` | Accept amendments inline, write with `status: accepted` |
 
 **Discovered:**
