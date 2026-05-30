@@ -26,6 +26,16 @@ This table shows which maxi pipeline skill delegates to which sub-skill, what st
 | `cancel` | any active status (not `parked`, `cancelled`, `done`) | (none — writes spec.md only) | `<any> → cancelled` (terminal) |
 | `revise` | `clarified` through `implementing` | (none — writes spec.md only) | `<any> → <rollback_target>` (A+ picker: `clarified`/`planned`/`tasked`/`analyzed`) |
 
+### Ingress / Migration Skills
+
+These skills ingest *already-implemented* work, so they may set a terminal/advanced status on spec creation (constitution v1.4.0 ingress clause, [ADR-0011](maxi/adr/0011-migration-ingress-terminal-status.md)). They mark provenance and never alter forward-spec gating.
+
+| maxi skill | Required status | Delegates to | Status transition |
+|---|---|---|---|
+| `migrate-from-speckit` | — (standalone) | (none — runs `migrate.sh`) | creates specs at inferred status (`specified`/`planned`/`tasked`/`done`) |
+| `migrate-from-brownfield` | — (standalone) | `/maxi:dispatching-parallel-agents`, `brownfield.sh` | creates specs at `done` with `origin: reverse-engineered` + `source_sha` |
+| `migrate-adr` | — (standalone) | `/maxi:dispatching-parallel-agents` | (no spec status — bootstraps `docs/maxi/adr/`) |
+
 ### Notes
 
 - `/maxi:analyze` can be rerun at any status from `tasked` onward — it is non-destructive and never modifies source artifacts. Status does not change on subsequent runs.

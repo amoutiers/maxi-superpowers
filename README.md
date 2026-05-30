@@ -111,9 +111,23 @@ Skipping or reversing a status is blocked by the skill that owns each transition
 
 maxi-superpowers vendors [superpowers v5.1.0](https://github.com/obra/superpowers) via git subtree. All superpowers skills are available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:test-driven-development`). The pipeline skills delegate to them at the right moments — you don't invoke them directly.
 
-## Migrating from spec-kit
+## Onboarding an existing project
 
-If you're coming from [github-spec-kit](https://github.com/github/spec-kit), use `/maxi:migrate-from-speckit` for a one-shot migration to maxi conventions. The command copies specs to `docs/maxi/specs/`, adds YAML frontmatter, infers status, and migrates your constitution. **Non-destructive:** originals in `specs/` and `.specify/` are never touched.
+maxi has three **non-destructive** paths to adopt spec-driven development on a codebase that already exists. Establish principles first with `/maxi:constitution` (or let `/maxi:migrate-from-speckit` bring yours over), then use whichever paths fit:
+
+- **From [github-spec-kit](https://github.com/github/spec-kit)** — `/maxi:migrate-from-speckit` does a one-shot migration: copies specs to `docs/maxi/specs/`, adds YAML frontmatter, infers status, and migrates your constitution. Originals in `specs/` and `.specify/` are never touched.
+- **From code with no specs (brownfield)** — `/maxi:migrate-from-brownfield` reverse-engineers your existing code into faithful `spec.md` baselines (status `done`, marked `origin: reverse-engineered`), every functional requirement carrying a `file:line` reference. It discovers feature boundaries, lets you select which to document (in waves), drafts an as-built spec per boundary, and adversarially verifies each draft against the code before you accept it.
+- **Bootstrapping the ADR log** — `/maxi:migrate-adr` imports existing ADRs (Nygard / MADR / plain Markdown) and/or discovers undocumented architectural decisions from your code, config, and git history.
+
+These compose. A typical brownfield onboarding is:
+
+```
+/maxi:constitution           → establish principles
+/maxi:migrate-from-brownfield → reverse-engineer code into spec baselines
+/maxi:migrate-adr            → capture/discover the ADR log
+```
+
+Reverse-engineered baselines land at `done`; to change a documented feature later, run `/maxi:revise` on its spec to roll it back into the forward pipeline.
 
 ## Contributing
 

@@ -102,7 +102,7 @@ The script does the work. Report its output to the user verbatim.
 
 After `--apply` exits 0, tell the user:
 
-> "Migration complete. Originals in `specs/` and `.specify/` are untouched. Review `docs/maxi/specs/`, then run `/maxi:specify` to add new features."
+> "Migration complete. Originals in `specs/` and `.specify/` are untouched. Review `docs/maxi/specs/`. Next: run `/maxi:migrate-adr` to bootstrap your ADR log — it imports any existing ADRs and discovers undocumented architectural decisions from your code (spec-kit migration does not bring ADRs over). Then `/maxi:specify` to add new features."
 
 If any migrated spec landed at status `planned`, `tasked`, or `done`, it will have a `## Migration Notes` section at the bottom of its `spec.md` documenting which maxi pipeline phases were not run (trusted from spec-kit history). Mention this to the user so they are aware.
 

@@ -1,0 +1,7 @@
+{
+  "name": "brownfield-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal multi-module fixture for migrate-from-brownfield tests"
+}

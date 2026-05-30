@@ -93,6 +93,7 @@ maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `/ma
 ## Getting Started
 
 **Migrating from github-spec-kit?** Run `/maxi:migrate-from-speckit` first — it copies your existing specs and constitution into the maxi layout, non-destructively.
+**Adopting maxi on an existing codebase with no specs?** Run `/maxi:migrate-from-brownfield` to reverse-engineer your code into `spec.md` baselines (at `status: done`, marked `origin: reverse-engineered`) so future changes flow through the pipeline.
 **Bootstrapping your ADR log?** Run `/maxi:migrate-adr` to import existing ADRs from other formats and/or discover undocumented architectural decisions from your codebase.
 
 1. Run `/maxi:constitution` to establish your project's principles.

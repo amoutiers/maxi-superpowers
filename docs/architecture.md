@@ -4,7 +4,7 @@
 
 maxi-superpowers is a Claude Code plugin with two layers:
 
-1. **spec-kit pipeline** — 17 maxi-native skills: 12 user-facing commands, 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 2 migration utilities (`migrate-from-speckit`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
+1. **spec-kit pipeline** — 18 maxi-native skills: 12 user-facing commands, 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
 
 2. **superpowers implementation engine** — vendored superpowers v5.1.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
 
@@ -35,6 +35,7 @@ maxi-superpowers/
 │   ├── x-adr/                # internal ADR capture skill (invoked by plan + implement)
 │   ├── using-maxi/          # maxi-native session skill
 │   ├── migrate-from-speckit/ # maxi-native migration utilities
+│   ├── migrate-from-brownfield/
 │   ├── migrate-adr/
 │   ├── brainstorming/       # vendored from superpowers (do not hand-edit)
 │   ├── writing-plans/

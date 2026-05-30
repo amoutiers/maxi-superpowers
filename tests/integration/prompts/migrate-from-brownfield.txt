@@ -1,0 +1,1 @@
+I have an existing project with a lot of code but no specs at all. We want to start doing spec-driven development on it. Can you reverse-engineer the existing code into spec baselines so we have something to build on?
