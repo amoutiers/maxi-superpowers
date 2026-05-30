@@ -39,4 +39,27 @@ if [ -f "$ROOT_HOOKS" ]; then
   fi
 fi
 
+# --- M1 (2026-05-30 review): session-start must emit valid JSON in a maxi project, ---
+# --- and stay silent (empty, exit 0) outside one. ---
+HOOK="$HOOKS_DIR/session-start"
+TMP_PROJ="$(mktemp -d)"; TMP_EMPTY="$(mktemp -d)"
+trap 'rm -rf "$TMP_PROJ" "$TMP_EMPTY"' EXIT
+mkdir -p "$TMP_PROJ/docs/maxi"
+
+hook_out="$(cd "$TMP_PROJ" && CLAUDE_PLUGIN_ROOT="$ROOT" bash "$HOOK")"
+if printf '%s' "$hook_out" | jq empty 2>/dev/null; then
+  echo "OK  [session-start: emits valid JSON in a maxi project]"
+else
+  echo "FAIL [session-start: emits valid JSON in a maxi project]" >&2
+  failures=$((failures + 1))
+fi
+
+empty_out="$(cd "$TMP_EMPTY" && CLAUDE_PLUGIN_ROOT="$ROOT" bash "$HOOK")"
+if [ -z "$empty_out" ]; then
+  echo "OK  [session-start: silent outside a maxi project]"
+else
+  echo "FAIL [session-start: silent outside a maxi project]: got output" >&2
+  failures=$((failures + 1))
+fi
+
 summary_and_exit "hooks checks"
