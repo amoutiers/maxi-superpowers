@@ -6,6 +6,8 @@ ROOT="$(git rev-parse --show-toplevel)"
 source "$ROOT/tests/lib/test-helpers.sh"
 
 MIGRATE="$ROOT/skills/migrate-adr/SKILL.md"
+IMPORT="$ROOT/skills/migrate-adr/import-subagent.md"
+DISCOVER="$ROOT/skills/migrate-adr/discover-subagent.md"
 ADR="$ROOT/skills/x-adr/SKILL.md"
 CLAUDEMD="$ROOT/CLAUDE.md"
 CONSTITUTION="$ROOT/docs/maxi/constitution.md"
@@ -28,10 +30,10 @@ assert_grep "$MIGRATE" "partial.*overlap.*flag" "FR-007 partial overlap flags"
 assert_grep "$MIGRATE" "shorter than 3 characters" "FR-008 short token flagged"
 assert_not_grep "$MIGRATE" "either contains the other" "FR-006 old substring rule removed"
 
-# --- US3: importer hardening (FR-009, 010) ---
-assert_grep "$MIGRATE" "blocklist" "FR-009 filename blocklist"
-assert_grep "$MIGRATE" "CONTRIBUTING.md" "FR-009 blocklist includes CONTRIBUTING"
-assert_grep "$MIGRATE" "source:" "FR-010 source provenance field"
+# --- US3: importer hardening (FR-009, 010) — now in import-subagent.md (spec 0004) ---
+assert_grep "$IMPORT" "blocklist" "FR-009 filename blocklist"
+assert_grep "$IMPORT" "CONTRIBUTING.md" "FR-009 blocklist includes CONTRIBUTING"
+assert_grep "$IMPORT" "source:" "FR-010 source provenance field"
 
 # --- US4: rejection log (FR-011, 012, 014) ---
 assert_grep "$MIGRATE" "append its domain label" "FR-011 discovered skip appends to .rejected"
@@ -45,12 +47,12 @@ assert_grep "$MIGRATE" "Return schema" "FR-015 explicit return-schema block"
 assert_grep "$MIGRATE" "constitution's principles" "FR-016 principles passed to Discoverer"
 
 # --- US6: significance rubric (FR-017, 018) ---
-assert_grep "$MIGRATE" "costly to reverse" "FR-017 rubric in Discoverer"
+assert_grep "$DISCOVER" "costly to reverse" "FR-017 rubric in Discoverer"
 assert_grep "$ADR" "costly to reverse" "FR-018 rubric in adr description"
 
 # --- US7: polish (FR-019..021) ---
-assert_grep "$MIGRATE" "git log -n 200" "FR-019 git log -n 200"
-assert_not_grep "$MIGRATE" "git log -200" "FR-019 old flag removed"
+assert_grep "$DISCOVER" "git log -n 200" "FR-019 git log -n 200"
+assert_not_grep "$DISCOVER" "git log -200" "FR-019 old flag removed"
 assert_not_grep "$MIGRATE" "(t) = tentative" "FR-020 tentative numbers removed"
 assert_grep "$MIGRATE" "assigned sequentially at write time" "FR-020 write-time note"
 assert_grep "$MIGRATE" "regenerate.*README.*once" "FR-021 single regen"
@@ -70,7 +72,17 @@ assert_not_grep "$CONSTITUTION" 'version: "1.1.0"' "FR-025 version bumped"
 # --- FR-023: preserved non-defective behavior ---
 assert_grep "$MIGRATE" "Subagent A" "FR-023 importer preserved"
 assert_grep "$MIGRATE" "Subagent B" "FR-023 discoverer preserved"
-assert_grep "$MIGRATE" "Nygard" "FR-023 format-detection tables preserved"
+assert_grep "$IMPORT" "Nygard" "FR-023 format-detection tables preserved"
+
+# --- 0004 US3: SRP boundary enforcement (briefs separated from orchestrator, spec 0004) ---
+assert_file_exists "$IMPORT" "import-subagent.md exists"
+assert_file_exists "$DISCOVER" "discover-subagent.md exists"
+assert_grep "$MIGRATE" "import-subagent.md" "SKILL.md references importer brief"
+assert_grep "$MIGRATE" "discover-subagent.md" "SKILL.md references discoverer brief"
+assert_not_grep "$MIGRATE" "Nygard → maxi mapping" "SRP boundary: importer mapping not in orchestrator"
+assert_not_grep "$MIGRATE" "Filename blocklist" "SRP boundary: importer blocklist not in orchestrator"
+assert_not_grep "$MIGRATE" "Significance rubric" "SRP boundary: discoverer rubric not in orchestrator"
+assert_not_grep "$MIGRATE" "git log -n 200" "SRP boundary: discoverer git-history scan not in orchestrator"
 
 # --- C1 (2026-05-30 review): no stale /maxi:adr after the x-adr rename ---
 ADR_README="$ROOT/docs/maxi/adr/README.md"

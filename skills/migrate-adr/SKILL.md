@@ -131,105 +131,11 @@ Steps 4 (deduplicate) and 5 (summary table) consume this structured list.
 
 ### Subagent A — Importer
 
-Scan these directories for `.md` files:
-`doc/adr/`, `docs/adr/`, `docs/decisions/`, `docs/architecture/`, `adr/`, `ADRs/`
+Dispatch with the brief in [`import-subagent.md`](import-subagent.md). It detects ADR formats (Nygard/MADR/plain Markdown), converts them to maxi format, and returns proposals per the **Return schema** above.
 
-**Filename blocklist (skip before format detection):** ignore any file whose basename (case-insensitive) is `README.md`, `index.md`, `template.md`, or `CONTRIBUTING.md`. These are not ADRs; without the blocklist a project `README.md` would be imported via the Plain-Markdown catch-all. Do **not** use a subjective "does the H1 look like a decision" heuristic — the blocklist plus the format-detection table below is the filter.
+### Subagent B — Discoverer (skip if `--import-only`)
 
-**Detect format per file:**
-
-| Format | Signal |
-|--------|--------|
-| Nygard | No YAML frontmatter; has `## Status`, `## Context`, `## Decision`, `## Consequences` |
-| MADR | YAML frontmatter with `title:`, `status:`, `deciders:` |
-| Plain Markdown | H1 title; doesn't match Nygard or MADR |
-
-Skip files matching no format (warn, continue). Skip files whose domain is in exclusion context.
-
-**Nygard → maxi mapping:**
-
-| Nygard field | maxi field |
-|---|---|
-| H1 title | slug + ADR title line |
-| `## Status` value | `status:` frontmatter (Accepted→`accepted`, Proposed→`proposed`, Deprecated→`deprecated`, Superseded→`superseded`, Rejected→`deprecated`) |
-| `## Context` | `## Context` |
-| `## Decision` | `## Decision` |
-| `## Consequences` | `## Consequences` |
-| *(missing)* | `## Decision Drivers` — *"Not recorded in source ADR. Add drivers before accepting."* |
-| *(missing)* | `## Considered Options` — *"Not recorded in source ADR."* |
-| *(missing)* | `## Confirmation` — *"Not recorded in source ADR."* |
-
-Nygard supersession: if `## Status` contains "Supersedes ADR-NNN", set `supersedes: null` in frontmatter and append to `## Context`: *"Source ADR referenced supersession — review and update `supersedes:` manually."*
-
-**MADR → maxi mapping:**
-
-| MADR field | maxi field |
-|---|---|
-| `title:` | slug + ADR title line |
-| `status:` | `status:` frontmatter |
-| `deciders:` | `decider:` frontmatter |
-| `date:` | `created:` frontmatter |
-| Context and Problem Statement | `## Context` |
-| Decision Drivers | `## Decision Drivers` |
-| Considered Options + Pros/Cons | `## Considered Options` |
-| Decision Outcome | `## Decision` |
-| Consequences subsection | `## Consequences` |
-| *(missing)* | `## Confirmation` — placeholder |
-
-**Plain Markdown:** Extract H1 as title. Look for date in filename (`YYYYMMDD-*` or `YYYY-MM-DD-*`) or first paragraph. Map body verbatim to `## Context`. All other sections → placeholders using the following explicit text:
-
-- `## Decision Drivers` → *"Not recorded in source document. Add drivers before accepting."*
-- `## Considered Options` → *"Not recorded in source document."*
-- `## Decision` → *"Not recorded in source document."*
-- `## Consequences` → *"Not recorded in source document."*
-- `## Confirmation` → *"Not recorded in source document."*
-
-**Frontmatter invariants for all imported ADRs:**
-
-```yaml
-created: [preserved from source, or "[unknown]" if not found]
-updated: [today]
-source: [original file path the ADR was imported from, or "[unknown]" if undeterminable]
-related_specs: []
-related_principles: []
-related_requirements: []
-supersedes: null
-superseded_by: null
-```
-
-The `source:` field records provenance so every imported ADR points back at its original file.
-
-### Subagent B — Discoverer
-
-Analyze these layers:
-
-| Layer | Examples |
-|-------|---------|
-| Package manifests | `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, `requirements.txt`, `pom.xml`, `build.gradle` |
-| Config files | `Dockerfile`, `docker-compose.yml`, `.github/workflows/`, `.gitlab-ci.yml`, `tsconfig.json`, `eslint.config.*`, `.prettierrc`, `.env.example` |
-| Directory structure | monorepo vs. polyrepo, layered/hexagonal/feature-based layout, test strategy |
-| Git history | `git log -n 200 --format="%H %s%n%b"` — scan the output for commits whose subject OR body contains any of: `chose`, `decided`, `switched`, `migrated`, `replaced`, `adopted`, `dropped`, `moved to`; the full message body is already available in the output |
-
-Skip domains in exclusion context.
-
-**Significance rubric.** Propose a decision only if it meets at least one of: it is **costly to reverse**, it **constrains future choices**, or it **was contested** (a real alternative was weighed). A bare dependency in a manifest or a git-log keyword hit is **not** sufficient on its own — drop easily-reversible, uncontested choices (e.g. a code formatter). The consent gate is the user's filter, not the only filter; do not flood it with trivia.
-
-**Constitution linkage.** You are given the constitution's principles (Step 3). When a discovered decision relates to a named principle, set `related_principles` to that principle and note the link in the draft's `## Context`. If no principle relates, leave `related_principles: []` — never fabricate a link.
-
-**Default frontmatter for all discovered ADRs:**
-
-```yaml
-decider: "[unknown — inferred from code analysis]"
-related_specs: []
-related_principles: []
-related_requirements: []
-supersedes: null
-superseded_by: null
-created: [today]
-updated: [today]
-```
-
-Mark uncertain fields with `[inferred]` prefix.
+Dispatch with the brief in [`discover-subagent.md`](discover-subagent.md), passing the exclusion context and the constitution's principle names. It returns proposals per the **Return schema** above.
 
 ---
 

@@ -12,6 +12,8 @@ maxi-superpowers is a dual-harness plugin for Claude Code and OpenCode. It vendo
 
 All new skills MUST be authored using `superpowers:writing-skills`. Do not hand-write SKILL.md files.
 
+All skills MUST be single-responsibility — see the project Constitution, Principle VI (*Single Responsibility per Skill*). Do not duplicate the principle text here; the constitution is authoritative.
+
 The authoring flow:
 1. **brainstorm** — explore intent and design (`superpowers:brainstorming`)
 2. **spec** — write the spec (`/maxi:specify`)

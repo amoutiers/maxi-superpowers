@@ -1,7 +1,7 @@
 ---
-version: "1.2.0"
+version: "1.3.0"
 created: 2026-05-24
-updated: 2026-05-29
+updated: 2026-05-30
 ---
 
 # maxi-superpowers Constitution
@@ -28,6 +28,10 @@ Every structural choice (stack, pattern, dependency, pipeline deviation) generat
 
 Every design decision must persist in a file. `spec.md`, `plan.md`, `tasks.md`, `analysis.md`, ADR — what lives only in chat does not exist. Chat is ephemeral; files are authoritative.
 
+### VI. Single Responsibility per Skill
+
+Every skill owns exactly one responsibility — one phase transition, one report, one managed document, or one coordinated goal. When a skill fuses concerns with independent reasons to change, extract them into separate units (support files or sub-skills) behind a single coordinator. Litmus: if two parts of a skill would change for unrelated reasons, they are separate responsibilities.
+
 ## Constraints
 
 - **Constitution required first**: no pipeline skill can run without `docs/maxi/constitution.md`. The constitution is the reference baseline for `/maxi:analyze` (passes D and G).
@@ -46,4 +50,4 @@ Every design decision must persist in a file. `spec.md`, `plan.md`, `tasks.md`, 
 
 The constitution takes precedence over any other practice documented in this repo. In case of conflict between a skill and the constitution, the constitution wins — the skill must be updated. Any amendment to the constitution bumps `version` (semver), refreshes the `updated` date, and generates an ADR.
 
-**Version**: 1.2.0 | **Created**: 2026-05-24 | **Updated**: 2026-05-29
+**Version**: 1.3.0 | **Created**: 2026-05-24 | **Updated**: 2026-05-30
