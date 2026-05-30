@@ -1,4 +1,38 @@
 
+## [1.2.0] - 2026-05-30
+
+### Features
+
+- Add maxi:develop SDD wrapper skill and update implement delegation
+- Add maxi:x-develop SDD wrapper and rename internal skills to x- prefix
+- Single-responsibility principle + migrate-adr decomposition
+- Add migrate-from-brownfield skill (reverse-engineer specs)
+
+### Bug Fixes
+
+- Exclude plugin-name tags from changelog (cliff ignore_tags)
+- Update stale /maxi:adr references to /maxi:x-adr (review C1)
+- Key bootstrap on project directory not process.cwd(); add ESM syntax guard (review H3, M1)
+
+### Documentation
+
+- Bootstrap ADR log with 5 discovered architectural decisions (ADR-0004–0008)
+- Wire maxi:develop into pipeline diagrams and delegation tables
+- Update using-maxi and CLAUDE.md for maxi:develop (16→17 skills)
+- Newcomer onboarding + accurate existing-project paths
+
+### Testing
+
+- Update check-skills-present for 17 maxi-native skills (add develop)
+- Assert package.json version matches plugin manifest (review M4)
+- Assert session-start emits valid JSON in/out of a maxi project (review M1)
+- Add cross-harness bootstrap preamble parity check (review H2)
+
+### Internal
+
+- Mark design-review-fixes done
+
+
 ## [1.1.0] - 2026-05-29
 
 ### Features
