@@ -70,4 +70,25 @@ else
   failures=$((failures + 1))
 fi
 
+# --- H3 (2026-05-30 review): bootstrap dir must derive from the project directory ---
+if grep -q "path.join(process.cwd(), 'docs/maxi')" "$PLUGIN"; then
+  echo "FAIL [maxi.js: maxi dir not keyed on process.cwd()]: still uses process.cwd()" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [maxi.js: maxi dir not keyed on process.cwd()]"
+fi
+assert_grep "$PLUGIN" "directory || process.cwd()" "maxi.js: bootstrap falls back via directory param"
+
+# --- M1 (2026-05-30 review): the plugin must be syntactically valid JS ---
+if command -v node >/dev/null 2>&1; then
+  if node --input-type=module --check < "$PLUGIN" 2>/dev/null; then
+    echo "OK  [maxi.js: valid JS syntax (node --check)]"
+  else
+    echo "FAIL [maxi.js: valid JS syntax (node --check)]" >&2
+    failures=$((failures + 1))
+  fi
+else
+  echo "SKIP [maxi.js: valid JS syntax] (node not installed)"
+fi
+
 summary_and_exit "opencode plugin checks"

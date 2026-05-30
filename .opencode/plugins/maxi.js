@@ -63,8 +63,11 @@ export const MaxiPlugin = async ({ client, directory }) => {
     // Return cached result on subsequent calls
     if (_bootstrapCache !== undefined) return _bootstrapCache;
 
-    // Only inject in maxi projects — skip in projects without docs/maxi/
-    const maxiDir = path.join(process.cwd(), 'docs/maxi');
+    // Only inject in maxi projects — skip in projects without docs/maxi/.
+    // Derive from the project `directory` (passed to MaxiPlugin); fall back to
+    // process.cwd() only if the host did not provide it.
+    const baseDir = directory || process.cwd();
+    const maxiDir = path.join(baseDir, 'docs/maxi');
     if (!fs.existsSync(maxiDir)) {
       _bootstrapCache = null;
       return null;
