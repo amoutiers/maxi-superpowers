@@ -43,4 +43,18 @@ if [ -f "$ROOT_MANIFEST" ]; then
   fi
 fi
 
+# --- M4 (2026-05-30 review): package.json version must match the manifest ---
+PKG="$ROOT/package.json"
+assert_file_exists "$PKG" "package.json"
+if [ -f "$PKG" ]; then
+  manifest_ver="$(jq -r '.version' "$MANIFEST")"
+  pkg_ver="$(jq -r '.version' "$PKG")"
+  if [ "$manifest_ver" = "$pkg_ver" ]; then
+    echo "OK  [package.json version matches plugin.json]"
+  else
+    echo "FAIL [package.json version matches plugin.json]: $pkg_ver != $manifest_ver" >&2
+    failures=$((failures + 1))
+  fi
+fi
+
 summary_and_exit "plugin manifest checks"
