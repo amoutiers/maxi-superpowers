@@ -2,7 +2,14 @@
 
 ![maxi-superpowers](assets/logo.svg)
 
-A spec-driven workflow plugin that combines structured feature design (spec-kit) with superpowers' battle-tested implementation engine. You write features through a structured pipeline — constitution, spec, clarification, plan, tasks, analysis, implementation — and maxi enforces phase gating so nothing ships without the artifacts to back it.
+A spec-driven development plugin for Claude Code (also OpenCode, Antigravity, and Gemini). maxi turns "build me X" into a disciplined pipeline — **constitution → spec → clarify → plan → tasks → analyze → implement** — and gates each phase so nothing ships without the design artifacts to back it. Under the hood it delegates implementation to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
+
+**Why maxi?**
+
+- **Design before code** — every feature gets a written spec, plan, and task list, not just a prompt and a diff.
+- **Phase gating** — skills refuse to run out of order, so you can't skip clarification and discover the gap at implementation time.
+- **Decisions are recorded** — architectural choices become ADRs automatically (with your consent), so the *why* survives.
+- **Greenfield or brownfield** — start a fresh project, or reverse-engineer an existing codebase into spec baselines.
 
 ## Installation
 
@@ -48,7 +55,32 @@ cd maxi-superpowers
 gemini extensions install .
 ```
 
+## Start here
+
+- **New project?** Follow the [Quick Start](#quick-start) below — `/maxi:constitution`, then `/maxi:specify <feature>`.
+- **Existing codebase?** Jump to [Onboarding an existing project](#onboarding-an-existing-project) — migrate your spec-kit specs, or reverse-engineer your code into spec baselines.
+
+You don't have to memorize commands: describe what you want and maxi routes you to the right skill, or type the `/maxi:*` command explicitly. A constitution is required before the pipeline and the brownfield/ADR migrations, so **run `/maxi:constitution` first** — with one exception: spec-kit migrants run `/maxi:migrate-from-speckit`, which brings their existing constitution over.
+
+## Quick Start
+
+Your first feature, end to end:
+
+```
+/maxi:constitution                         # one-time: establish your project's principles
+/maxi:specify add email + password login   # start a spec via guided Q&A      (→ specified)
+/maxi:clarify                              # answer any open questions         (→ clarified)
+/maxi:plan                                 # technical plan + ADR proposals    (→ planned)
+/maxi:tasks                                # checkbox task list                (→ tasked)
+/maxi:analyze                              # 7-pass quality audit              (→ analyzed)
+/maxi:implement                            # TDD execution + code review       (→ done)
+```
+
+Each command reads the previous artifacts and refuses to run if the spec is in the wrong phase — so the path is hard to get wrong. Artifacts land in `docs/maxi/` (see [Artifact Structure](#artifact-structure)).
+
 ## Pipeline Commands
+
+Full reference for the forward pipeline:
 
 | Command | Description |
 |---|---|
@@ -60,19 +92,7 @@ gemini extensions install .
 | `/maxi:analyze` | Run a 7-pass quality audit across all artifacts (includes ADR alignment) |
 | `/maxi:implement` | Execute the task list and transition the spec to `done` |
 
-## Quick Start
-
-```
-1. /maxi:constitution        → creates docs/maxi/constitution.md
-2. /maxi:specify <feature>   → creates docs/maxi/specs/001-feature/spec.md  (status: specified)
-3. /maxi:clarify             → resolves open questions                   (status: clarified)
-4. /maxi:plan                → writes plan.md                            (status: planned)
-5. /maxi:tasks               → writes tasks.md                           (status: tasked)
-6. /maxi:analyze             → writes analysis.md                        (status: analyzed)
-7. /maxi:implement           → executes tasks, code review, done         (status: done)
-```
-
-Each command reads the previous artifacts and refuses to run if the spec is in the wrong phase.
+> Beyond the forward pipeline there are lifecycle commands (`/maxi:board`, `/maxi:park`, `/maxi:resume`, `/maxi:cancel`, `/maxi:revise`) and the migration utilities covered under [Onboarding an existing project](#onboarding-an-existing-project).
 
 ## Artifact Structure
 
@@ -113,19 +133,12 @@ maxi-superpowers vendors [superpowers v5.1.0](https://github.com/obra/superpower
 
 ## Onboarding an existing project
 
-maxi has three **non-destructive** paths to adopt spec-driven development on a codebase that already exists. Establish principles first with `/maxi:constitution` (or let `/maxi:migrate-from-speckit` bring yours over), then use whichever paths fit:
+Two **non-destructive** paths bring an existing project onto maxi, depending on what you already have:
 
-- **From [github-spec-kit](https://github.com/github/spec-kit)** — `/maxi:migrate-from-speckit` does a one-shot migration: copies specs to `docs/maxi/specs/`, adds YAML frontmatter, infers status, and migrates your constitution. Originals in `specs/` and `.specify/` are never touched.
-- **From code with no specs (brownfield)** — `/maxi:migrate-from-brownfield` reverse-engineers your existing code into faithful `spec.md` baselines (status `done`, marked `origin: reverse-engineered`), every functional requirement carrying a `file:line` reference. It discovers feature boundaries, lets you select which to document (in waves), drafts an as-built spec per boundary, and adversarially verifies each draft against the code before you accept it.
-- **Bootstrapping the ADR log** — `/maxi:migrate-adr` imports existing ADRs (Nygard / MADR / plain Markdown) and/or discovers undocumented architectural decisions from your code, config, and git history.
+- **You use [github-spec-kit](https://github.com/github/spec-kit)** — `/maxi:migrate-from-speckit` does a one-shot migration: it copies your specs to `docs/maxi/specs/`, adds YAML frontmatter, infers status, and brings your constitution over. Originals in `specs/` and `.specify/` are never touched. (No separate `/maxi:constitution` needed — this provides it.)
+- **You have code but no specs (brownfield)** — first run `/maxi:constitution` to establish principles (**required** — the next step refuses to run without it), then `/maxi:migrate-from-brownfield` reverse-engineers your code into faithful `spec.md` baselines (status `done`, `origin: reverse-engineered`), every requirement carrying a `file:line` reference. It discovers feature boundaries, lets you select which to document in waves, drafts an as-built spec per boundary, and adversarially verifies each draft against the code before you accept it.
 
-These compose. A typical brownfield onboarding is:
-
-```
-/maxi:constitution           → establish principles
-/maxi:migrate-from-brownfield → reverse-engineer code into spec baselines
-/maxi:migrate-adr            → capture/discover the ADR log
-```
+After **either** path, optionally run `/maxi:migrate-adr` to bootstrap your ADR log — it imports existing ADRs (Nygard / MADR / plain Markdown) and discovers undocumented architectural decisions from your code, config, and git history.
 
 Reverse-engineered baselines land at `done`; to change a documented feature later, run `/maxi:revise` on its spec to roll it back into the forward pipeline.
 
