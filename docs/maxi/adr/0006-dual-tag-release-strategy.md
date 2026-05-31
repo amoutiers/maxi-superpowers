@@ -3,7 +3,7 @@ adr: 0006
 slug: 0006-dual-tag-release-strategy
 status: accepted
 created: 2026-05-29
-updated: 2026-05-29
+updated: 2026-05-31
 decider: "[inferred] Antoine Moutiers"
 supersedes: null
 superseded_by: null
@@ -75,3 +75,13 @@ changelog pollution was discovered and fixed by adding
 - `git tag --list` shows both `v*` and `maxi--v*` tags for each release.
 - The GitHub Actions `release.yml` triggers on `tags: ['v*']` only, preventing
   duplicate release runs from plugin-name tags.
+
+## Addendum — 2026-05-31 (empirical confirmation)
+
+The `[inferred]` qualifiers in the Decision section above are now **empirically
+confirmed**: the Claude plugin marketplace **does require** the `maxi--v*`
+plugin-name-prefixed tag (confirmed by the maintainer). Option A is therefore the
+correct and necessary choice — Option B (single semver tag) is not viable. The
+dual-tag flow and the `cliff.toml` `ignore_tags` workaround are justified and must
+be kept. This addendum records the confirmation without editing the immutable
+decision body (Constitution, Principle IV — ADRs are append-only).

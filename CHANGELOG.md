@@ -3,7 +3,6 @@
 
 ### Features
 
-- Add maxi:develop SDD wrapper skill and update implement delegation
 - Add maxi:x-develop SDD wrapper and rename internal skills to x- prefix
 - Single-responsibility principle + migrate-adr decomposition
 - Add migrate-from-brownfield skill (reverse-engineer specs)
@@ -17,13 +16,13 @@
 ### Documentation
 
 - Bootstrap ADR log with 5 discovered architectural decisions (ADR-0004–0008)
-- Wire maxi:develop into pipeline diagrams and delegation tables
-- Update using-maxi and CLAUDE.md for maxi:develop (16→17 skills)
+- Wire x-develop into pipeline diagrams and delegation tables
+- Update using-maxi and CLAUDE.md for x-develop (now 18 maxi-native skills)
 - Newcomer onboarding + accurate existing-project paths
 
 ### Testing
 
-- Update check-skills-present for 17 maxi-native skills (add develop)
+- Update check-skills-present for 18 maxi-native skills (add x-develop)
 - Assert package.json version matches plugin manifest (review M4)
 - Assert session-start emits valid JSON in/out of a maxi project (review M1)
 - Add cross-harness bootstrap preamble parity check (review H2)

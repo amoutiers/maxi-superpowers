@@ -27,7 +27,7 @@ Read each spec's YAML frontmatter and body. Extract:
 
 ### Step 3 — Group by Status
 
-Bucket specs into the 8 pipeline statuses in order:
+Bucket specs into the 10 pipeline statuses in order:
 
 ```
 drafting → specified → clarified → planned → tasked → analyzed → implementing → parked → done → cancelled
@@ -35,7 +35,7 @@ drafting → specified → clarified → planned → tasked → analyzed → imp
 
 `parked` = spec frozen in progress (non-terminal, resumable via `/maxi:resume`). `cancelled` = terminal, not actionable. Specs with missing or unrecognized `status` go into a trailing `unknown` bucket.
 
-The canonical status list is defined in `skills/specify/SKILL.md` and `skills/using-maxi/SKILL.md`. Specs with missing or unrecognized `status` go into a trailing `unknown` bucket.
+The canonical status list is defined in `skills/specify/spec-template.md` (the `# Allowed values:` line). Specs with missing or unrecognized `status` go into a trailing `unknown` bucket.
 
 ### Step 4 — Sort Each Bucket
 
@@ -116,7 +116,7 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 ## Red Flags
 
 - Writing a `board.md` or any file → hard stop, this is read-only
-- Omitting empty status buckets → always print all 8 headings so the pipeline shape is visible
+- Omitting empty status buckets → always print all 10 headings so the pipeline shape is visible
 - Listing all done specs when the project is mature → collapse to count + last-30d only
 - Crashing on a spec missing `status` or `updated` → tolerate gracefully (unknown bucket / no staleness suffix)
 - Silently skipping unrecognized status values → always surface them in the `unknown` bucket
@@ -128,5 +128,5 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 | "I'll write a board.md for persistence" | READ-ONLY Iron Law. Terminal output only. No file writes. |
 | "The done section is cluttered, I'll just show total count" | Show count AND last-30d entries. Recent completions signal shipping cadence. |
 | "This spec has no status field, I'll infer one" | Never infer status. Group under `unknown` so the user sees the broken frontmatter. |
-| "Empty sections waste space, I'll hide them" | Always print all 8 headings. Empty pipeline stages are useful information. |
+| "Empty sections waste space, I'll hide them" | Always print all 10 headings. Empty pipeline stages are useful information. |
 | "I'll sort newest-first so recent work is visible" | Sort oldest-updated first — stale work is the highest priority to surface. |

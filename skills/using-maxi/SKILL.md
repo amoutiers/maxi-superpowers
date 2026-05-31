@@ -55,6 +55,8 @@ Every `spec.md` carries `status:` in its YAML frontmatter:
 
 ```
 drafting → specified → clarified → planned → tasked → analyzed → implementing → done
+                                  ↕ parked (resumable from any active status)
+                                  ✗ cancelled (terminal)
 ```
 
 Skills read and enforce this. Running a skill out of order gives a friendly message — not a crash.

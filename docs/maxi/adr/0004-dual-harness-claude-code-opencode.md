@@ -1,12 +1,12 @@
 ---
 adr: 0004
 slug: 0004-dual-harness-claude-code-opencode
-status: accepted
+status: superseded
 created: 2026-05-29
-updated: 2026-05-29
+updated: 2026-05-31
 decider: "[inferred] Antoine Moutiers"
 supersedes: null
-superseded_by: null
+superseded_by: 0013
 ---
 
 # ADR-0004: Dual-Harness Plugin Design — Claude Code + OpenCode

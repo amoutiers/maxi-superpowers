@@ -1,5 +1,5 @@
 {
-  "_comment": "Claude Code plugin hook definition. session-start outputs platform-specific JSON to support Claude Code, Cursor, and Copilot when the script is invoked by each platform's own hook system.",
+  "_comment": "Hook definition. session-start outputs harness-specific JSON to support Claude Code and Antigravity when invoked by each harness's own hook system.",
   "hooks": {
     "SessionStart": [
       {

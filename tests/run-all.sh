@@ -47,6 +47,9 @@ run_check "$TESTS_DIR/check-migrate-from-speckit.sh" "migrate-from-speckit scrip
 run_check "$TESTS_DIR/check-migrate-from-brownfield.sh" "migrate-from-brownfield script behavior"
 run_check "$TESTS_DIR/check-opencode-plugin.sh"      "OpenCode plugin validation"
 run_check "$TESTS_DIR/check-bootstrap-parity.sh"     "Bootstrap preamble parity"
+run_check "$TESTS_DIR/check-skill-count.sh"          "Skill count doc consistency"
+run_check "$TESTS_DIR/check-status-consistency.sh"   "Status list consistency"
+run_check "$TESTS_DIR/check-artifact-link-convention.sh" "Artifact link convention parity"
 
 if [ "$failures" -gt 0 ]; then
   echo "FAILED: $failures check(s) failed" >&2

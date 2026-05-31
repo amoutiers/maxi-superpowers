@@ -2,7 +2,7 @@
 
 ![maxi-superpowers](assets/logo.svg)
 
-A spec-driven development plugin for Claude Code (also OpenCode, Antigravity, and Gemini). maxi turns "build me X" into a disciplined pipeline — **constitution → spec → clarify → plan → tasks → analyze → implement** — and gates each phase so nothing ships without the design artifacts to back it. Under the hood it delegates implementation to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
+A spec-driven development plugin for Claude Code, OpenCode, and Antigravity (legacy Gemini CLI also supported). maxi turns "build me X" into a disciplined pipeline — **constitution → spec → clarify → plan → tasks → analyze → implement** — and gates each phase so nothing ships without the design artifacts to back it. Under the hood it delegates implementation to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
 
 **Why maxi?**
 
@@ -44,7 +44,7 @@ Add to your `opencode.json`:
 ```
 Then restart OpenCode. See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for details.
 
-### For Legacy Gemini CLI
+### For Legacy Gemini CLI (deprecated — use Antigravity)
 ```bash
 # Install from the GitHub repository:
 gemini extensions install https://github.com/amoutiers/maxi-superpowers

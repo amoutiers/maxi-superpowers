@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# Round-trip tests spec.md status frontmatter: verify each status value parses and re-serialises without drift.
+# Validates the spec fixture's required fields (slug shape, created). Status-list consistency moved to check-status-consistency.sh.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
 source "$ROOT/tests/lib/test-helpers.sh"
 
 FIXTURE="$ROOT/tests/fixtures/sample-spec.md"
-VALID_STATUSES=(drafting specified clarified planned tasked analyzed implementing done parked cancelled)
-failures=0
 
 if [ ! -f "$FIXTURE" ]; then
   echo "ERROR: fixture not found: $FIXTURE" >&2
@@ -26,14 +24,4 @@ fi
 
 assert_grep "$FIXTURE" "^created:" "spec fixture: created field present"
 
-for status in "${VALID_STATUSES[@]}"; do
-  result=$(sed "s/^status:.*/status: $status/" "$FIXTURE" | { grep "^status:" || true; } | sed "s/^status: //")
-  if [ "$result" != "$status" ]; then
-    echo "FAIL: status '$status' did not round-trip cleanly (got: '$result')" >&2
-    failures=$((failures + 1))
-  else
-    echo "OK  [status: $status]"
-  fi
-done
-
-summary_and_exit "status round-trip checks"
+summary_and_exit "spec fixture checks"

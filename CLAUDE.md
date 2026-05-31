@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers is a dual-harness plugin for Claude Code and OpenCode. It vendors superpowers' skills via git subtree and adds 18 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
+maxi-superpowers is a tri-harness plugin for Claude Code, OpenCode, and Antigravity. It vendors superpowers' skills via git subtree and adds 18 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
 
 ## Git
 
@@ -56,6 +56,8 @@ Skills read this to enforce phase gating. Never bypass it.
 
 **This is not optional.** The 2026-05-24 design review found that `using-maxi` had been injecting a stale phase-gating table for every session after the strict-pipeline decision — because only the skill implementations were updated, not the documentation. The 2026-05-30 brownfield-skill review found `docs/architecture.md` left at a stale skill count for the same reason — it stated the count but was not in this list. That class of bug is prevented by updating all five files atomically.
 
+**Now partly automated:** `check-skill-count.sh` and `check-status-consistency.sh` fail the fast tier if skill counts or the status set drift between docs; `check-artifact-link-convention.sh` guards the duplicated "Artifact reference links" block. Run the `doc-consistency` skill (`.claude/skills/doc-consistency/`) before a release for prose-level drift the deterministic checks can't catch.
+
 ## Testing
 
 Run `bash tests/run-all.sh` after changes.
@@ -63,7 +65,7 @@ Run `bash tests/run-all.sh` after changes.
 **Fast tier** (~10s, no Claude runtime, runs by default):
 - `check-frontmatter.sh` — every `skills/*/SKILL.md` has valid YAML frontmatter
 - `check-sync-invariant.sh` — vendored skills in `skills/` are byte-identical to `vendor/superpowers/skills/`
-- `check-spec-fixture.sh` — spec fixture has `slug`/`created`/`status` fields; all 10 status values round-trip
+- `check-spec-fixture.sh` — spec fixture has valid `slug`/`created` fields (the 10-status consistency check now lives in `check-status-consistency.sh`)
 - `check-templates.sh` — all 5 maxi templates + 2 fixtures have required fields and body sections
 - `check-skills-present.sh` — all 18 maxi-native skills exist
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
@@ -76,6 +78,9 @@ Run `bash tests/run-all.sh` after changes.
 - `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly
 - `check-migrate-from-speckit.sh` — `migrate-from-speckit` detects `.specify/` and migrates non-destructively
 - `check-migrate-from-brownfield.sh` — `migrate-from-brownfield`'s `brownfield.sh` (guard / write-spec / exclude) behaves correctly
+- `check-skill-count.sh` — maxi-native skill count (derived from the filesystem) matches CLAUDE.md + architecture.md
+- `check-status-consistency.sh` — the 10 FSM statuses are consistent across spec-template, board, and CLAUDE.md
+- `check-artifact-link-convention.sh` — the duplicated artifact-link block is byte-identical to the canonical fixture
 
 **Integration tier** (opt-in, requires `claude` CLI, ~minutes):
 ```

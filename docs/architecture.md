@@ -2,7 +2,7 @@
 
 ## Plugin Overview
 
-maxi-superpowers is a Claude Code plugin with two layers:
+maxi-superpowers is a tri-harness plugin (Claude Code · OpenCode · Antigravity; see Harness Strategy below) with two layers:
 
 1. **spec-kit pipeline** — 18 maxi-native skills: 12 user-facing commands, 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
 
@@ -33,6 +33,7 @@ maxi-superpowers/
 │   ├── cancel/
 │   ├── revise/
 │   ├── x-adr/                # internal ADR capture skill (invoked by plan + implement)
+│   ├── x-develop/            # internal SDD wrapper skill (invoked by implement)
 │   ├── using-maxi/          # maxi-native session skill
 │   ├── migrate-from-speckit/ # maxi-native migration utilities
 │   ├── migrate-from-brownfield/
@@ -61,7 +62,7 @@ maxi-superpowers/
 │   └── superpowers/         # git subtree of superpowers upstream
 ├── tests/
 │   ├── run-all.sh
-│   ├── check-*.sh           # 13 fast-tier checks (see CLAUDE.md for the list)
+│   ├── check-*.sh           # fast-tier checks (see CLAUDE.md for the authoritative list)
 │   ├── integration/         # opt-in integration tier
 │   └── fixtures/
 ├── docs/
@@ -149,6 +150,20 @@ bash scripts/sync-superpowers.sh
 ```
 
 `sync-superpowers.sh` copies skills from `vendor/superpowers/skills/` into `skills/` and updates `VENDORED.md`. The `check-sync-invariant.sh` test verifies that `skills/` and `vendor/superpowers/skills/` are in sync — it fails if they diverge.
+
+## Harness Strategy
+
+maxi ships its session bootstrap to three supported agent harnesses:
+
+| Harness | Mechanism |
+|---|---|
+| Claude Code | `hooks/hooks.json` (`${CLAUDE_PLUGIN_ROOT}`) + `.claude-plugin/` manifest + marketplace |
+| OpenCode | `.opencode/plugins/maxi.js` (transforms the first user message) |
+| Antigravity | root `hooks.json` + `plugin.json` (`${extensionPath}`); `agy plugin install .` |
+
+All three are validated by the fast tier (`check-hooks.sh`, `check-plugin-manifest.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`). The bootstrap preamble is identical across the bash hook and the OpenCode plugin (parity-guarded).
+
+**Not supported:** Cursor (its `.cursor/hooks.json` / `sessionStart` mechanism differs from this plugin's hook model; real support deferred to a future ADR) and Copilot CLI. The legacy Gemini CLI install is documented for historical use only; Antigravity (`agy`) is its successor.
 
 ## Design Decisions
 
