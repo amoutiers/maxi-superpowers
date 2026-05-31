@@ -54,6 +54,7 @@ cmd_write_spec() {
     esac
   done
   [[ -n "$slug" && -n "$body" && -n "$sha" ]] || die "write-spec: --slug, --body, --sha required"
+  [[ "$slug" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || die "write-spec: --slug must be kebab-case (lowercase alphanumerics, single hyphens), got: '$slug'"
   [[ -f "$body" ]] || die "write-spec: body file not found: $body"
 
   # NNNN = max existing + 1 (max-based: survives gaps), zero-padded to 4.
@@ -127,11 +128,12 @@ cmd_exclude() {
   local total=0 hit=0 p c
   IFS=',' read -ra cand <<< "$paths"
   for p in "${cand[@]}"; do
-    p="${p//[[:space:]]/}"           # trim whitespace
+    p="${p#"${p%%[![:space:]]*}"}"; p="${p%"${p##*[![:space:]]}"}"   # border-trim (preserve internal spaces)
     [[ -n "$p" ]] || continue         # skip empty fields (e.g. "a,,b" / "a, b")
     total=$((total + 1))
     local matched=0
     while IFS= read -r c; do
+      c="${c#"${c%%[![:space:]]*}"}"; c="${c%"${c##*[![:space:]]}"}"   # border-trim ref too
       [[ -n "$c" ]] || continue
       # exact match, or one path is a directory prefix of the other:
       # a "src/auth" candidate is covered by a "src/auth/login.js" ref, and vice versa.
