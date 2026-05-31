@@ -1,4 +1,20 @@
 
+## [1.3.0] - 2026-05-31
+
+### Features
+
+- Invert ADR↔spec traceability + project-wide link convention
+
+### Bug Fixes
+
+- Kebab-case slug validation + preserve internal spaces in exclude (#1)
+
+### Documentation
+
+- Maxi reverse-engineers itself — 12 as-built spec baselines
+- Audit-driven doc corrections + tri-harness strategy
+
+
 ## [1.2.0] - 2026-05-30
 
 ### Features
