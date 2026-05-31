@@ -5,9 +5,6 @@ status: accepted
 created: 2026-05-30
 updated: 2026-05-30
 decider: "Antoine Moutiers (project lead)"
-related_specs: [0004-single-responsibility-migrate-adr-split]
-related_principles: ["VI. Single Responsibility per Skill"]
-related_requirements: [FR-001, FR-003]
 supersedes: null
 superseded_by: null
 ---

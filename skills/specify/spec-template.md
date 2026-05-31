@@ -6,6 +6,8 @@ status: drafting
 # Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled
 parked_from: null
 # parked_from: set by /maxi:park to the pre-park status; cleared to null by /maxi:resume
+related_adrs: []
+# related_adrs: full ADR slugs (NNNN-slug) appended by x-adr when an ADR is accepted
 ---
 
 # Feature Specification: [feature-name]

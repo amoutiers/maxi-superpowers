@@ -44,7 +44,7 @@ assert_grep "$MIGRATE" "bookkeeping" "FR-014 .rejected exempt from Iron Rule"
 assert_grep "$MIGRATE" "domain_label" "FR-015 schema domain_label"
 assert_grep "$MIGRATE" "source_path" "FR-015 schema source_path"
 assert_grep "$MIGRATE" "Return schema" "FR-015 explicit return-schema block"
-assert_grep "$MIGRATE" "constitution's principles" "FR-016 principles passed to Discoverer"
+# FR-016 (related_principles population) reversed by spec 0018 — assertion removed.
 
 # --- US6: significance rubric (FR-017, 018) ---
 assert_grep "$DISCOVER" "costly to reverse" "FR-017 rubric in Discoverer"

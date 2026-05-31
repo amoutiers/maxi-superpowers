@@ -5,9 +5,6 @@ status: accepted
 created: 2026-05-30
 updated: 2026-05-30
 decider: "Antoine Moutiers"
-related_specs: ["0005-migrate-from-brownfield"]
-related_principles: ["III. Strict Pipeline — No Skipping"]
-related_requirements: ["FR-011", "FR-012"]
 supersedes: null
 superseded_by: null
 ---

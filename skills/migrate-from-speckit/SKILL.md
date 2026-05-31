@@ -120,6 +120,14 @@ The script handles these transforms — you do NOT need to re-implement any of t
 | Missing spec.md | Warns and skips the folder; does not abort |
 | Aux files | `contracts/`, `data-model.md`, `quickstart.md`, `research.md`, `retrospective.md` — copied verbatim |
 
+## Artifact reference links
+
+When this skill emits prose that references another maxi artifact (an ADR, spec, plan, tasks, constitution, or repo file) — in an artifact body or in a chat report — render it as a **relative Markdown link**, not a bare slug/number/code span:
+- **Visible text** = the target filename without `.md` (an ADR slug like `0003-constitution-decoupled-from-claudemd`; for generic spec artifacts use `<feature-dir>/<name>`, e.g. `0002-migrate-adr-review-fixes/spec`; non-`.md` files keep their full name).
+- **URL** = a relative path from the referencing file's directory (workspace-root-relative for chat reports).
+- **Do NOT** link frontmatter data values (`related_adrs` entries stay bare slugs) or within-document IDs (`FR-012`, section names).
+- Applies **forward-only** — do not retro-edit existing artifacts.
+
 ## Red Flags
 
 - Calling `migrate.sh` once then manually editing individual files → don't; the script handles all transforms

@@ -114,7 +114,7 @@ Pass this exclusion list to both subagents. Neither subagent may propose a domai
 
 ## Step 3 — Dispatch Subagents in Parallel
 
-Use `maxi:dispatching-parallel-agents`. Pass exclusion context to both. Also pass **the constitution's principles** (names/titles from `docs/maxi/constitution.md`) to Subagent B. With `--import-only`, dispatch only Subagent A.
+Use `maxi:dispatching-parallel-agents`. Pass exclusion context to both. With `--import-only`, dispatch only Subagent A.
 
 **Return schema (both subagents MUST produce this).** Each subagent returns a list of proposals. Every proposal object includes:
 
@@ -135,7 +135,7 @@ Dispatch with the brief in [`import-subagent.md`](import-subagent.md). It detect
 
 ### Subagent B — Discoverer (skip if `--import-only`)
 
-Dispatch with the brief in [`discover-subagent.md`](discover-subagent.md), passing the exclusion context and the constitution's principle names. It returns proposals per the **Return schema** above.
+Dispatch with the brief in [`discover-subagent.md`](discover-subagent.md), passing the exclusion context. It returns proposals per the **Return schema** above.
 
 ---
 
@@ -225,6 +225,14 @@ Regeneration rule: regenerate `docs/maxi/adr/README.md` **once**, after the cons
 | `--import-only` flag | Subagent B not dispatched |
 
 ---
+
+## Artifact reference links
+
+When this skill emits prose that references another maxi artifact (an ADR, spec, plan, tasks, constitution, or repo file) — in an artifact body or in a chat report — render it as a **relative Markdown link**, not a bare slug/number/code span:
+- **Visible text** = the target filename without `.md` (an ADR slug like `0003-constitution-decoupled-from-claudemd`; for generic spec artifacts use `<feature-dir>/<name>`, e.g. `0002-migrate-adr-review-fixes/spec`; non-`.md` files keep their full name).
+- **URL** = a relative path from the referencing file's directory (workspace-root-relative for chat reports).
+- **Do NOT** link frontmatter data values (`related_adrs` entries stay bare slugs) or within-document IDs (`FR-012`, section names).
+- Applies **forward-only** — do not retro-edit existing artifacts.
 
 ## Out of Scope
 

@@ -1,9 +1,10 @@
 ---
 slug: 0001-design-review-fixes
 created: 2026-05-24
-updated: 2026-05-30
+updated: 2026-05-31
 status: done
 # Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done
+related_adrs: ["0001-fsm-status-expansion", "0002-pipeline-backflow"]
 ---
 
 # Feature Specification: Design Review Fixes

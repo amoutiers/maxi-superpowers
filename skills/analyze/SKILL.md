@@ -36,14 +36,14 @@ Load only what each pass needs:
 **From plan.md:** Architecture choices, data model references, phases, technical constraints
 **From tasks.md:** Task IDs, descriptions, [USN] labels, [P] markers, file paths
 **From constitution.md:** All principle names + MUST/SHOULD statements
-**From docs/maxi/adr/ (if exists):** All ADR files — adr number, title, status, related_specs, related_principles, Decision section, Consequences section
+**From docs/maxi/adr/ (if exists):** All ADR files — adr number, title, status, Decision section, Consequences section
 
 ### Step 3 — Build Semantic Models
 
 - **Requirements inventory:** key each FR-### and SC-### by ID; note any SC items requiring buildable work (exclude post-launch business KPIs like "reduce support tickets by 50%")
 - **Task coverage map:** for each FR-### / SC-###, list which task IDs reference it (by explicit ID mention or keyword inference)
 - **Constitution rule set:** extract MUST/SHOULD statements as rules to check against
-- **ADR registry:** list all `docs/maxi/adr/NNNN-*.md` files; for each record adr number, title, status, related_specs, and the decision domain (tech stack, storage, runtime, framework). If `docs/maxi/adr/` does not exist or is empty, Pass G reports "no ADRs recorded" in Metrics and skips G-type findings.
+- **ADR registry:** list all `docs/maxi/adr/NNNN-*.md` files; for each record adr number, title, status, and the decision domain (tech stack, storage, runtime, framework). Build the spec↔ADR map from the *spec* side: collect this spec's `related_adrs:` frontmatter (a list of full ADR slugs) PLUS any inline `ADR-NNNN` mentions in spec.md/plan.md/tasks.md. Do NOT derive this map from any `related_specs` field — ADRs no longer carry one. If `docs/maxi/adr/` does not exist or is empty, Pass G reports "no ADRs recorded" in Metrics and skips G-type findings.
 
 ### Step 4 — Seven Detection Passes
 
@@ -78,7 +78,7 @@ Find near-duplicate requirements with different FR-### IDs. Mark lower-quality p
 
 Skip this pass entirely (and note "no ADRs" in Metrics) if `docs/maxi/adr/` is empty or missing.
 
-- **G1 — Missing ADR (MEDIUM):** plan.md has a "Tech Stack" section or mentions a primary technology choice (storage engine, runtime, primary framework) with no accepted ADR linking to this spec via `related_specs:`. One finding per unrecorded choice. Note: only flag consequential choices, not incidental library picks.
+- **G1 — Missing ADR (MEDIUM):** plan.md names a consequential technology choice (storage engine, runtime, primary framework) for which the spec references no accepted ADR — i.e. the choice is covered by neither the spec's `related_adrs:` frontmatter nor any inline `ADR-NNNN` mention in spec.md/plan.md/tasks.md. One finding per unrecorded choice. Note: only flag consequential choices, not incidental library picks.
 - **G2 — ADR-Constitution conflict (CRITICAL):** An accepted ADR's Decision or Consequences section makes a statement that directly contradicts a constitution MUST principle. ADR-Constitution conflicts are always CRITICAL — same rule as D-pass violations.
 - **G3 — Stale ADR reference (HIGH):** spec.md, plan.md, or tasks.md mentions or links to an ADR by number, and that ADR has status `deprecated` or `superseded`. Stale references are HIGH — they indicate the artifacts are out of sync with the decision log.
 - **G4 — Cyclic supersede (HIGH):** Following the `supersedes:` chain for any ADR leads back to itself (A supersedes B supersedes A). This corrupts the ADR history and must be resolved.
@@ -155,6 +155,14 @@ If current status was already `analyzed`, `implementing`, or `done`: leave statu
 Tell user: *"Analysis complete. Report written to `docs/maxi/specs/NNNN-slug/analysis.md` (status: `analyzed`). [N] critical issue(s) found. Resolve CRITICAL issues before running `/maxi:implement`."*
 
 Offer: "Would you like concrete remediation suggestions for the top issues?" — **do NOT apply remediation automatically.**
+
+## Artifact reference links
+
+When this skill emits prose that references another maxi artifact (an ADR, spec, plan, tasks, constitution, or repo file) — in an artifact body or in a chat report — render it as a **relative Markdown link**, not a bare slug/number/code span:
+- **Visible text** = the target filename without `.md` (an ADR slug like `0003-constitution-decoupled-from-claudemd`; for generic spec artifacts use `<feature-dir>/<name>`, e.g. `0002-migrate-adr-review-fixes/spec`; non-`.md` files keep their full name).
+- **URL** = a relative path from the referencing file's directory (workspace-root-relative for chat reports).
+- **Do NOT** link frontmatter data values (`related_adrs` entries stay bare slugs) or within-document IDs (`FR-012`, section names).
+- Applies **forward-only** — do not retro-edit existing artifacts.
 
 ## READ-ONLY Iron Law
 

@@ -5,9 +5,6 @@ status: accepted
 created: 2026-05-24
 updated: 2026-05-24
 decider: "Antoine Moutiers"
-related_specs: ["0001-design-review-fixes"]
-related_principles: ["III. Strict Pipeline — No Skipping", "IV. ADR for Every Non-Trivial Architectural Decision", "V. Artifacts Over Chat"]
-related_requirements: ["FR-005"]
 supersedes: null
 superseded_by: null
 ---

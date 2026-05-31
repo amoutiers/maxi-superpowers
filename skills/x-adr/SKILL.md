@@ -91,9 +91,6 @@ Use `adr-template.md` as the base. Fill in:
 - `created:` — today in YYYY-MM-DD
 - `updated:` — today in YYYY-MM-DD
 - `decider:` — name or role of the decision-maker (ask user if unknown)
-- `related_specs:` — spec slug(s) this decision applies to, if known
-- `related_principles:` — constitution principle names referenced, if any
-- `related_requirements:` — FR-### / SC-### IDs, if applicable
 - `supersedes:` — NNNN of the ADR being overturned (or `null`)
 - `superseded_by: null`
 
@@ -101,8 +98,8 @@ Body: fill all six sections from the architectural choice that was detected:
 
 - **Context** — the forces, constraints, and goals that made this decision necessary
 - **Decision Drivers** — list 2–4 criteria that determine which option wins. Derive from:
-  - Constitution principles in `related_principles` (e.g., "III. Data Integrity First")
-  - Spec requirements in `related_requirements` (FR-###, SC-###)
+  - The relevant constitution principles (e.g., "III. Data Integrity First") — cite them inline as prose in Context / Decision Drivers
+  - The relevant spec requirements (FR-###, SC-###) — cite the IDs inline as prose in Context / Decision Drivers
   - Explicit constraints from the plan (e.g., "must support 100+ concurrent writes")
   Never leave this section empty — if no requirements are referenced, state the implicit constraint that drove the choice.
 - **Considered Options** — for each option, add ✅/❌ lines that reference a specific driver:
@@ -133,6 +130,7 @@ Wait for the response. Do not write anything yet.
 **`yes`:**
 - Normal case: set `status: accepted` in the ADR, then write `docs/maxi/adr/NNNN-slug.md`, then regenerate index (step 7)
 - Supersede case: write new ADR; also update old ADR — set `status: superseded` and `superseded_by: NNNN`; then regenerate index. If any of the three writes fails, stop and report the failure — do not leave the ADR log in a partially-written state.
+- **Spec back-link (both cases):** if this ADR was accepted in the context of an active spec — the calling `/maxi:plan` or `/maxi:implement` knows the spec directory — append this ADR's full slug (e.g. `NNNN-slug`) to that spec's `related_adrs` frontmatter list (create the list if absent; do not duplicate if already present) and bump the spec's `updated:` to today's ISO date, written in the same edit. If there is no active spec, skip this silently — the ADR still stands.
 
 **`edit`:**
 - Accept the user's amendments to the draft inline
@@ -147,18 +145,22 @@ Wait for the response. Do not write anything yet.
 
 ### 7. Regenerate docs/maxi/adr/README.md
 
-After every successful write, rewrite the index by scanning all `.md` files in `docs/maxi/adr/` (excluding `README.md`). Sort by ADR number ascending. Read each file's frontmatter for table values. Status must reflect the current frontmatter value (including `superseded` or `deprecated` — do not default to `accepted`).
+After every successful write, rewrite the index by scanning all `.md` files in `docs/maxi/adr/` (excluding `README.md`). Sort by ADR number ascending. Read each ADR file's own frontmatter and H1 for the **ADR**, **Title**, **Status**, and **Created** columns. Status must reflect the current frontmatter value (including `superseded` or `deprecated` — do not default to `accepted`).
+
+The **Related Specs** column is built by **reverse-lookup** — ADRs no longer carry a `related_specs` field, so the linkage is read from the spec side:
+
+1. Scan every `docs/maxi/specs/*/spec.md` and read its `related_adrs` frontmatter list (a list of full ADR slugs like `0003-constitution-decoupled-from-claudemd`).
+2. For each ADR in the index, the Related Specs cell lists the slug of every spec whose `related_adrs` contains that ADR's slug.
+3. If no spec references the ADR, write `—`.
 
 ```markdown
 # Architecture Decision Records
 
 | ADR | Title | Status | Created | Related Specs |
 |-----|-------|--------|---------|---------------|
-| [001](001-slug.md) | Title of decision | accepted | 2026-05-08 | 001-csv-to-json |
-| [002](002-slug.md) | Another decision | superseded | 2026-05-15 | — |
+| [0001](0001-slug.md) | Title of decision | accepted | 2026-05-08 | 0001-csv-to-json |
+| [0002](0002-slug.md) | Another decision | superseded | 2026-05-15 | — |
 ```
-
-If `related_specs` is empty, write `—` rather than an empty cell.
 
 ## Append-Only After Creation
 
@@ -169,11 +171,19 @@ Once an ADR is written, its **content is immutable**. These fields MAY be update
 
 These fields and the body sections MUST NOT be edited on an existing ADR:
 - Any body section (Context, Decision Drivers, Options, Decision, Consequences, Confirmation)
-- `adr`, `slug`, `created`, `related_specs`, `related_principles`, `related_requirements`
+- `adr`, `slug`, `created`
 
 If the user wants to revise a past decision, create a new ADR that supersedes the old one. The old one stays as a historical record.
 
 **If asked to edit an existing ADR's body:** decline and explain — *"ADRs are append-only. To revise this decision, I can create ADR-NNNN that supersedes ADR-NNNN. Shall I?"*
+
+## Artifact reference links
+
+When this skill emits prose that references another maxi artifact (an ADR, spec, plan, tasks, constitution, or repo file) — in an artifact body or in a chat report — render it as a **relative Markdown link**, not a bare slug/number/code span:
+- **Visible text** = the target filename without `.md` (an ADR slug like `0003-constitution-decoupled-from-claudemd`; for generic spec artifacts use `<feature-dir>/<name>`, e.g. `0002-migrate-adr-review-fixes/spec`; non-`.md` files keep their full name).
+- **URL** = a relative path from the referencing file's directory (workspace-root-relative for chat reports).
+- **Do NOT** link frontmatter data values (`related_adrs` entries stay bare slugs) or within-document IDs (`FR-012`, section names).
+- Applies **forward-only** — do not retro-edit existing artifacts.
 
 ## Common Mistakes
 
@@ -185,3 +195,4 @@ If the user wants to revise a past decision, create a new ADR that supersedes th
 | Picking a number without counting existing files | Count `docs/maxi/adr/*.md` (excluding README), add 1 |
 | Forgetting to regenerate README.md | Always regenerate after every write |
 | Editing the body of an existing ADR | Decline; offer to supersede instead |
+| Writing the ADR but forgetting the spec back-link | On acceptance with an active spec, append the ADR slug to the spec's `related_adrs` and bump its `updated:` |

@@ -1,11 +1,12 @@
 ---
 slug: 0004-single-responsibility-migrate-adr-split
 created: 2026-05-30
-updated: 2026-05-30
+updated: 2026-05-31
 status: done
 # Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled
 parked_from: null
 # parked_from: set by /maxi:park to the pre-park status; cleared to null by /maxi:resume
+related_adrs: ["0009-single-responsibility-per-skill", "0010-migrate-adr-decomposition-support-files"]
 ---
 
 # Feature Specification: Single-Responsibility principle + migrate-adr decomposition

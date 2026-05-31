@@ -6,9 +6,6 @@ status: proposed
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 decider: "[name-or-role]"
-related_specs: []
-related_principles: []
-related_requirements: []
 supersedes: null
 superseded_by: null
 ---
@@ -31,8 +28,8 @@ the goals the decision must serve.]
 ## Decision Drivers
 
 <!--
-  What criteria determined the choice? Derive from: constitution principles
-  (related_principles), spec requirements (FR-###, SC-###), and explicit
+  What criteria determined the choice? Derive from: the relevant constitution
+  principles (cite them inline), spec requirements (FR-###, SC-###), and explicit
   constraints from the plan. Minimum 1, usually 2–4.
 -->
 
@@ -61,7 +58,7 @@ the goals the decision must serve.]
 ## Decision
 
 Chose **Option A**, because [concise rationale tied to the context and
-any principles listed in related_principles].
+any constitution principles cited inline above].
 
 ## Consequences
 

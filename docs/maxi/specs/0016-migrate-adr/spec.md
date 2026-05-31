@@ -1,7 +1,7 @@
 ---
 slug: 0016-migrate-adr
 created: 2026-05-30
-updated: 2026-05-30
+updated: 2026-05-31
 status: done
 origin: reverse-engineered
 source_sha: 7f945f8a8548bf1b4b123d28cc097e2cca897c68
@@ -80,6 +80,7 @@ A user whose project has no written ADRs (or partial ones) runs `/maxi:migrate-a
 - **FR-015**: The Discoverer MUST analyze package manifests, config files, directory structure, and git history (`git log -n 200 --format="%H %s%n%b"` scanned for keywords: chose, decided, switched, migrated, replaced, adopted, dropped, moved to). (skills/migrate-adr/discover-subagent.md:8-15)
 - **FR-016**: The Discoverer MUST propose a decision only if it is costly to reverse, constrains future choices, or was contested — dropping easily-reversible, uncontested choices. (skills/migrate-adr/discover-subagent.md:19)
 - **FR-017**: The Discoverer MUST set `related_principles` to a constitution principle when a discovered decision relates to it, and leave it `[]` otherwise without fabricating a link. (skills/migrate-adr/discover-subagent.md:21)
+  > **Superseded by [0018-artifact-cross-reference-conventions/spec](../0018-artifact-cross-reference-conventions/spec.md)** — related_principles removed from the ADR schema; traceability moved spec-side.
 - **FR-018**: Every discovered ADR MUST carry the default frontmatter including `decider: "[unknown — inferred from code analysis]"` and uncertain fields prefixed `[inferred]`. (skills/migrate-adr/discover-subagent.md:23-36)
 - **FR-019**: When the Importer and Discoverer propose the same domain, the system MUST use the imported draft as the base, append discovery evidence under `## Context` → `### Additional evidence`, and drop the discovered proposal; keep both when domain-sharing is uncertain. (skills/migrate-adr/SKILL.md:146-151)
 - **FR-020**: System MUST display a summary table of imported and discovered proposals (with a row-index `#` column) before the consent loop, and exit cleanly with the "Nothing to migrate" message if there are none. (skills/migrate-adr/SKILL.md:159-171)

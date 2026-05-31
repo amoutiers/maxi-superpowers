@@ -1,9 +1,10 @@
 ---
 slug: 0005-migrate-from-brownfield
 created: 2026-05-30
-updated: 2026-05-30
+updated: 2026-05-31
 status: done
 parked_from: null
+related_adrs: ["0011-migration-ingress-terminal-status"]
 ---
 
 # Feature Specification: migrate-from-brownfield

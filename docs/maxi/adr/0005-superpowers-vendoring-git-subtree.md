@@ -5,9 +5,6 @@ status: accepted
 created: 2026-05-29
 updated: 2026-05-29
 decider: "[inferred] Antoine Moutiers"
-related_specs: []
-related_principles: ["II. Delegate to Superpowers, Never Duplicate"]
-related_requirements: []
 supersedes: null
 superseded_by: null
 ---

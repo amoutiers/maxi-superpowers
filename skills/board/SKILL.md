@@ -105,6 +105,14 @@ Omit `· K stale` if K = 0.
 
 **Do NOT write or modify any file.** Not `spec.md`, not a `board.md`, not any artifact. This command is pure terminal output.
 
+## Artifact reference links
+
+When this skill emits prose that references another maxi artifact (an ADR, spec, plan, tasks, constitution, or repo file) — in an artifact body or in a chat report — render it as a **relative Markdown link**, not a bare slug/number/code span:
+- **Visible text** = the target filename without `.md` (an ADR slug like `0003-constitution-decoupled-from-claudemd`; for generic spec artifacts use `<feature-dir>/<name>`, e.g. `0002-migrate-adr-review-fixes/spec`; non-`.md` files keep their full name).
+- **URL** = a relative path from the referencing file's directory (workspace-root-relative for chat reports).
+- **Do NOT** link frontmatter data values (`related_adrs` entries stay bare slugs) or within-document IDs (`FR-012`, section names).
+- Applies **forward-only** — do not retro-edit existing artifacts.
+
 ## Red Flags
 
 - Writing a `board.md` or any file → hard stop, this is read-only

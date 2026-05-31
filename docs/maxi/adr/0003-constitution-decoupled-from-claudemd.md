@@ -5,9 +5,6 @@ status: accepted
 created: 2026-05-29
 updated: 2026-05-29
 decider: "Antoine Moutiers"
-related_specs: ["0002-migrate-adr-review-fixes"]
-related_principles: ["Governance — amendments require an ADR"]
-related_requirements: ["FR-024", "FR-025"]
 supersedes: null
 superseded_by: null
 ---

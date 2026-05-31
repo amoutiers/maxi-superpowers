@@ -1,11 +1,12 @@
 ---
 slug: 0002-migrate-adr-review-fixes
 created: 2026-05-29
-updated: 2026-05-29
+updated: 2026-05-31
 status: done
 # Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled
 parked_from: null
 # parked_from: set by /maxi:park to the pre-park status; cleared to null by /maxi:resume
+related_adrs: ["0003-constitution-decoupled-from-claudemd"]
 ---
 
 # Feature Specification: migrate-adr Review Fixes
@@ -171,6 +172,7 @@ The "Developing New Skills" section of `CLAUDE.md` documents the flow brainstorm
 - **FR-014**: Writing to `.rejected` MUST be exempt from the consent gate / Iron Rule (it is bookkeeping, not an ADR).
 - **FR-015**: The subagent dispatch MUST specify a return schema where each proposal includes `source` (import|discover), `domain_label`, `title`, the draft body, and (imports only) `format` and `source_path`.
 - **FR-016**: The skill MUST pass the constitution's principles to the Discoverer and populate `related_principles` when a discovered decision relates to a named principle.
+  > **Superseded by [0018-artifact-cross-reference-conventions/spec](../0018-artifact-cross-reference-conventions/spec.md)** — related_principles removed from the ADR schema; traceability moved spec-side.
 - **FR-017**: The Discoverer MUST apply a significance rubric — propose only if the decision is costly to reverse, constrains future choices, or was contested — and a bare dependency or keyword hit MUST NOT be sufficient on its own.
 - **FR-018**: The `adr` skill description MUST state the same significance rubric in place of the current example list.
 - **FR-019**: The discovery step MUST use `git log -n 200` (not `git log -200`).

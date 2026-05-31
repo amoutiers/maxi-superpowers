@@ -77,6 +77,14 @@ Ask one question at a time. Elicit 3–7 principles. Stop at 7.
 - **Minimum 3, maximum 7.** Fewer than 3 is incomplete. More than 7 is noise.
 - **Verify on write.** After writing, confirm the file exists at `docs/maxi/constitution.md`. If it doesn't, diagnose and retry.
 
+## Artifact reference links
+
+When this skill emits prose that references another maxi artifact (an ADR, spec, plan, tasks, constitution, or repo file) — in an artifact body or in a chat report — render it as a **relative Markdown link**, not a bare slug/number/code span:
+- **Visible text** = the target filename without `.md` (an ADR slug like `0003-constitution-decoupled-from-claudemd`; for generic spec artifacts use `<feature-dir>/<name>`, e.g. `0002-migrate-adr-review-fixes/spec`; non-`.md` files keep their full name).
+- **URL** = a relative path from the referencing file's directory (workspace-root-relative for chat reports).
+- **Do NOT** link frontmatter data values (`related_adrs` entries stay bare slugs) or within-document IDs (`FR-012`, section names).
+- Applies **forward-only** — do not retro-edit existing artifacts.
+
 ## Red Flags
 
 - Writing to any path other than `docs/maxi/constitution.md` → **wrong path, redo**

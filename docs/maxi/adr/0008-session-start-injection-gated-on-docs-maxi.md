@@ -5,9 +5,6 @@ status: accepted
 created: 2026-05-29
 updated: 2026-05-29
 decider: "[inferred] Antoine Moutiers"
-related_specs: []
-related_principles: ["I. Mandatory Spec-Driven Pipeline", "V. Artifacts Over Chat"]
-related_requirements: []
 supersedes: null
 superseded_by: null
 ---

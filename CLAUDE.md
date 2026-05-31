@@ -35,6 +35,8 @@ Per-project artifacts live at the user's project root:
 
 Reverse-engineered specs produced by `migrate-from-brownfield` carry two extra optional frontmatter fields — `origin: reverse-engineered` and `source_sha:` (the commit they were derived from) — and land at `status: done` per the constitution's migration-ingress clause (ADR-0011).
 
+Spec→ADR traceability is recorded spec-side: `spec.md` frontmatter carries `related_adrs: [...]` (a list of full ADR slugs), the canonical spec→ADR link, written by `x-adr` when an ADR is accepted. ADRs themselves no longer carry `related_specs`/`related_principles`/`related_requirements` — an ADR is a self-contained record (metadata + supersession chain), and traceability lives spec-side (ADR-0012).
+
 ## Status Frontmatter
 
 Every `spec.md` has a YAML frontmatter `status:` field:

@@ -108,9 +108,9 @@ docs/
 
 **Trigger points:** `/maxi:plan` scans the produced plan for tech-stack and architecture choices; `/maxi:implement` watches for unplanned forks reported by subagents. Both invoke `/maxi:x-adr`, which drafts the ADR, shows it to the user, and writes only on explicit consent.
 
-**Append-only:** ADR body is immutable after creation. Only `status`, `supersedes`, and `superseded_by` frontmatter fields may change. To revise a decision, create a new ADR that supersedes the old one.
+**Append-only:** ADR body is immutable after creation. Only `status`, `supersedes`, and `superseded_by` frontmatter fields may change. To revise a decision, create a new ADR that supersedes the old one. ADRs no longer carry cross-reference fields (`related_specs`/`related_principles`/`related_requirements`); spec→ADR traceability is recorded spec-side via the spec's `related_adrs` frontmatter (ADR-0012).
 
-**Pass G (analyze):** `/maxi:analyze` runs a 7th detection pass — ADR Alignment — that flags missing ADRs for consequential tech choices (G1, MEDIUM), ADRs contradicting constitution MUST rules (G2, CRITICAL), stale ADR references (G3, HIGH), and cyclic supersede chains (G4, HIGH). If `docs/maxi/adr/` is empty or absent, Pass G is skipped and the metrics note "no ADRs recorded."
+**Pass G (analyze):** `/maxi:analyze` runs a 7th detection pass — ADR Alignment — that flags missing ADRs for consequential tech choices (G1, MEDIUM), ADRs contradicting constitution MUST rules (G2, CRITICAL), stale ADR references (G3, HIGH), and cyclic supersede chains (G4, HIGH). It reads the spec-side `related_adrs` link to associate a spec with its ADRs. If `docs/maxi/adr/` is empty or absent, Pass G is skipped and the metrics note "no ADRs recorded."
 
 ## Phase Gating
 
@@ -125,7 +125,7 @@ Each skill checks this field at startup:
 - If the spec is **behind** the required status, the skill stops with a message directing the user to the missing step.
 - If the spec is **ahead** of the status (e.g., already `planned` when calling `/maxi:plan`), the skill stops to prevent accidental re-runs.
 
-Skills update `status:` in-place at the end of their process. The frontmatter is the single source of truth for pipeline position.
+Skills update `status:` in-place at the end of their process. The frontmatter is the single source of truth for pipeline position. The spec frontmatter also carries `related_adrs` — a list of full ADR slugs — recording the spec→ADR link (written by `x-adr` when an ADR is accepted).
 
 ### Phase Gating Philosophy
 
