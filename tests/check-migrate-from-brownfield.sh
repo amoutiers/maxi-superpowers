@@ -123,4 +123,26 @@ v=$(cd "$FIXTURE" && bash "$SCRIPT" exclude --name "auth" --paths "src/auth")
 if [[ "$v" == "exclude" ]]; then echo "OK  [exclude: directory candidate covered by file refs]"; \
   else echo "FAIL [exclude: dir candidate expected 'exclude', got '$v']" >&2; failures=$((failures+1)); fi
 
+# --- #8: write-spec rejects a non-kebab-case slug (spaces / uppercase) instead of
+# creating a malformed NNNN dir + frontmatter that breaks downstream tooling.
+TMP_SLUG=$(mktemp -d)
+cp -r "$FIXTURE/." "$TMP_SLUG/"
+printf '# X\n' > "$TMP_SLUG/body.md"
+rc_slug=$(cd "$TMP_SLUG" && { bash "$SCRIPT" write-spec --slug "Bad Slug" --body body.md --sha deadbeef >/dev/null 2>&1; echo $?; })
+rm -rf "$TMP_SLUG"
+if [[ "$rc_slug" != "0" ]]; then echo "OK  [write-spec: rejects non-kebab-case slug]"; \
+  else echo "FAIL [write-spec: should reject slug 'Bad Slug' with nonzero exit, got rc=$rc_slug]" >&2; failures=$((failures+1)); fi
+
+# --- #9: internal spaces in paths are preserved (border-trim only), so a
+# spaced-path candidate that exactly matches a spaced-path ref is still excluded
+# (idempotency must not silently break on paths that contain spaces).
+TMP_SP=$(mktemp -d)
+cp -r "$FIXTURE/." "$TMP_SP/"
+mkdir -p "$TMP_SP/docs/maxi/specs/0003-spaced"
+printf -- '---\nslug: 0003-spaced\norigin: reverse-engineered\n---\n\n- **FR-001**: does X (my dir/page one.js:3)\n' > "$TMP_SP/docs/maxi/specs/0003-spaced/spec.md"
+v=$(cd "$TMP_SP" && bash "$SCRIPT" exclude --name "spaced" --paths "my dir/page one.js")
+rm -rf "$TMP_SP"
+if [[ "$v" == "exclude" ]]; then echo "OK  [exclude: preserves internal spaces (idempotent on spaced paths)]"; \
+  else echo "FAIL [exclude: spaced-path candidate expected 'exclude', got '$v']" >&2; failures=$((failures+1)); fi
+
 summary_and_exit "migrate-from-brownfield checks"
