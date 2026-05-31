@@ -1,0 +1,27 @@
+name: Tests
+
+# Runs the fast-tier check suite on every push to master and every PR.
+# This is the enforcement layer for the structural invariants (sync, manifests,
+# hooks, bootstrap parity, doc-drift guards) that otherwise rely on contributors
+# remembering to run `bash tests/run-all.sh` locally. ~10s, no Claude runtime.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  fast-tier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Ensure jq is available
+        run: command -v jq >/dev/null || (sudo apt-get update && sudo apt-get install -y jq)
+
+      - name: Run fast-tier checks
+        run: bash tests/run-all.sh
