@@ -1,4 +1,30 @@
 
+## [2.0.0] - 2026-06-21
+
+### Bug Fixes
+
+- Tighten using-maxi + release CSO descriptions
+- Prevent superpowers tag pollution in bump + release
+
+### Documentation
+
+- Re-derive x-develop baseline against v6 rework
+- Update vendored superpowers version citations to v6.0.3
+
+### Refactoring
+
+- Align patch layer with superpowers v6 SDD
+- Extract reference detail to reference.md
+
+### Testing
+
+- Guard superpowers version citations against VENDORED.md
+
+### Internal
+
+- Bump superpowers to v6.0.3
+
+
 ## [1.3.0] - 2026-05-31
 
 ### Features
