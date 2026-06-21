@@ -1,35 +1,38 @@
 ---
 name: x-develop
-description: Use when /maxi:implement delegates execution, or when executing a maxi plan
-  via subagent-driven development. Patches known gaps in superpowers:subagent-driven-development.
+description: Use when /maxi:implement delegates execution, or when executing a maxi plan via subagent-driven development
 ---
 
 ## maxi develop — subagent-driven implementation
 
 Patch directives for `superpowers:subagent-driven-development`. These take precedence where
-they conflict with the vanilla skill content.
+they conflict with the vanilla skill content. The vanilla skill now handles implementer status
+codes (`DONE_WITH_CONCERNS`, `NEEDS_CONTEXT`, `BLOCKED`), BASE-commit capture + `review-package`,
+the durable progress ledger, and the final whole-branch review natively — follow it for those.
+The patches below are the gaps it still leaves.
 
 **Announce at start:** "I'm using Subagent-Driven Development to execute this plan."
 
-**Subagent dispatch:** Always dispatch a fresh implementer subagent — for initial tasks and
-fix iterations. Context from previous runs must be passed explicitly in the prompt.
+**Fresh subagent per dispatch:** Always dispatch a fresh implementer subagent — for initial
+tasks and for fix iterations. A fix subagent never inherits the prior run's context; pass
+everything it needs explicitly in the dispatch (the task brief, the reviewer's findings, the
+report file).
 
-**Review loop cap:** After 3 consecutive fix-review cycles without approval from the same
-reviewer, stop and escalate to the human. Persistent disagreement indicates a spec gap,
-not a fixable implementation error.
+**Review loop cap:** After 3 consecutive fix-review cycles on the same task without the task
+reviewer approving, stop and escalate to the human. Persistent disagreement signals a spec gap,
+not a fixable implementation error. The vanilla skill has no cap — this is a maxi addition.
 
-**Task state:** Mark each task `in_progress` in TodoWrite before dispatching its implementer
-subagent. Mark it `complete` only after both reviews pass.
+**Task completion gate:** Mark a task `complete` — in both the todo list and the progress
+ledger — only after its task review passes (spec compliance AND code quality). Trust the ledger
+across compaction: a task it lists as complete is done; never re-dispatch it.
 
-**DONE_WITH_CONCERNS:** Before proceeding to the spec reviewer, evaluate the implementer's
-concerns. If they touch correctness or scope, address them first; otherwise proceed with a note.
-
-**NEEDS_CONTEXT:** This status is valid mid- or post-task — the implementer attempted work
-and hit an information wall. It is not a failure mode; provide the missing context and re-dispatch.
-
-**Integration reviewer:** After all tasks complete, use `./integration-reviewer-prompt.md`
-for the whole-implementation review — not `./code-quality-reviewer-prompt.md`.
-Capture BASE_SHA (current HEAD) before dispatching the first implementer subagent.
+**Final whole-branch review — cross-task emphasis:** The vanilla skill runs the final review
+once, after all tasks, via `superpowers:requesting-code-review`'s `code-reviewer.md`. Use that
+template as-is. In the constraints block you hand it, add a cross-task emphasis so the reviewer
+also covers what only a whole-branch view catches: cross-task naming and pattern consistency,
+interface fit between separately-built components, gaps that fall between tasks, and regressions
+where a later task broke an earlier one's work. This is additive emphasis, not suppression — do
+not tell the reviewer what *not* to flag.
 
 ---
 
