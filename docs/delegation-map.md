@@ -64,4 +64,4 @@ All vendored superpowers skills are available to Claude under the `maxi:` namesp
 | `/maxi:requesting-code-review` | Verify work meets requirements before merging |
 | `/maxi:receiving-code-review` | Process review feedback with technical rigor |
 
-These skills are vendored from [superpowers v5.1.0](https://github.com/obra/superpowers). Do not hand-edit them — run `scripts/sync-superpowers.sh` after any version bump.
+These skills are vendored from [superpowers v6.0.3](https://github.com/obra/superpowers). Do not hand-edit them — run `scripts/sync-superpowers.sh` after any version bump.

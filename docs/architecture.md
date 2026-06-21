@@ -6,7 +6,7 @@ maxi-superpowers is a tri-harness plugin (Claude Code · OpenCode · Antigravity
 
 1. **spec-kit pipeline** — 18 maxi-native skills: 12 user-facing commands, 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
 
-2. **superpowers implementation engine** — vendored superpowers v5.1.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
+2. **superpowers implementation engine** — vendored superpowers v6.0.3 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
 
 The result: a project goes from blank slate to shipped code through a reproducible, auditable sequence. Nothing skips the queue.
 
@@ -139,8 +139,8 @@ Skills are designed to be cheap when there is nothing to do. `/maxi:clarify` can
 superpowers is vendored as a git subtree at `vendor/superpowers/`:
 
 ```bash
-# Initial add (already done):
-git subtree add --prefix=vendor/superpowers https://github.com/obra/superpowers v5.1.0 --squash
+# Initial add (one-time bootstrap; current pin is v6.0.3 — see VENDORED.md):
+git subtree add --prefix=vendor/superpowers https://github.com/obra/superpowers v6.0.3 --squash
 
 # Bump to a new version:
 bash scripts/bump-superpowers.sh <new-tag>
