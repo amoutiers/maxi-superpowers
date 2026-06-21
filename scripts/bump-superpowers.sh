@@ -7,7 +7,10 @@ UPSTREAM="https://github.com/obra/superpowers.git"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "Pulling superpowers $TAG from $UPSTREAM ..."
-git subtree pull --prefix=vendor/superpowers "$UPSTREAM" "$TAG" --squash
+# fetch.tagOpt=--no-tags stops the internal `git fetch` from auto-following and
+# importing every upstream superpowers tag (v3.x–v6.x) into this repo's tag
+# namespace — which would otherwise pollute it and get pushed by `git push --tags`.
+git -c fetch.tagOpt=--no-tags subtree pull --prefix=vendor/superpowers "$UPSTREAM" "$TAG" --squash
 
 echo "Syncing skills ..."
 bash "$SCRIPT_DIR/sync-superpowers.sh"

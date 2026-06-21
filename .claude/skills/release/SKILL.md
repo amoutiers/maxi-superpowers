@@ -115,7 +115,10 @@ PLUGIN_NAME=$(jq -r .name plugin.json)
 git tag "vX.Y.Z"
 git tag "${PLUGIN_NAME}--vX.Y.Z"
 git push origin master
-git push origin --tags
+# Push ONLY this release's two tags — never `git push origin --tags`, which would
+# also push any foreign tags in the local namespace (e.g. superpowers tags that a
+# `subtree pull` may have imported) to the plugin's public repo.
+git push origin "vX.Y.Z" "${PLUGIN_NAME}--vX.Y.Z"
 ```
 
 ### 9. Report
