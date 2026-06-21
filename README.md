@@ -2,7 +2,7 @@
 
 ![maxi-superpowers](assets/logo.svg)
 
-A spec-driven development plugin for Claude Code, OpenCode, and Antigravity (legacy Gemini CLI also supported). maxi turns "build me X" into a disciplined pipeline — **constitution → spec → clarify → plan → tasks → analyze → implement** — and gates each phase so nothing ships without the design artifacts to back it. Under the hood it delegates implementation to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
+A spec-driven development plugin for Claude Code, Codex, OpenCode, and Antigravity (legacy Gemini CLI also supported). maxi turns "build me X" into a disciplined pipeline — **constitution → spec → clarify → plan → tasks → analyze → implement** — and gates each phase so nothing ships without the design artifacts to back it. Under the hood it delegates implementation to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
 
 **Why maxi?**
 
@@ -23,6 +23,16 @@ git clone https://github.com/amoutiers/maxi-superpowers
 cd maxi-superpowers
 claude plugin install .
 ```
+
+### For Codex
+```bash
+# Install this repository as a Codex marketplace, then install the maxi plugin:
+git clone https://github.com/amoutiers/maxi-superpowers
+codex plugin marketplace add ./maxi-superpowers
+codex plugin add maxi@maxi-superpowers
+```
+
+Codex loads the maxi skills natively from the plugin. Unlike Claude Code and OpenCode, Codex does not currently load maxi's session-start bootstrap hook from this package, so start by invoking the relevant skill directly (for example, ask Codex to use `maxi:constitution`).
 
 ### For Antigravity CLI
 ```bash

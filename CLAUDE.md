@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers is a tri-harness plugin for Claude Code, OpenCode, and Antigravity. It vendors superpowers' skills via git subtree and adds 18 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
+maxi-superpowers is a multi-harness plugin for Claude Code, Codex, OpenCode, and Antigravity. It vendors superpowers' skills via git subtree and adds 18 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
 
 ## Git
 
@@ -69,6 +69,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-templates.sh` — all 5 maxi templates + 2 fixtures have required fields and body sections
 - `check-skills-present.sh` — all 18 maxi-native skills exist
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
+- `check-codex-plugin.sh` — `.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json`, and `plugins/maxi` are valid for Codex plugin installation
 - `check-hooks.sh` — `hooks/hooks.json` is valid; hook scripts exist and are executable
 - `check-vendored-doc.sh` — `VENDORED.md` has required version/date lines (regression guard for `bump-superpowers.sh`)
 - `check-sync-script.sh` — `sync-superpowers.sh` copies vendor skills and leaves maxi-native skills untouched

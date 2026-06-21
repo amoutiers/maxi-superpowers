@@ -2,7 +2,7 @@
 
 ## Plugin Overview
 
-maxi-superpowers is a tri-harness plugin (Claude Code · OpenCode · Antigravity; see Harness Strategy below) with two layers:
+maxi-superpowers is a multi-harness plugin (Claude Code · Codex · OpenCode · Antigravity; see Harness Strategy below) with two layers:
 
 1. **spec-kit pipeline** — 18 maxi-native skills: 12 user-facing commands, 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
 
@@ -15,6 +15,8 @@ The result: a project goes from blank slate to shipped code through a reproducib
 ```
 maxi-superpowers/
 ├── .claude-plugin/          # Claude Code plugin manifest
+├── .codex-plugin/           # Codex plugin manifest
+├── .agents/plugins/         # Codex marketplace manifest
 ├── hooks/                   # Session-start and event hooks
 │   ├── hooks.json
 │   ├── run-hook.cmd
@@ -58,6 +60,8 @@ maxi-superpowers/
 ├── scripts/
 │   ├── sync-superpowers.sh  # re-sync vendored skills from vendor/superpowers/
 │   └── bump-superpowers.sh  # pull new superpowers tag into vendor/
+├── plugins/
+│   └── maxi -> ..           # Codex marketplace source path back to this plugin root
 ├── vendor/
 │   └── superpowers/         # git subtree of superpowers upstream
 ├── tests/
@@ -153,15 +157,16 @@ bash scripts/sync-superpowers.sh
 
 ## Harness Strategy
 
-maxi ships its session bootstrap to three supported agent harnesses:
+maxi ships to four supported agent harnesses. Three receive an automatic session bootstrap; Codex currently receives the skills through its native plugin loader.
 
 | Harness | Mechanism |
 |---|---|
 | Claude Code | `hooks/hooks.json` (`${CLAUDE_PLUGIN_ROOT}`) + `.claude-plugin/` manifest + marketplace |
+| Codex | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json`; `codex plugin marketplace add .` then `codex plugin add maxi@maxi-superpowers` |
 | OpenCode | `.opencode/plugins/maxi.js` (transforms the first user message) |
 | Antigravity | root `hooks.json` + `plugin.json` (`${extensionPath}`); `agy plugin install .` |
 
-All three are validated by the fast tier (`check-hooks.sh`, `check-plugin-manifest.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`). The bootstrap preamble is identical across the bash hook and the OpenCode plugin (parity-guarded).
+The package is validated by the fast tier (`check-hooks.sh`, `check-plugin-manifest.sh`, `check-codex-plugin.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`). The bootstrap preamble is identical across the bash hook and the OpenCode plugin (parity-guarded). Codex support is skills-first because the current Codex plugin manifest validation accepts `skills` but not hook registration.
 
 **Not supported:** Cursor (its `.cursor/hooks.json` / `sessionStart` mechanism differs from this plugin's hook model; real support deferred to a future ADR) and Copilot CLI. The legacy Gemini CLI install is documented for historical use only; Antigravity (`agy`) is its successor.
 
