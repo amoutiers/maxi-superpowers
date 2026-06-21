@@ -1,4 +1,15 @@
 
+## [2.0.1] - 2026-06-21
+
+### Features
+
+- Add Codex plugin packaging
+
+### Bug Fixes
+
+- Split Claude and Codex session hooks
+
+
 ## [2.0.0] - 2026-06-21
 
 ### Bug Fixes

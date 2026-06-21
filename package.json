@@ -1,6 +1,6 @@
 {
   "name": "maxi-superpowers",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Spec-driven development plugin for Claude Code, Codex, OpenCode, and Antigravity",
   "license": "MIT"
 }
