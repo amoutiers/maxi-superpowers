@@ -11,6 +11,8 @@ If you were dispatched as a subagent to execute a specific task, skip this skill
 
 maxi grafts a structured spec-driven workflow onto superpowers' implementation engine. Every feature goes through a pipeline of phases, each gated by the previous one.
 
+maxi bundles superpowers skills, available as `maxi:<skill>` (e.g. `/maxi:brainstorming`). The full artifact tree, migration entry points, and vendored-skill notes live in `skills/using-maxi/reference.md` — read it on demand.
+
 ## The Pipeline
 
 ```
@@ -25,28 +27,6 @@ maxi grafts a structured spec-driven workflow onto superpowers' implementation e
 /maxi:migrate-adr   →  import existing ADRs (Nygard/MADR/plain) + discover undocumented decisions from source code
 
 ADRs are captured automatically during /maxi:plan and /maxi:implement — the pipeline proposes ADRs for architectural choices and asks for your consent before writing.
-```
-
-## Artifact Locations
-
-Per-project artifacts:
-
-```
-docs/
-└── maxi/
-    ├── constitution.md          # project principles (mandatory before any spec work)
-    ├── adr/                     # Architecture Decision Records (auto-captured)
-    │   ├── README.md            # auto-maintained index
-    │   └── NNNN-slug.md
-    └── specs/
-        └── NNNN-feature-slug/
-            ├── spec.md          # status/updated/slug in YAML frontmatter
-            ├── plan.md
-            ├── tasks.md
-            ├── analysis.md      # written by /maxi:analyze (read-only audit)
-            ├── research.md
-            ├── data-model.md
-            └── contracts/
 ```
 
 ## Status State Machine
@@ -88,19 +68,13 @@ Lifecycle skills act on a spec's status outside the forward flow:
 
 > **Note:** Skills are designed to be cheap when there is nothing to do. `/maxi:clarify` completes in seconds if the spec has no ambiguities. `/maxi:analyze` produces a clean report instantly if there are no issues. The discipline cost is bounded; the value is not.
 
-## Vendored Superpowers Skills
-
-maxi bundles superpowers skills. They're available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:test-driven-development`). You do not need a separate superpowers installation.
-
 ## Getting Started
-
-**Migrating from github-spec-kit?** Run `/maxi:migrate-from-speckit` first — it copies your existing specs and constitution into the maxi layout, non-destructively.
-**Adopting maxi on an existing codebase with no specs?** Run `/maxi:migrate-from-brownfield` to reverse-engineer your code into `spec.md` baselines (at `status: done`, marked `origin: reverse-engineered`) so future changes flow through the pipeline.
-**Bootstrapping your ADR log?** Run `/maxi:migrate-adr` to import existing ADRs from other formats and/or discover undocumented architectural decisions from your codebase.
 
 1. Run `/maxi:constitution` to establish your project's principles.
 2. Run `/maxi:specify "your feature description"` to start a new spec.
 3. Follow the pipeline from there. Each skill tells you what comes next.
+
+Adopting maxi on an existing project (github-spec-kit, a brownfield codebase, or existing ADRs)? See the migration entry points in `skills/using-maxi/reference.md`.
 
 ## Key Rules
 
