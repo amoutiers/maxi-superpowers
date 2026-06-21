@@ -1,6 +1,6 @@
 ---
 name: release
-description: Use when releasing a new version of a Claude Code plugin — bumps version, runs tests, creates dual tags, and pushes to trigger the GitHub Actions release pipeline
+description: Use when releasing a new version of a Claude Code plugin
 ---
 
 # Release a Claude Code Plugin

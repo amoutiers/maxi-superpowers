@@ -1,6 +1,6 @@
 ---
 name: using-maxi
-description: Use at session start to understand the maxi spec-driven pipeline — phases, commands, artifact locations, and how to get started
+description: Use when starting a maxi session, or when the pipeline phases, commands, artifact locations, or status state machine need reference
 ---
 
 <SUBAGENT-STOP>
