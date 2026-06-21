@@ -81,6 +81,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-skill-count.sh` — maxi-native skill count (derived from the filesystem) matches CLAUDE.md + architecture.md
 - `check-status-consistency.sh` — the 10 FSM statuses are consistent across spec-template, board, and CLAUDE.md
 - `check-artifact-link-convention.sh` — the duplicated artifact-link block is byte-identical to the canonical fixture
+- `check-version-consistency.sh` — superpowers version citations in `README.md`/`docs/architecture.md`/`docs/delegation-map.md` match the `VENDORED.md` pin
 
 **Integration tier** (opt-in, requires `claude` CLI, ~minutes):
 ```

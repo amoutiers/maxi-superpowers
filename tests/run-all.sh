@@ -50,6 +50,7 @@ run_check "$TESTS_DIR/check-bootstrap-parity.sh"     "Bootstrap preamble parity"
 run_check "$TESTS_DIR/check-skill-count.sh"          "Skill count doc consistency"
 run_check "$TESTS_DIR/check-status-consistency.sh"   "Status list consistency"
 run_check "$TESTS_DIR/check-artifact-link-convention.sh" "Artifact link convention parity"
+run_check "$TESTS_DIR/check-version-consistency.sh"      "Version citation consistency"
 
 if [ "$failures" -gt 0 ]; then
   echo "FAILED: $failures check(s) failed" >&2
