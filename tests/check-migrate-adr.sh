@@ -9,7 +9,7 @@ MIGRATE="$ROOT/skills/migrate-adr/SKILL.md"
 IMPORT="$ROOT/skills/migrate-adr/import-subagent.md"
 DISCOVER="$ROOT/skills/migrate-adr/discover-subagent.md"
 ADR="$ROOT/skills/x-adr/SKILL.md"
-CLAUDEMD="$ROOT/CLAUDE.md"
+AGENTSMD="$ROOT/AGENTS.md"
 CONSTITUTION="$ROOT/docs/maxi/constitution.md"
 failures=0
 
@@ -60,9 +60,9 @@ assert_not_grep "$MIGRATE" "Regenerate after every write" "FR-021 no stale per-w
 assert_not_grep "$MIGRATE" "Write ADR + regenerate README.md" "FR-021 digraph not per-write regen"
 
 # --- US8: docs authoring flow (FR-022) ---
-assert_grep "$CLAUDEMD" "brainstorm" "FR-022 brainstorm in flow"
-assert_grep "$CLAUDEMD" "writing-skills" "FR-022 writing-skills in flow"
-assert_not_grep "$CLAUDEMD" "RED: run pressure scenario WITHOUT skill" "FR-022 old TDD cycle removed"
+assert_grep "$AGENTSMD" "brainstorm" "FR-022 brainstorm in flow"
+assert_grep "$AGENTSMD" "writing-skills" "FR-022 writing-skills in flow"
+assert_not_grep "$AGENTSMD" "RED: run pressure scenario WITHOUT skill" "FR-022 old TDD cycle removed"
 
 # --- US8: constitution decoupling + amendment (FR-024, 025) ---
 assert_not_grep "$CONSTITUTION" "RED/GREEN/REFACTOR" "FR-024 no RGR ref"

@@ -20,7 +20,7 @@ if [ "$maxi_count" -eq 0 ]; then
   failures=$((failures + 1))
 fi
 
-assert_grep "$ROOT/CLAUDE.md"            "$maxi_count maxi-native skills" "CLAUDE.md states $maxi_count maxi-native skills"
+assert_grep "$ROOT/AGENTS.md"            "$maxi_count maxi-native skills" "AGENTS.md states $maxi_count maxi-native skills"
 assert_grep "$ROOT/docs/architecture.md" "$maxi_count maxi-native skills" "architecture.md states $maxi_count maxi-native skills"
 
 # Every maxi-native skill must appear in the architecture.md skills/ tree.
