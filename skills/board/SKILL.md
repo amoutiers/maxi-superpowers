@@ -27,10 +27,18 @@ Read each spec's YAML frontmatter and body. Extract:
 
 ### Step 3 — Group by Status
 
-Bucket specs into the 10 pipeline statuses in order:
+Bucket specs into the 10 statuses. Render forward pipeline buckets first, then lifecycle buckets:
+
+Forward buckets:
 
 ```
-drafting → specified → clarified → planned → tasked → analyzed → implementing → parked → done → cancelled
+drafting → specified → clarified → planned → tasked → analyzed → implementing → done
+```
+
+Lifecycle buckets:
+
+```
+parked → cancelled
 ```
 
 `parked` = spec frozen in progress (non-terminal, resumable via `/maxi:resume`). `cancelled` = terminal, not actionable. Specs with missing or unrecognized `status` go into a trailing `unknown` bucket.
@@ -72,12 +80,12 @@ _empty_
 ## implementing (1)
 - 004-quux              — Quux                     (updated 05-25)
 
-## parked (0)
-_empty_
-
 ## done (12) — showing 2 from last 30d
 - 008-search            — Search                   (updated 05-15)
 - 009-export            — Export                   (updated 05-20)
+
+## parked (0)
+_empty_
 
 ## cancelled (0)
 _empty_

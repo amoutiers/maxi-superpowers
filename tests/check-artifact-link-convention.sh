@@ -15,6 +15,20 @@ extract() {  # prints the convention block from a SKILL.md, or nothing
        /^- Applies \*\*forward-only\*\*/{if(p)exit}' "$1"
 }
 
+REQUIRED_SKILLS=(
+  analyze board cancel clarify constitution implement migrate-adr
+  migrate-from-brownfield migrate-from-speckit park plan resume revise
+  specify tasks x-adr x-develop
+)
+
+for name in "${REQUIRED_SKILLS[@]}"; do
+  file="$ROOT/skills/$name/SKILL.md"
+  assert_file_exists "$file" "$name SKILL.md"
+  if [ -f "$file" ]; then
+    assert_grep "$file" "^## Artifact reference links" "$name: carries artifact-link convention"
+  fi
+done
+
 found=0
 for d in "$ROOT"/skills/*/; do
   name="$(basename "$d")"

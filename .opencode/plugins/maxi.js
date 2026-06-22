@@ -46,11 +46,11 @@ const normalizePath = (p, homeDir) => {
   return path.resolve(normalized);
 };
 
-// Module-level cache for bootstrap content.
+// Module-level cache for bootstrap content, keyed by project directory.
 // The SKILL.md file does not change during a session, so reading + parsing it
-// once eliminates redundant fs.existsSync + fs.readFileSync + regex work on
-// every agent step.
-let _bootstrapCache = undefined; // undefined = not yet loaded, null = file missing
+// once per project eliminates redundant fs.existsSync + fs.readFileSync + regex
+// work on every agent step.
+const _bootstrapCacheByProject = new Map();
 
 export const MaxiPlugin = async ({ client, directory }) => {
   const homeDir = os.homedir();
@@ -60,23 +60,23 @@ export const MaxiPlugin = async ({ client, directory }) => {
 
   // Helper to generate bootstrap content (cached after first call)
   const getBootstrapContent = () => {
-    // Return cached result on subsequent calls
-    if (_bootstrapCache !== undefined) return _bootstrapCache;
-
     // Only inject in maxi projects — skip in projects without docs/maxi/.
     // Derive from the project `directory` (passed to MaxiPlugin); fall back to
     // process.cwd() only if the host did not provide it.
     const baseDir = directory || process.cwd();
+    const cacheKey = path.resolve(baseDir);
+    if (_bootstrapCacheByProject.has(cacheKey)) return _bootstrapCacheByProject.get(cacheKey);
+
     const maxiDir = path.join(baseDir, 'docs/maxi');
     if (!fs.existsSync(maxiDir)) {
-      _bootstrapCache = null;
+      _bootstrapCacheByProject.set(cacheKey, null);
       return null;
     }
 
     // Try to load using-maxi skill
     const skillPath = path.join(maxiSkillsDir, 'using-maxi', 'SKILL.md');
     if (!fs.existsSync(skillPath)) {
-      _bootstrapCache = null;
+      _bootstrapCacheByProject.set(cacheKey, null);
       return null;
     }
 
@@ -92,7 +92,7 @@ When skills reference tools you don't have, substitute OpenCode equivalents:
 
 Use OpenCode's native \`skill\` tool to list and load skills.`;
 
-    _bootstrapCache = `<EXTREMELY_IMPORTANT>
+    const bootstrap = `<EXTREMELY_IMPORTANT>
 You have maxi.
 
 **Below is the full content of your 'maxi:using-maxi' skill - your introduction to the maxi spec-driven pipeline. For all other maxi skills, use the 'Skill' tool:**
@@ -102,7 +102,8 @@ ${content}
 ${toolMapping}
 </EXTREMELY_IMPORTANT>`;
 
-    return _bootstrapCache;
+    _bootstrapCacheByProject.set(cacheKey, bootstrap);
+    return bootstrap;
   };
 
   return {

@@ -25,18 +25,21 @@ echo "Output dir: $OUTPUT_DIR"
 echo ""
 echo "Running claude -p ..."
 
+CLAUDE_CMD=(
+  claude -p "$PROMPT"
+  --plugin-dir "$PLUGIN_DIR"
+  --dangerously-skip-permissions
+  --max-turns "$MAX_TURNS"
+  --output-format stream-json
+  --verbose
+)
+
 if command -v timeout >/dev/null 2>&1; then
-  TIMEOUT_CMD=(timeout 300)
+  timeout 300 "${CLAUDE_CMD[@]}" > "$LOG_FILE" 2>&1 || true
 else
   echo "WARNING: 'timeout' not found (install coreutils for macOS). Running without timeout." >&2
-  TIMEOUT_CMD=()
+  "${CLAUDE_CMD[@]}" > "$LOG_FILE" 2>&1 || true
 fi
-"${TIMEOUT_CMD[@]}" claude -p "$PROMPT" \
-  --plugin-dir "$PLUGIN_DIR" \
-  --dangerously-skip-permissions \
-  --max-turns "$MAX_TURNS" \
-  --output-format stream-json \
-  > "$LOG_FILE" 2>&1 || true
 
 echo ""
 echo "=== Results ==="

@@ -5,19 +5,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROMPTS_DIR="$SCRIPT_DIR/prompts"
 
-SKILLS=(
-  "specify"
-  "clarify"
-  "plan"
-  "tasks"
-  "analyze"
-  "implement"
-  "constitution"
-  "board"
-  "cancel"
-  "park"
-  "resume"
-  "revise"
+SKILLS=()
+while IFS= read -r skill; do
+  SKILLS+=("$skill")
+done < <(
+  find "$PROMPTS_DIR" -maxdepth 1 -type f -name '*.txt' \
+    -exec basename {} .txt \; | sort
 )
 
 echo "=== Maxi Skill Triggering Tests ==="

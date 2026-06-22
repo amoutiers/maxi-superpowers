@@ -91,4 +91,41 @@ else
   echo "SKIP [maxi.js: valid JS syntax] (node not installed)"
 fi
 
+# Behavior: cache must not let a non-maxi project suppress a later maxi project.
+if command -v node >/dev/null 2>&1; then
+  TMP_OC="$(mktemp -d)"
+  mkdir -p "$TMP_OC/maxi/docs/maxi" "$TMP_OC/plain"
+  if node --input-type=module - "$PLUGIN" "$TMP_OC/plain" "$TMP_OC/maxi" <<'NODE'
+const [pluginPath, plainDir, maxiDir] = process.argv.slice(2);
+const mod = await import(`file://${pluginPath}`);
+
+function output(text) {
+  return { messages: [{ info: { role: 'user' }, parts: [{ type: 'text', text }] }] };
+}
+
+const plainPlugin = await mod.MaxiPlugin({ directory: plainDir });
+const plainOutput = output('plain');
+await plainPlugin['experimental.chat.messages.transform']({}, plainOutput);
+if (plainOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
+  throw new Error('bootstrap injected into non-maxi project');
+}
+
+const maxiPlugin = await mod.MaxiPlugin({ directory: maxiDir });
+const maxiOutput = output('maxi');
+await maxiPlugin['experimental.chat.messages.transform']({}, maxiOutput);
+if (!maxiOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
+  throw new Error('bootstrap missing after prior non-maxi project');
+}
+NODE
+  then
+    echo "OK  [maxi.js: bootstrap cache is project-aware]"
+  else
+    echo "FAIL [maxi.js: bootstrap cache is project-aware]" >&2
+    failures=$((failures + 1))
+  fi
+  rm -rf "$TMP_OC"
+else
+  echo "SKIP [maxi.js: bootstrap cache behavior] (node not installed)"
+fi
+
 summary_and_exit "opencode plugin checks"
