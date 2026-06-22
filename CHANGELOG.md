@@ -1,4 +1,24 @@
 
+## [2.1.0] - 2026-06-22
+
+### Features
+
+- Specialize plugin hooks by runtime
+
+### Documentation
+
+- Make AGENTS the canonical agent guide
+
+### Testing
+
+- Harden pipeline and integration guardrails
+- Run new guardrails in fast checks
+
+### Internal
+
+- Share release skill across agent runtimes
+
+
 ## [2.0.1] - 2026-06-21
 
 ### Features
