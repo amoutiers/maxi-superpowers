@@ -1,13 +1,13 @@
 ---
 name: release
-description: Use when releasing a new version of a Claude Code plugin
+description: Use when releasing a new version of the maxi plugin
 ---
 
-# Release a Claude Code Plugin
+# Release the maxi Plugin
 
 ## Overview
 
-Guide for releasing a new plugin version. The skill handles everything local: CHANGELOG, version bump, marketplace.json pin, commit, tag, push. The GitHub Action only creates the GitHub Release — it makes no commits.
+Guide for releasing a new plugin version. The skill handles everything local: CHANGELOG, version bump, marketplace metadata, commit, tag, push. The GitHub Action only creates the GitHub Release — it makes no commits.
 
 ## Prerequisites
 
@@ -39,6 +39,15 @@ else
   echo "No test suite detected — skipping"
 fi
 ```
+
+For maxi-superpowers releases, also run the local doc consistency pass before bumping versions:
+
+```text
+Use the `.agents/skills/doc-consistency` skill to review authored docs for drift.
+Claude users reach the same review through `.claude/skills/doc-consistency`.
+```
+
+Abort or resolve findings before continuing with the release.
 
 Abort if tests fail.
 
@@ -78,35 +87,42 @@ Update `"version"` in every file that tracks it — check for all of these:
 
 ```
 plugin.json                  # root plugin manifest
-.claude-plugin/plugin.json   # marketplace copy (must match plugin.json — tests enforce this)
+.claude-plugin/plugin.json   # Claude Code plugin manifest
+.codex-plugin/plugin.json    # Codex plugin manifest
 package.json                 # npm manifest
 ```
 
 ### 6. Commit release artifacts (commit 1 of 2)
 
 ```bash
-git add CHANGELOG.md plugin.json .claude-plugin/plugin.json package.json
+git add CHANGELOG.md plugin.json .claude-plugin/plugin.json .codex-plugin/plugin.json package.json
 git commit -m "chore(release): vX.Y.Z"
 ```
 
-### 7. Pin marketplace.json and commit (commit 2 of 2)
+### 7. Update marketplace metadata and commit (commit 2 of 2)
 
-Get the SHA of commit 1, update marketplace.json to point to it, then make a second commit. The tag goes on this second commit.
+Get the SHA of commit 1, update marketplace metadata, then make a second commit. The tag goes on this second commit.
 
 ```bash
 RELEASE_SHA=$(git rev-parse HEAD)
 node -e "
   const fs = require('fs');
-  const p = '.claude-plugin/marketplace.json';
-  const d = JSON.parse(fs.readFileSync(p, 'utf8'));
-  d.plugins[0].source.commit = process.argv[1];
-  fs.writeFileSync(p, JSON.stringify(d, null, 2) + '\n');
+  const releaseSha = process.argv[1];
+  for (const p of ['.claude-plugin/marketplace.json', '.agents/plugins/marketplace.json']) {
+    if (!fs.existsSync(p)) continue;
+    const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+    const source = d.plugins?.[0]?.source;
+    if (source && source.source !== 'local') {
+      source.commit = releaseSha;
+    }
+    fs.writeFileSync(p, JSON.stringify(d, null, 2) + '\n');
+  }
 " "$RELEASE_SHA"
-git add .claude-plugin/marketplace.json
+git add .claude-plugin/marketplace.json .agents/plugins/marketplace.json
 git commit -m "chore(release): pin marketplace.json to vX.Y.Z"
 ```
 
-marketplace.json now points to commit 1 (version bump + CHANGELOG). That is intentional — users who install get the plugin code from commit 1, which has everything they need.
+Commit-pinned marketplace entries now point to commit 1 (version bump + CHANGELOG). That is intentional — users who install from a pinned marketplace get the plugin code from commit 1, which has everything they need.
 
 ### 8. Tag and push
 
@@ -139,8 +155,8 @@ echo "Action running at: https://github.com/${REMOTE}/actions"
 | Mistake | Correct behavior |
 |---------|-----------------|
 | Relying on the Action to update CHANGELOG.md | Generate locally in step 4, before tagging |
-| Relying on the Action to pin marketplace.json | Pin locally in step 7, before tagging |
+| Relying on the Action to pin marketplace.json | Update marketplace metadata locally in step 7, before tagging |
 | One commit for everything | Two commits: (1) version+CHANGELOG, (2) marketplace.json pin — tag on commit 2 |
 | `git status` without `--porcelain` | `--porcelain` catches untracked files that plain `git status` calls "clean" |
-| Only bumping `plugin.json` + `package.json` | Also check `.claude-plugin/plugin.json` |
+| Only bumping `plugin.json` + `package.json` | Also check `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` |
 | Only creating `vX.Y.Z` tag | Always create BOTH `vX.Y.Z` AND `{name}--vX.Y.Z` |

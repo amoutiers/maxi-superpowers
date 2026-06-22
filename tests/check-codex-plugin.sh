@@ -7,6 +7,7 @@ source "$ROOT/tests/lib/test-helpers.sh"
 
 MANIFEST="$ROOT/.codex-plugin/plugin.json"
 MARKETPLACE="$ROOT/.agents/plugins/marketplace.json"
+RELEASE_SKILL="$ROOT/.agents/skills/release/SKILL.md"
 PLUGIN_LINK="$ROOT/plugins/maxi"
 failures=0
 
@@ -16,6 +17,7 @@ if [ -f "$MANIFEST" ]; then
   assert_jq "$MANIFEST" ".name" "maxi" ".codex-plugin/plugin.json: name is maxi"
   assert_jq "$MANIFEST" ".version | test(\"^[0-9]+\\\\.[0-9]+\\\\.[0-9]+([+-].*)?$\")" "true" ".codex-plugin/plugin.json: version is semver-compatible"
   assert_jq "$MANIFEST" ".skills" "./skills" ".codex-plugin/plugin.json: skills path"
+  assert_jq "$MANIFEST" ".hooks" "./hooks/hooks-codex.json" ".codex-plugin/plugin.json: Codex hooks path"
   assert_jq "$MANIFEST" ".interface.displayName" "maxi" ".codex-plugin/plugin.json: interface displayName"
   assert_jq "$MANIFEST" ".interface.defaultPrompt | length > 0" "true" ".codex-plugin/plugin.json: default prompts"
 fi
@@ -30,6 +32,13 @@ if [ -f "$MARKETPLACE" ]; then
   assert_jq "$MARKETPLACE" ".plugins[0].source.path" "./plugins/maxi" ".agents marketplace: plugin source path"
   assert_jq "$MARKETPLACE" ".plugins[0].policy.installation" "AVAILABLE" ".agents marketplace: install policy"
   assert_jq "$MARKETPLACE" ".plugins[0].policy.authentication" "ON_INSTALL" ".agents marketplace: auth policy"
+fi
+
+assert_file_exists "$RELEASE_SKILL" ".agents release skill"
+if [ -f "$RELEASE_SKILL" ]; then
+  assert_grep "$RELEASE_SKILL" ".codex-plugin/plugin.json" ".agents release skill: uses .codex-plugin manifest path"
+  assert_grep "$RELEASE_SKILL" ".agents/plugins/marketplace.json" ".agents release skill: uses .agents marketplace path"
+  assert_not_grep "$RELEASE_SKILL" ".Codex-plugin" ".agents release skill: no stale .Codex-plugin path"
 fi
 
 if [ ! -L "$PLUGIN_LINK" ]; then
