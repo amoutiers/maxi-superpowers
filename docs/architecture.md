@@ -16,11 +16,18 @@ The result: a project goes from blank slate to shipped code through a reproducib
 maxi-superpowers/
 ├── .claude-plugin/          # Claude Code plugin manifest
 ├── .codex-plugin/           # Codex plugin manifest
+├── .antigravity-plugin/     # Antigravity package root for agy plugin install
 ├── .agents/plugins/         # Codex marketplace manifest
 ├── hooks/                   # Session-start and event hooks
 │   ├── hooks.json
+│   ├── hooks-antigravity.json
+│   ├── hooks-claude.json
+│   ├── hooks-codex.json
 │   ├── run-hook.cmd
-│   └── session-start
+│   ├── session-start-core
+│   ├── session-start-claude
+│   ├── session-start-codex
+│   └── session-start-antigravity
 ├── skills/
 │   ├── constitution/        # maxi-native pipeline commands
 │   ├── specify/
@@ -66,7 +73,7 @@ maxi-superpowers/
 │   └── superpowers/         # git subtree of superpowers upstream
 ├── tests/
 │   ├── run-all.sh
-│   ├── check-*.sh           # fast-tier checks (see CLAUDE.md for the authoritative list)
+│   ├── check-*.sh           # fast-tier checks (see AGENTS.md for the authoritative list)
 │   ├── integration/         # opt-in integration tier
 │   └── fixtures/
 ├── docs/
@@ -74,7 +81,8 @@ maxi-superpowers/
 │   ├── delegation-map.md    # forward + lifecycle skill tables
 │   ├── pipeline-flow.md     # Mermaid diagram + FSM
 │   └── maxi/                # per-project artifacts (constitution, adr/, specs/)
-├── CLAUDE.md                # contributor guidelines
+├── AGENTS.md                # shared contributor guidelines
+├── CLAUDE.md                # Claude Code adapter that imports AGENTS.md
 ├── VENDORED.md              # vendored dependency record
 └── package.json
 ```
@@ -157,16 +165,24 @@ bash scripts/sync-superpowers.sh
 
 ## Harness Strategy
 
-maxi ships to four supported agent harnesses. Three receive an automatic session bootstrap; Codex currently receives the skills through its native plugin loader.
+maxi ships to four supported agent harnesses. Claude Code, Codex, OpenCode, and Antigravity all have dedicated packaging entry points; their bootstrap mechanisms differ by harness.
 
 | Harness | Mechanism |
 |---|---|
-| Claude Code | `hooks/hooks.json` (`${CLAUDE_PLUGIN_ROOT}`) + `.claude-plugin/` manifest + marketplace |
-| Codex | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json`; `codex plugin marketplace add .` then `codex plugin add maxi@maxi-superpowers` |
+| Claude Code | `.claude-plugin/plugin.json` + marketplace, with `hooks/hooks.json` / `hooks/hooks-claude.json` as the SessionStart manifest using `${CLAUDE_PLUGIN_ROOT}` |
+| Codex | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` + `plugins/maxi`; the Codex manifest declares `hooks/hooks-codex.json` for SessionStart |
 | OpenCode | `.opencode/plugins/maxi.js` (transforms the first user message) |
-| Antigravity | root `hooks.json` + `plugin.json` (`${extensionPath}`); `agy plugin install .` |
+| Antigravity | `.antigravity-plugin/` package root, with `hooks.json` pointing to `hooks/hooks-antigravity.json` (`${extensionPath}`); `agy plugin install .antigravity-plugin` |
 
-The package is validated by the fast tier (`check-hooks.sh`, `check-plugin-manifest.sh`, `check-codex-plugin.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`). The bootstrap preamble is identical across the bash hook and the OpenCode plugin (parity-guarded). Codex support is skills-first because the current Codex plugin manifest validation accepts `skills` but not hook registration.
+Hook manifest ownership:
+
+- `hooks/hooks.json`: default Claude-compatible plugin hook manifest. It runs `hooks/session-start-claude` and currently matches the Claude manifest.
+- `hooks/hooks-claude.json`: explicit Claude Code alias, kept byte-identical with `hooks/hooks.json`; it also runs `hooks/session-start-claude`.
+- `hooks/hooks-codex.json`: explicit Codex manifest using `${PLUGIN_ROOT}` and `session-start-codex`; referenced by `.codex-plugin/plugin.json`.
+- `hooks/hooks-antigravity.json`: Antigravity manifest using `${extensionPath}`; `.antigravity-plugin/hooks.json` points to it and it runs `hooks/session-start-antigravity`.
+- `hooks/session-start-core`: shared implementation used by the Claude Code and Antigravity wrappers; no manifest should call it directly.
+
+The package is validated by the fast tier (`check-hooks.sh`, `check-plugin-manifest.sh`, `check-codex-plugin.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`). The bootstrap preamble is identical across the bash hook and the OpenCode plugin (parity-guarded). Codex support includes native skill loading and, in locally verified installations, plugin hook registration.
 
 **Not supported:** Cursor (its `.cursor/hooks.json` / `sessionStart` mechanism differs from this plugin's hook model; real support deferred to a future ADR) and Copilot CLI. The legacy Gemini CLI install is documented for historical use only; Antigravity (`agy`) is its successor.
 

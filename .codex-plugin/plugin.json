@@ -17,6 +17,7 @@
     "analysis"
   ],
   "skills": "./skills",
+  "hooks": "./hooks/hooks-codex.json",
   "interface": {
     "displayName": "maxi",
     "shortDescription": "Spec-driven development pipeline for Codex.",

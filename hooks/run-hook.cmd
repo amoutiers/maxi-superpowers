@@ -4,8 +4,8 @@ REM Cross-platform polyglot wrapper for hook scripts.
 REM On Windows: cmd.exe runs the batch portion, which finds and calls bash.
 REM On Unix: the shell interprets this as a script (: is a no-op in bash).
 REM
-REM Hook scripts use extensionless filenames (e.g. "session-start" not
-REM "session-start.sh") so Claude Code's Windows auto-detection -- which
+REM Hook scripts use extensionless filenames (e.g. "session-start-claude" not
+REM "session-start-claude.sh") so Claude Code's Windows auto-detection -- which
 REM prepends "bash" to any command containing .sh -- doesn't interfere.
 REM
 REM Usage: run-hook.cmd <script-name> [args...]

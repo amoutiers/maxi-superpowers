@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${extensionPath}/hooks/run-hook.cmd\" session-start",
+            "command": "\"${extensionPath}/hooks/run-hook.cmd\" session-start-antigravity",
             "async": false
           }
         ]

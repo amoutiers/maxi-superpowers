@@ -1,12 +1,12 @@
 ---
 adr: 0013
 slug: 0013-tri-harness-support-strategy
-status: accepted
+status: superseded
 created: 2026-05-31
-updated: 2026-05-31
+updated: 2026-06-22
 decider: Antoine Moutiers
 supersedes: 0004
-superseded_by: null
+superseded_by: 0014
 ---
 
 # ADR-0013: Tri-Harness Support Strategy — Claude Code · OpenCode · Antigravity

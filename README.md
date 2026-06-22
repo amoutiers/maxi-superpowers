@@ -32,14 +32,14 @@ codex plugin marketplace add ./maxi-superpowers
 codex plugin add maxi@maxi-superpowers
 ```
 
-Codex loads the maxi skills natively from the plugin. Unlike Claude Code and OpenCode, Codex does not currently load maxi's session-start bootstrap hook from this package, so start by invoking the relevant skill directly (for example, ask Codex to use `maxi:constitution`).
+Codex loads the maxi skills natively from the plugin. Like superpowers, maxi declares its Codex `SessionStart` hook through `.codex-plugin/plugin.json` with `hooks/hooks-codex.json`. If a Codex environment has plugin hooks disabled or unavailable, start by invoking the relevant skill directly (for example, ask Codex to use `maxi:constitution`).
 
 ### For Antigravity CLI
 ```bash
 # Install locally:
 git clone https://github.com/amoutiers/maxi-superpowers
 cd maxi-superpowers
-agy plugin install .
+agy plugin install .antigravity-plugin
 
 # Or import your legacy Gemini extensions:
 agy plugin import gemini
@@ -154,7 +154,7 @@ Reverse-engineered baselines land at `done`; to change a documented feature late
 
 ## Contributing
 
-See [CLAUDE.md](CLAUDE.md) for contributor guidelines. Key rules:
+See [AGENTS.md](AGENTS.md) for contributor guidelines. Key rules:
 
 - All new skills must be authored via `superpowers:writing-skills` — do not hand-write SKILL.md files.
 - Do not hand-edit files under `skills/` that originate from superpowers. Run `scripts/sync-superpowers.sh` to re-sync after a version bump.

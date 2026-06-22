@@ -30,7 +30,7 @@ assert_jq "$MANIFEST" ".name" "maxi" "plugin.json: name is maxi"
 
 assert_jq "$MANIFEST" ".version | test(\"^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")" "true" "plugin.json: version is semver"
 
-# Validate root plugin.json for Antigravity
+# Validate shared root plugin.json
 ROOT_MANIFEST="$ROOT/plugin.json"
 assert_file_exists "$ROOT_MANIFEST" "root plugin.json"
 if [ -f "$ROOT_MANIFEST" ]; then
@@ -42,6 +42,34 @@ if [ -f "$ROOT_MANIFEST" ]; then
     failures=$((failures + 1))
   fi
 fi
+
+ANTIGRAVITY_MANIFEST="$ROOT/.antigravity-plugin/plugin.json"
+assert_file_exists "$ANTIGRAVITY_MANIFEST" ".antigravity-plugin/plugin.json"
+if [ ! -L "$ANTIGRAVITY_MANIFEST" ]; then
+  echo "FAIL [.antigravity-plugin/plugin.json]: expected symlink to root plugin.json" >&2
+  failures=$((failures + 1))
+elif [ "$(readlink "$ANTIGRAVITY_MANIFEST")" != "../plugin.json" ]; then
+  echo "FAIL [.antigravity-plugin/plugin.json]: expected symlink target '../plugin.json', got '$(readlink "$ANTIGRAVITY_MANIFEST")'" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [.antigravity-plugin/plugin.json]: symlink points to root plugin.json"
+fi
+
+for entry in skills hooks; do
+  path="$ROOT/.antigravity-plugin/$entry"
+  if [ ! -e "$path" ]; then
+    echo "FAIL [.antigravity-plugin/$entry]: path not found: $path" >&2
+    failures=$((failures + 1))
+  elif [ ! -L "$path" ]; then
+    echo "FAIL [.antigravity-plugin/$entry]: expected symlink to ../$entry" >&2
+    failures=$((failures + 1))
+  elif [ "$(readlink "$path")" != "../$entry" ]; then
+    echo "FAIL [.antigravity-plugin/$entry]: expected symlink target '../$entry', got '$(readlink "$path")'" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [.antigravity-plugin/$entry]: symlink points to ../$entry"
+  fi
+done
 
 # --- M4 (2026-05-30 review): package.json version must match the manifest ---
 PKG="$ROOT/package.json"

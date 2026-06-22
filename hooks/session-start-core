@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SessionStart hook for maxi plugin
+# Shared SessionStart implementation for maxi plugin hooks.
 
 set -euo pipefail
 
