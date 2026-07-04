@@ -1,4 +1,11 @@
 
+## [2.2.0] - 2026-07-04
+
+### Features
+
+- Align harness model 1:1 with superpowers v6.1.1
+
+
 ## [2.1.0] - 2026-06-22
 
 ### Features
