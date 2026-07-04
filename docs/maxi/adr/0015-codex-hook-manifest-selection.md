@@ -1,12 +1,12 @@
 ---
 adr: 0015
 slug: 0015-codex-hook-manifest-selection
-status: accepted
+status: superseded
 created: 2026-06-22
-updated: 2026-06-22
+updated: 2026-07-04
 decider: "Antoine Moutiers"
 supersedes: 0014
-superseded_by: null
+superseded_by: 0016
 ---
 
 # ADR-0015: Codex Hook Manifest Selection

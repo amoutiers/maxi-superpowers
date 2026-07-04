@@ -4,7 +4,7 @@ description: Use when starting a maxi session, or when the pipeline phases, comm
 ---
 
 <SUBAGENT-STOP>
-If you were dispatched as a subagent to execute a specific task, skip this skill.
+If you were dispatched as a subagent to execute a specific task, ignore this skill.
 </SUBAGENT-STOP>
 
 # maxi — Spec-Driven Development Pipeline
@@ -85,3 +85,11 @@ Adopting maxi on an existing project (github-spec-kit, a brownfield codebase, or
 - The `analyze` skill requires constitution to be present — constitution principles inform 2 of the 7 audit passes.
 - ADRs are append-only. To revise a past decision, create a new ADR that supersedes the old one.
 - Existing specs that predate the `updated:`, `spec_slug:`, or `decider:` fields will not have them — skills should tolerate absent optional fields rather than failing.
+
+## Platform Adaptation
+
+If your harness appears here, read its reference file for special instructions (they live with the vendored `using-superpowers` skill at `skills/using-superpowers/references/`):
+
+- Codex: `skills/using-superpowers/references/codex-tools.md`
+- Pi: `skills/using-superpowers/references/pi-tools.md`
+- Antigravity: `skills/using-superpowers/references/antigravity-tools.md`

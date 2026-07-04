@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers is a multi-harness plugin for Claude Code, Codex, OpenCode, and Antigravity. It vendors superpowers' skills via git subtree and adds 18 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
+maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.1.1 harness model (Claude Code · Codex · OpenCode · Antigravity · Cursor · Pi; plus Kimi Code, Factory Droid, and GitHub Copilot CLI via marketplace docs). It vendors superpowers' skills via git subtree and adds 18 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
 
 ## Git
 
@@ -69,13 +69,15 @@ Run `bash tests/run-all.sh` after changes.
 - `check-templates.sh` — all 5 maxi templates + 2 fixtures have required fields and body sections
 - `check-skills-present.sh` — all 18 maxi-native skills exist
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
-- `check-codex-plugin.sh` — `.codex-plugin/plugin.json`, `.agents/plugins/marketplace.json`, and `plugins/maxi` are valid for Codex plugin installation
-- `check-hooks.sh` — hook manifests are valid; hook scripts exist and are executable
+- `check-codex-plugin.sh` — `.codex-plugin/plugin.json` (`hooks: {}`), `.agents/plugins/marketplace.json`, and `plugins/maxi` are valid for Codex plugin installation
+- `check-hooks.sh` — `hooks/hooks.json` (Claude Code + Antigravity) and `hooks/hooks-cursor.json` manifests are valid; the unified `hooks/session-start` exists, is executable, and emits the right JSON shape per harness; stale per-harness wrappers and the `.antigravity-plugin/` directory are gone
+- `check-cursor-hooks.sh` — `hooks/hooks-cursor.json` is a valid Cursor `sessionStart` manifest invoking `hooks/session-start`
 - `check-vendored-doc.sh` — `VENDORED.md` has required version/date lines (regression guard for `bump-superpowers.sh`)
 - `check-sync-script.sh` — `sync-superpowers.sh` copies vendor skills and leaves maxi-native skills untouched
 - `check-bump-script.sh` — `_update-vendored-md.sh` correctly updates version and date lines
 - `check-opencode-plugin.sh` — `.opencode/plugins/maxi.js` exports required hooks, has bootstrap caching and conditional injection
-- `check-bootstrap-parity.sh` — the `<EXTREMELY_IMPORTANT>` bootstrap preamble is identical across `hooks/session-start-core` and `.opencode/plugins/maxi.js`
+- `check-pi-extension.sh` — `.pi/extensions/maxi.ts` and `package.json` `pi` section are valid (Pi harness packaging)
+- `check-bootstrap-parity.sh` — the `<EXTREMELY_IMPORTANT>` bootstrap preamble is identical across `hooks/session-start`, `.opencode/plugins/maxi.js`, and `.pi/extensions/maxi.ts`
 - `check-integration-harness.sh` — optional integration harness stays runnable on macOS without GNU `timeout` and keeps prompt discovery guarded
 - `check-doc-consistency-skill.sh` — local doc-consistency skills stay aligned with the Mandatory Sync 5 rule
 - `check-release-skill.sh` — local release skill keeps the fast-tier and doc-consistency pre-flight gates

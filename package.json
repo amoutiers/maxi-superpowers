@@ -1,6 +1,25 @@
 {
   "name": "maxi-superpowers",
   "version": "2.1.0",
-  "description": "Spec-driven development plugin for Claude Code, Codex, OpenCode, and Antigravity",
-  "license": "MIT"
+  "description": "Spec-driven development pipeline for coding agents: constitution → specify → clarify → plan → tasks → analyze → implement",
+  "type": "module",
+  "main": ".opencode/plugins/maxi.js",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "skills",
+    "spec-driven",
+    "workflow",
+    "constitution",
+    "planning",
+    "analysis"
+  ],
+  "pi": {
+    "extensions": [
+      "./.pi/extensions/maxi.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  }
 }

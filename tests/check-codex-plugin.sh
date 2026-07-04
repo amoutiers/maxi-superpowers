@@ -17,7 +17,7 @@ if [ -f "$MANIFEST" ]; then
   assert_jq "$MANIFEST" ".name" "maxi" ".codex-plugin/plugin.json: name is maxi"
   assert_jq "$MANIFEST" ".version | test(\"^[0-9]+\\\\.[0-9]+\\\\.[0-9]+([+-].*)?$\")" "true" ".codex-plugin/plugin.json: version is semver-compatible"
   assert_jq "$MANIFEST" ".skills" "./skills" ".codex-plugin/plugin.json: skills path"
-  assert_jq "$MANIFEST" ".hooks" "./hooks/hooks-codex.json" ".codex-plugin/plugin.json: Codex hooks path"
+  assert_jq "$MANIFEST" ".hooks == {}" "true" ".codex-plugin/plugin.json: hooks is empty object (Codex native skill discovery)"
   assert_jq "$MANIFEST" ".interface.displayName" "maxi" ".codex-plugin/plugin.json: interface displayName"
   assert_jq "$MANIFEST" ".interface.defaultPrompt | length > 0" "true" ".codex-plugin/plugin.json: default prompts"
 fi

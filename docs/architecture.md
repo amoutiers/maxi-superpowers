@@ -2,11 +2,11 @@
 
 ## Plugin Overview
 
-maxi-superpowers is a multi-harness plugin (Claude Code · Codex · OpenCode · Antigravity; see Harness Strategy below) with two layers:
+maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.1.1 harness model (Claude Code · Codex · OpenCode · Antigravity · Cursor · Pi; plus Kimi Code, Factory Droid, and GitHub Copilot CLI via marketplace docs; see Harness Strategy below) with two layers:
 
 1. **spec-kit pipeline** — 18 maxi-native skills: 12 user-facing commands, 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
 
-2. **superpowers implementation engine** — vendored superpowers v6.0.3 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
+2. **superpowers implementation engine** — vendored superpowers v6.1.1 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
 
 The result: a project goes from blank slate to shipped code through a reproducible, auditable sequence. Nothing skips the queue.
 
@@ -14,20 +14,16 @@ The result: a project goes from blank slate to shipped code through a reproducib
 
 ```
 maxi-superpowers/
-├── .claude-plugin/          # Claude Code plugin manifest
-├── .codex-plugin/           # Codex plugin manifest
-├── .antigravity-plugin/     # Antigravity package root for agy plugin install
+├── .claude-plugin/          # Claude Code plugin manifest (+ marketplace)
+├── .codex-plugin/           # Codex plugin manifest (hooks: {}, native skill discovery)
 ├── .agents/plugins/         # Codex marketplace manifest
-├── hooks/                   # Session-start and event hooks
-│   ├── hooks.json
-│   ├── hooks-antigravity.json
-│   ├── hooks-claude.json
-│   ├── hooks-codex.json
-│   ├── run-hook.cmd
-│   ├── session-start-core
-│   ├── session-start-claude
-│   ├── session-start-codex
-│   └── session-start-antigravity
+├── .opencode/               # OpenCode plugin (maxi.js) + INSTALL.md
+├── .pi/                     # Pi extension (maxi.ts)
+├── hooks/                   # Session-start hooks
+│   ├── hooks.json           # Claude Code + Antigravity root manifest (session-start)
+│   ├── hooks-cursor.json    # Cursor manifest (sessionStart + additional_context)
+│   ├── run-hook.cmd          # Cross-platform polyglot wrapper
+│   └── session-start         # Unified hook (env-aware JSON output, gated on docs/maxi/)
 ├── skills/
 │   ├── constitution/        # maxi-native pipeline commands
 │   ├── specify/
@@ -151,8 +147,8 @@ Skills are designed to be cheap when there is nothing to do. `/maxi:clarify` can
 superpowers is vendored as a git subtree at `vendor/superpowers/`:
 
 ```bash
-# Initial add (one-time bootstrap; current pin is v6.0.3 — see VENDORED.md):
-git subtree add --prefix=vendor/superpowers https://github.com/obra/superpowers v6.0.3 --squash
+# Initial add (one-time bootstrap; current pin is v6.1.1 — see VENDORED.md):
+git subtree add --prefix=vendor/superpowers https://github.com/obra/superpowers v6.1.1 --squash
 
 # Bump to a new version:
 bash scripts/bump-superpowers.sh <new-tag>
@@ -165,26 +161,26 @@ bash scripts/sync-superpowers.sh
 
 ## Harness Strategy
 
-maxi ships to four supported agent harnesses. Claude Code, Codex, OpenCode, and Antigravity all have dedicated packaging entry points; their bootstrap mechanisms differ by harness.
+maxi adopts the superpowers v6.1.1 harness model 1:1 (ADR-0016). Ten harnesses are addressed, six with in-repo packaging and four via marketplace docs only:
 
 | Harness | Mechanism |
 |---|---|
-| Claude Code | `.claude-plugin/plugin.json` + marketplace, with `hooks/hooks.json` / `hooks/hooks-claude.json` as the SessionStart manifest using `${CLAUDE_PLUGIN_ROOT}` |
-| Codex | `.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` + `plugins/maxi`; the Codex manifest declares `hooks/hooks-codex.json` for SessionStart |
-| OpenCode | `.opencode/plugins/maxi.js` (transforms the first user message) |
-| Antigravity | `.antigravity-plugin/` package root, with `hooks.json` pointing to `hooks/hooks-antigravity.json` (`${extensionPath}`); `agy plugin install .antigravity-plugin` |
+| Claude Code | `.claude-plugin/plugin.json` + marketplace; `hooks/hooks.json` (root) is the SessionStart manifest using `${CLAUDE_PLUGIN_ROOT}` and runs the unified `hooks/session-start` |
+| Antigravity | `agy plugin install <repo>`; reads the root `hooks/hooks.json` and runs `hooks/session-start` (no dedicated package directory) |
+| Cursor | `hooks/hooks-cursor.json` (Cursor `sessionStart` event, `additional_context` shape) running `hooks/session-start` |
+| Codex | `.codex-plugin/plugin.json` declares `"hooks": {}` so Codex relies on native skill discovery (no SessionStart hook); `.agents/plugins/marketplace.json` + `plugins/maxi` |
+| OpenCode | `.opencode/plugins/maxi.js` transforms the first user message and registers the skills directory via the `config` hook |
+| Pi | `package.json` `pi` section + `.pi/extensions/maxi.ts` injects the bootstrap via the Pi extension API |
+| Kimi Code, Factory Droid, GitHub Copilot CLI | Marketplace install only (no in-repo packaging); documented in README |
 
-Hook manifest ownership:
+Hook ownership:
 
-- `hooks/hooks.json`: default Claude-compatible plugin hook manifest. It runs `hooks/session-start-claude` and currently matches the Claude manifest.
-- `hooks/hooks-claude.json`: explicit Claude Code alias, kept byte-identical with `hooks/hooks.json`; it also runs `hooks/session-start-claude`.
-- `hooks/hooks-codex.json`: explicit Codex manifest using `${PLUGIN_ROOT}` and `session-start-codex`; referenced by `.codex-plugin/plugin.json`.
-- `hooks/hooks-antigravity.json`: Antigravity manifest using `${extensionPath}`; `.antigravity-plugin/hooks.json` points to it and it runs `hooks/session-start-antigravity`.
-- `hooks/session-start-core`: shared implementation used by the Claude Code and Antigravity wrappers; no manifest should call it directly.
+- `hooks/hooks.json`: root manifest for Claude Code and Antigravity. Runs the unified `hooks/session-start`.
+- `hooks/hooks-cursor.json`: Cursor manifest (Cursor `sessionStart` event, `additional_context` snake_case). Runs the unified `hooks/session-start`.
+- `hooks/session-start`: the single env-aware hook. Detects `CURSOR_PLUGIN_ROOT` (`additional_context`), `CLAUDE_PLUGIN_ROOT` without `COPILOT_CLI` (`hookSpecificOutput.additionalContext`), and falls back to the SDK-standard top-level `additionalContext`. Gated on `docs/maxi/` (silent outside a maxi project).
+- `hooks/run-hook.cmd`: cross-platform polyglot wrapper for the hook scripts.
 
-The package is validated by the fast tier (`check-hooks.sh`, `check-plugin-manifest.sh`, `check-codex-plugin.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`). The bootstrap preamble is identical across the bash hook and the OpenCode plugin (parity-guarded). Codex support includes native skill loading and, in locally verified installations, plugin hook registration.
-
-**Not supported:** Cursor (its `.cursor/hooks.json` / `sessionStart` mechanism differs from this plugin's hook model; real support deferred to a future ADR) and Copilot CLI. The legacy Gemini CLI install is documented for historical use only; Antigravity (`agy`) is its successor.
+The package is validated by the fast tier (`check-hooks.sh`, `check-plugin-manifest.sh`, `check-codex-plugin.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`, `check-cursor-hooks.sh`, `check-pi-extension.sh`). The bootstrap preamble is identical across the bash hook, the OpenCode plugin, and the Pi extension (parity-guarded).
 
 ## Design Decisions
 

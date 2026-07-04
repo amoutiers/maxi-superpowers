@@ -30,44 +30,15 @@ assert_jq "$MANIFEST" ".name" "maxi" "plugin.json: name is maxi"
 
 assert_jq "$MANIFEST" ".version | test(\"^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")" "true" "plugin.json: version is semver"
 
-# Validate shared root plugin.json
-ROOT_MANIFEST="$ROOT/plugin.json"
-assert_file_exists "$ROOT_MANIFEST" "root plugin.json"
-if [ -f "$ROOT_MANIFEST" ]; then
-  assert_json_valid "$ROOT_MANIFEST" "root plugin.json: valid JSON"
-  if diff -u "$MANIFEST" "$ROOT_MANIFEST" >/dev/null 2>&1; then
-    echo "OK  [root plugin.json matches .claude-plugin/plugin.json]"
-  else
-    echo "FAIL [root plugin.json matches .claude-plugin/plugin.json]: files differ" >&2
-    failures=$((failures + 1))
-  fi
-fi
-
-ANTIGRAVITY_MANIFEST="$ROOT/.antigravity-plugin/plugin.json"
-assert_file_exists "$ANTIGRAVITY_MANIFEST" ".antigravity-plugin/plugin.json"
-if [ ! -L "$ANTIGRAVITY_MANIFEST" ]; then
-  echo "FAIL [.antigravity-plugin/plugin.json]: expected symlink to root plugin.json" >&2
-  failures=$((failures + 1))
-elif [ "$(readlink "$ANTIGRAVITY_MANIFEST")" != "../plugin.json" ]; then
-  echo "FAIL [.antigravity-plugin/plugin.json]: expected symlink target '../plugin.json', got '$(readlink "$ANTIGRAVITY_MANIFEST")'" >&2
-  failures=$((failures + 1))
-else
-  echo "OK  [.antigravity-plugin/plugin.json]: symlink points to root plugin.json"
-fi
-
-for entry in skills hooks; do
-  path="$ROOT/.antigravity-plugin/$entry"
-  if [ ! -e "$path" ]; then
-    echo "FAIL [.antigravity-plugin/$entry]: path not found: $path" >&2
-    failures=$((failures + 1))
-  elif [ ! -L "$path" ]; then
-    echo "FAIL [.antigravity-plugin/$entry]: expected symlink to ../$entry" >&2
-    failures=$((failures + 1))
-  elif [ "$(readlink "$path")" != "../$entry" ]; then
-    echo "FAIL [.antigravity-plugin/$entry]: expected symlink target '../$entry', got '$(readlink "$path")'" >&2
+# Aligned 1:1 with superpowers v6.1.1: no root plugin.json and no
+# .antigravity-plugin/ package directory. Antigravity installs from the repo
+# root and reads .claude-plugin/plugin.json (Claude Code manifest).
+for stale in "$ROOT/plugin.json" "$ROOT/.antigravity-plugin"; do
+  if [ -e "$stale" ]; then
+    echo "FAIL [$(basename "$stale"): should be removed (Antigravity now installs from repo root)]" >&2
     failures=$((failures + 1))
   else
-    echo "OK  [.antigravity-plugin/$entry]: symlink points to ../$entry"
+    echo "OK  [no $(basename "$stale")]"
   fi
 done
 

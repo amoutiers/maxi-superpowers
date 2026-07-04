@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Validates hooks/hooks.json structure and referenced hook scripts.
+# Validates hooks manifests and the unified session-start hook.
+# Model aligned 1:1 with superpowers v6.1.1:
+#   - hooks/hooks.json: root manifest for Claude Code + Antigravity
+#   - hooks/hooks-cursor.json: Cursor manifest (sessionStart + additional_context)
+#   - hooks/session-start: single env-aware hook, gated on docs/maxi/
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -7,132 +11,103 @@ source "$ROOT/tests/lib/test-helpers.sh"
 
 HOOKS_DIR="$ROOT/hooks"
 HOOKS_JSON="$HOOKS_DIR/hooks.json"
-CLAUDE_HOOKS_JSON="$HOOKS_DIR/hooks-claude.json"
-CODEX_HOOKS_JSON="$HOOKS_DIR/hooks-codex.json"
-ANTIGRAVITY_HOOKS_JSON="$HOOKS_DIR/hooks-antigravity.json"
-ANTIGRAVITY_PLUGIN_DIR="$ROOT/.antigravity-plugin"
+CURSOR_HOOKS_JSON="$HOOKS_DIR/hooks-cursor.json"
 failures=0
 
+# --- root manifest: hooks.json (Claude Code + Antigravity) ---
 assert_file_exists "$HOOKS_JSON" "hooks.json"
 [ ! -f "$HOOKS_JSON" ] && summary_and_exit "hooks checks"
 
 assert_json_valid "$HOOKS_JSON" "hooks.json: valid JSON"
 assert_jq "$HOOKS_JSON" 'keys == ["hooks"]' "true" "hooks.json: strict top-level keys"
 assert_jq "$HOOKS_JSON" ".hooks.SessionStart | length > 0" "true" "hooks.json: SessionStart hooks present"
+assert_jq "$HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd")' "true" "hooks.json: uses CLAUDE_PLUGIN_ROOT"
+assert_jq "$HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("session-start")' "true" "hooks.json: runs session-start"
 
+# --- Cursor manifest: hooks-cursor.json ---
+assert_file_exists "$CURSOR_HOOKS_JSON" "hooks-cursor.json"
+if [ -f "$CURSOR_HOOKS_JSON" ]; then
+  assert_json_valid "$CURSOR_HOOKS_JSON" "hooks-cursor.json: valid JSON"
+  assert_jq "$CURSOR_HOOKS_JSON" 'has("version") and has("hooks")' "true" "hooks-cursor.json: version + hooks keys"
+  assert_jq "$CURSOR_HOOKS_JSON" '.hooks.sessionStart | length > 0' "true" "hooks-cursor.json: sessionStart present"
+  assert_jq "$CURSOR_HOOKS_JSON" '.hooks.sessionStart[0].command | contains("session-start")' "true" "hooks-cursor.json: runs session-start"
+fi
+
+# --- unified hook + polyglot wrapper ---
 assert_file_exists "$HOOKS_DIR/run-hook.cmd" "run-hook.cmd"
 assert_executable "$HOOKS_DIR/run-hook.cmd" "run-hook.cmd"
 
-assert_file_exists "$HOOKS_DIR/session-start-core" "session-start-core"
-assert_executable "$HOOKS_DIR/session-start-core" "session-start-core"
+assert_file_exists "$HOOKS_DIR/session-start" "session-start"
+assert_executable "$HOOKS_DIR/session-start" "session-start"
+assert_grep "$HOOKS_DIR/session-start" "You have maxi." "session-start: carries maxi bootstrap header"
 
-assert_file_exists "$HOOKS_DIR/session-start-claude" "session-start-claude"
-assert_executable "$HOOKS_DIR/session-start-claude" "session-start-claude"
-assert_jq "$HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("session-start-claude")' "true" "hooks.json: runs session-start-claude"
-
-assert_file_exists "$CLAUDE_HOOKS_JSON" "hooks-claude.json"
-if [ -f "$CLAUDE_HOOKS_JSON" ]; then
-  assert_json_valid "$CLAUDE_HOOKS_JSON" "hooks-claude.json: valid JSON"
-  assert_jq "$CLAUDE_HOOKS_JSON" 'keys == ["hooks"]' "true" "hooks-claude.json: strict top-level keys"
-  assert_jq "$CLAUDE_HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd")' "true" "hooks-claude.json: uses Claude CLAUDE_PLUGIN_ROOT"
-  assert_jq "$CLAUDE_HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("session-start-claude")' "true" "hooks-claude.json: runs session-start-claude"
-  if cmp -s "$HOOKS_JSON" "$CLAUDE_HOOKS_JSON"; then
-    echo "OK  [hooks.json matches hooks-claude.json]"
-  else
-    echo "FAIL [hooks.json matches hooks-claude.json]: mismatch detected" >&2
+# Stale per-harness wrappers must be gone.
+for stale in session-start-core session-start-claude session-start-codex session-start-antigravity; do
+  if [ -e "$HOOKS_DIR/$stale" ]; then
+    echo "FAIL [stale wrapper $stale]: should be removed" >&2
     failures=$((failures + 1))
+  else
+    echo "OK  [no stale $stale]"
   fi
-fi
+done
 
-assert_file_exists "$CODEX_HOOKS_JSON" "hooks-codex.json"
-if [ -f "$CODEX_HOOKS_JSON" ]; then
-  assert_json_valid "$CODEX_HOOKS_JSON" "hooks-codex.json: valid JSON"
-  assert_jq "$CODEX_HOOKS_JSON" 'keys == ["hooks"]' "true" "hooks-codex.json: strict Codex-compatible top-level keys"
-  assert_jq "$CODEX_HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("${PLUGIN_ROOT}/hooks/run-hook.cmd")' "true" "hooks-codex.json: uses Codex PLUGIN_ROOT"
-  assert_jq "$CODEX_HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("session-start-codex")' "true" "hooks-codex.json: runs session-start-codex"
-fi
+# Stale alias manifests must be gone.
+for stale in hooks-claude.json hooks-codex.json hooks-antigravity.json; do
+  if [ -e "$HOOKS_DIR/$stale" ]; then
+    echo "FAIL [stale manifest $stale]: should be removed" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [no stale $stale]"
+  fi
+done
 
-assert_file_exists "$HOOKS_DIR/session-start-codex" "session-start-codex"
-assert_executable "$HOOKS_DIR/session-start-codex" "session-start-codex"
-
-assert_file_exists "$HOOKS_DIR/session-start-antigravity" "session-start-antigravity"
-assert_executable "$HOOKS_DIR/session-start-antigravity" "session-start-antigravity"
-
-# Validate Antigravity package hooks
-assert_file_exists "$ANTIGRAVITY_HOOKS_JSON" "hooks-antigravity.json"
-if [ -f "$ANTIGRAVITY_HOOKS_JSON" ]; then
-  assert_json_valid "$ANTIGRAVITY_HOOKS_JSON" "hooks-antigravity.json: valid JSON"
-  assert_jq "$ANTIGRAVITY_HOOKS_JSON" 'keys == ["hooks"]' "true" "hooks-antigravity.json: strict top-level keys"
-  assert_jq "$ANTIGRAVITY_HOOKS_JSON" ".hooks.SessionStart | length > 0" "true" "hooks-antigravity.json: SessionStart hooks present"
-  assert_jq "$ANTIGRAVITY_HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("${extensionPath}/hooks/run-hook.cmd")' "true" "hooks-antigravity.json: uses Antigravity extensionPath"
-  assert_jq "$ANTIGRAVITY_HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("session-start-antigravity")' "true" "hooks-antigravity.json: runs session-start-antigravity"
-fi
-
-assert_file_exists "$ANTIGRAVITY_PLUGIN_DIR/hooks.json" ".antigravity-plugin/hooks.json"
-if [ ! -L "$ANTIGRAVITY_PLUGIN_DIR/hooks.json" ]; then
-  echo "FAIL [.antigravity-plugin/hooks.json]: expected symlink to hooks-antigravity.json" >&2
-  failures=$((failures + 1))
-elif [ "$(readlink "$ANTIGRAVITY_PLUGIN_DIR/hooks.json")" != "../hooks/hooks-antigravity.json" ]; then
-  echo "FAIL [.antigravity-plugin/hooks.json]: expected symlink target '../hooks/hooks-antigravity.json', got '$(readlink "$ANTIGRAVITY_PLUGIN_DIR/hooks.json")'" >&2
+# The .antigravity-plugin/ package directory is gone (Antigravity installs from repo root).
+if [ -e "$ROOT/.antigravity-plugin" ]; then
+  echo "FAIL [.antigravity-plugin/]: should be removed (Antigravity installs from repo root)" >&2
   failures=$((failures + 1))
 else
-  echo "OK  [.antigravity-plugin/hooks.json]: symlink points to hooks-antigravity.json"
+  echo "OK  [no .antigravity-plugin/]"
 fi
 
-# --- M1 (2026-05-30 review): session-start-claude must emit valid JSON in a maxi project, ---
-# --- and stay silent (empty, exit 0) outside one. ---
-HOOK="$HOOKS_DIR/session-start-claude"
+# --- behavior: the unified hook emits the right JSON shape per harness ---
 TMP_PROJ="$(mktemp -d)"; TMP_EMPTY="$(mktemp -d)"
 trap 'rm -rf "$TMP_PROJ" "$TMP_EMPTY"' EXIT
 mkdir -p "$TMP_PROJ/docs/maxi"
+HOOK="$HOOKS_DIR/session-start"
 
-hook_out="$(cd "$TMP_PROJ" && CLAUDE_PLUGIN_ROOT="$ROOT" bash "$HOOK")"
-if printf '%s' "$hook_out" | jq empty 2>/dev/null; then
-  echo "OK  [session-start-claude: emits valid JSON in a maxi project]"
+# Claude Code shape (CLAUDE_PLUGIN_ROOT, no COPILOT_CLI)
+claude_out="$(cd "$TMP_PROJ" && CLAUDE_PLUGIN_ROOT="$ROOT" bash "$HOOK")"
+if printf '%s' "$claude_out" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart" and (.hookSpecificOutput.additionalContext | contains("maxi:using-maxi"))' >/dev/null 2>&1; then
+  echo "OK  [session-start: Claude Code shape in a maxi project]"
 else
-  echo "FAIL [session-start-claude: emits valid JSON in a maxi project]" >&2
+  echo "FAIL [session-start: Claude Code shape in a maxi project]" >&2
   failures=$((failures + 1))
 fi
 
-empty_out="$(cd "$TMP_EMPTY" && CLAUDE_PLUGIN_ROOT="$ROOT" bash "$HOOK")"
+# Cursor shape (CURSOR_PLUGIN_ROOT)
+cursor_out="$(cd "$TMP_PROJ" && CURSOR_PLUGIN_ROOT="$ROOT" bash "$HOOK")"
+if printf '%s' "$cursor_out" | jq -e '.additional_context | contains("maxi:using-maxi")' >/dev/null 2>&1; then
+  echo "OK  [session-start: Cursor shape in a maxi project]"
+else
+  echo "FAIL [session-start: Cursor shape in a maxi project]" >&2
+  failures=$((failures + 1))
+fi
+
+# Copilot CLI shape (COPILOT_CLI=1)
+copilot_out="$(cd "$TMP_PROJ" && COPILOT_CLI=1 bash "$HOOK")"
+if printf '%s' "$copilot_out" | jq -e '.additionalContext | contains("maxi:using-maxi")' >/dev/null 2>&1; then
+  echo "OK  [session-start: Copilot CLI shape in a maxi project]"
+else
+  echo "FAIL [session-start: Copilot CLI shape in a maxi project]" >&2
+  failures=$((failures + 1))
+fi
+
+# Silent outside a maxi project
+empty_out="$(cd "$TMP_EMPTY" && bash "$HOOK")"
 if [ -z "$empty_out" ]; then
-  echo "OK  [session-start-claude: silent outside a maxi project]"
+  echo "OK  [session-start: silent outside a maxi project]"
 else
-  echo "FAIL [session-start-claude: silent outside a maxi project]: got output" >&2
-  failures=$((failures + 1))
-fi
-
-CODEX_HOOK="$HOOKS_DIR/session-start-codex"
-codex_hook_out="$(cd "$TMP_PROJ" && PLUGIN_ROOT="$ROOT" bash "$CODEX_HOOK")"
-if printf '%s' "$codex_hook_out" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart" and (.hookSpecificOutput.additionalContext | contains("maxi:using-maxi"))' >/dev/null 2>&1; then
-  echo "OK  [session-start-codex: emits Codex SessionStart additionalContext in a maxi project]"
-else
-  echo "FAIL [session-start-codex: emits Codex SessionStart additionalContext in a maxi project]" >&2
-  failures=$((failures + 1))
-fi
-
-codex_empty_out="$(cd "$TMP_EMPTY" && PLUGIN_ROOT="$ROOT" bash "$CODEX_HOOK")"
-if [ -z "$codex_empty_out" ]; then
-  echo "OK  [session-start-codex: silent outside a maxi project]"
-else
-  echo "FAIL [session-start-codex: silent outside a maxi project]: got output" >&2
-  failures=$((failures + 1))
-fi
-
-ANTIGRAVITY_HOOK="$HOOKS_DIR/session-start-antigravity"
-antigravity_hook_out="$(cd "$TMP_PROJ" && bash "$ANTIGRAVITY_HOOK")"
-if printf '%s' "$antigravity_hook_out" | jq -e '.additionalContext | contains("maxi:using-maxi")' >/dev/null 2>&1; then
-  echo "OK  [session-start-antigravity: emits SDK additionalContext in a maxi project]"
-else
-  echo "FAIL [session-start-antigravity: emits SDK additionalContext in a maxi project]" >&2
-  failures=$((failures + 1))
-fi
-
-antigravity_empty_out="$(cd "$TMP_EMPTY" && bash "$ANTIGRAVITY_HOOK")"
-if [ -z "$antigravity_empty_out" ]; then
-  echo "OK  [session-start-antigravity: silent outside a maxi project]"
-else
-  echo "FAIL [session-start-antigravity: silent outside a maxi project]: got output" >&2
+  echo "FAIL [session-start: silent outside a maxi project]: got output" >&2
   failures=$((failures + 1))
 fi
 

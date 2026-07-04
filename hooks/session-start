@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
-# Shared SessionStart implementation for maxi plugin hooks.
+# SessionStart hook for maxi plugin
+#
+# One unified hook for all harnesses that run a session-start shell hook
+# (Claude Code, Antigravity, Cursor, Copilot CLI). Codex and OpenCode use
+# their own discovery mechanisms and do not call this hook.
+#
+# Output format is selected by environment:
+#   - Cursor sets CURSOR_PLUGIN_ROOT (may also set CLAUDE_PLUGIN_ROOT) → additional_context
+#   - Claude Code sets CLAUDE_PLUGIN_ROOT without COPILOT_CLI → hookSpecificOutput.additionalContext
+#   - Copilot CLI (sets COPILOT_CLI=1) or unknown → additionalContext (SDK standard)
 
 set -euo pipefail
 
-# Determine plugin root directory
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Only inject in maxi projects — skip in projects without docs/maxi/
+# Only inject in maxi projects — skip in projects without docs/maxi/.
 if [ ! -d "$PWD/docs/maxi" ]; then
   exit 0
 fi
@@ -16,8 +24,6 @@ fi
 using_maxi_content=$(cat "${PLUGIN_ROOT}/skills/using-maxi/SKILL.md" 2>&1 || echo "Error reading using-maxi skill")
 
 # Escape string for JSON embedding using bash parameter substitution.
-# Each ${s//old/new} is a single C-level pass - orders of magnitude
-# faster than the character-by-character loop this replaces.
 escape_for_json() {
     local s="$1"
     s="${s//\\/\\\\}"
@@ -31,18 +37,20 @@ escape_for_json() {
 using_maxi_escaped=$(escape_for_json "$using_maxi_content")
 session_context="<EXTREMELY_IMPORTANT>\nYou have maxi.\n\n**Below is the full content of your 'maxi:using-maxi' skill - your introduction to the maxi spec-driven pipeline. For all other maxi skills, use the 'Skill' tool:**\n\n${using_maxi_escaped}\n</EXTREMELY_IMPORTANT>"
 
-# Output context injection in harness-specific format.
-# This script may be invoked by different harnesses, each expecting a different JSON shape:
-#   - Claude Code: hookSpecificOutput.additionalContext (via hooks.json + CLAUDE_PLUGIN_ROOT)
-#   - OpenCode / Antigravity / Copilot CLI / unknown: additionalContext top-level (SDK standard)
+# Output context injection as JSON.
+# The bootstrap preamble (the <EXTREMELY_IMPORTANT> block above) MUST stay
+# byte-identical across this hook and .opencode/plugins/maxi.js — guarded by
+# tests/check-bootstrap-parity.sh. Edit both together.
 #
 # Uses printf instead of heredoc to work around bash 5.3+ heredoc hang.
-# See: https://github.com/obra/superpowers/issues/571
-if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  # Cursor sets CURSOR_PLUGIN_ROOT (may also set CLAUDE_PLUGIN_ROOT)
+  printf '{\n  "additional_context": "%s"\n}\n' "$session_context"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
   # Claude Code sets CLAUDE_PLUGIN_ROOT without COPILOT_CLI
   printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"
 else
-  # OpenCode / Antigravity / Copilot CLI / unknown — SDK-standard top-level additionalContext
+  # Copilot CLI (sets COPILOT_CLI=1) or unknown platform — SDK standard format
   printf '{\n  "additionalContext": "%s"\n}\n' "$session_context"
 fi
 

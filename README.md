@@ -2,7 +2,7 @@
 
 ![maxi-superpowers](assets/logo.svg)
 
-A spec-driven development plugin for Claude Code, Codex, OpenCode, and Antigravity (legacy Gemini CLI also supported). maxi turns "build me X" into a disciplined pipeline — **constitution → spec → clarify → plan → tasks → analyze → implement** — and gates each phase so nothing ships without the design artifacts to back it. Under the hood it delegates implementation to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
+A spec-driven development plugin for Claude Code, Codex, OpenCode, Antigravity, Cursor, Pi, Kimi Code, Factory Droid, and GitHub Copilot CLI. maxi turns "build me X" into a disciplined pipeline — **constitution → spec → clarify → plan → tasks → analyze → implement** — and gates each phase so nothing ships without the design artifacts to back it. Under the hood it delegates implementation to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
 
 **Why maxi?**
 
@@ -32,18 +32,23 @@ codex plugin marketplace add ./maxi-superpowers
 codex plugin add maxi@maxi-superpowers
 ```
 
-Codex loads the maxi skills natively from the plugin. Like superpowers, maxi declares its Codex `SessionStart` hook through `.codex-plugin/plugin.json` with `hooks/hooks-codex.json`. If a Codex environment has plugin hooks disabled or unavailable, start by invoking the relevant skill directly (for example, ask Codex to use `maxi:constitution`).
+Codex loads the maxi skills natively from the plugin. Like superpowers, maxi declares an empty `hooks: {}` object in `.codex-plugin/plugin.json` so Codex relies on its native skill discovery (no `SessionStart` hook). Start by invoking the relevant skill directly (for example, ask Codex to use `maxi:constitution`).
 
-### For Antigravity CLI
+### For Antigravity
 ```bash
-# Install locally:
+# Install from this repository:
+agy plugin install https://github.com/amoutiers/maxi-superpowers
+
+# Or install locally:
 git clone https://github.com/amoutiers/maxi-superpowers
 cd maxi-superpowers
-agy plugin install .antigravity-plugin
-
-# Or import your legacy Gemini extensions:
-agy plugin import gemini
+agy plugin install .
 ```
+
+Antigravity runs the plugin's session-start hook (the root `hooks/hooks.json`), so maxi is active from the first message. Reinstall with the same command to update.
+
+### For Cursor
+Install from Cursor's plugin marketplace, or run `hooks/hooks-cursor.json` as a sessionStart hook (Cursor expects `additional_context`).
 
 ### For OpenCode
 Add to your `opencode.json`:
@@ -54,16 +59,19 @@ Add to your `opencode.json`:
 ```
 Then restart OpenCode. See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for details.
 
-### For Legacy Gemini CLI (deprecated — use Antigravity)
+### For Pi
+Install maxi as a Pi package from this repository:
 ```bash
-# Install from the GitHub repository:
-gemini extensions install https://github.com/amoutiers/maxi-superpowers
-
-# Or install locally:
-git clone https://github.com/amoutiers/maxi-superpowers
-cd maxi-superpowers
-gemini extensions install .
+pi install git:github.com/amoutiers/maxi-superpowers
 ```
+
+For local development, run Pi with this checkout loaded as a temporary package:
+```bash
+pi -e /path/to/maxi-superpowers
+```
+
+### For Kimi Code, Factory Droid, and GitHub Copilot CLI
+Install the maxi plugin from each harness's marketplace. See the harness-specific install docs for details.
 
 ## Start here
 
@@ -139,7 +147,7 @@ Skipping or reversing a status is blocked by the skill that owns each transition
 
 ## Vendored Superpowers Skills
 
-maxi-superpowers vendors [superpowers v6.0.3](https://github.com/obra/superpowers) via git subtree. All superpowers skills are available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:test-driven-development`). The pipeline skills delegate to them at the right moments — you don't invoke them directly.
+maxi-superpowers vendors [superpowers v6.1.1](https://github.com/obra/superpowers) via git subtree. All superpowers skills are available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:test-driven-development`). The pipeline skills delegate to them at the right moments — you don't invoke them directly.
 
 ## Onboarding an existing project
 
