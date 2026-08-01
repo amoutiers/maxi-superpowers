@@ -2,7 +2,7 @@
 slug: 0019-artifact-analysis-convergence
 created: 2026-08-01
 updated: 2026-08-01
-status: planned
+status: tasked
 # Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled
 parked_from: null
 # parked_from: set by /maxi:park to the pre-park status; cleared to null by /maxi:resume
