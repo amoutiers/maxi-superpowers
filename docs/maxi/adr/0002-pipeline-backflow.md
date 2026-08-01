@@ -1,12 +1,12 @@
 ---
 adr: 0002
 slug: 0002-pipeline-backflow
-status: accepted
+status: superseded
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-08-01
 decider: "Antoine Moutiers"
 supersedes: null
-superseded_by: null
+superseded_by: 0018
 ---
 
 # ADR-0002: Pipeline Backflow — /maxi:revise
