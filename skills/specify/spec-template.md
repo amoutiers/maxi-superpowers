@@ -4,6 +4,13 @@ created: YYYY-MM-DD
 updated: YYYY-MM-DD
 status: drafting
 # Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled
+revision: 1
+writer_context: <unique-writer-context>
+structural_contributors:
+  - <unique-writer-context>
+derived_from: []
+# Forward-created specs have no document inputs. Replace both writer-context placeholders
+# with one new context unique across this spec's pipeline-owned documents.
 parked_from: null
 # parked_from: set by /maxi:park to the pre-park status; cleared to null by /maxi:resume
 related_adrs: []

@@ -84,18 +84,27 @@ assert_not_grep "$spec1" "^\*\*Status\*\*:" "001 spec.md inline Status stripped"
 assert_not_grep "$spec1" "^\*\*Created\*\*:" "001 spec.md inline Created stripped"
 assert_not_grep "$spec1" "^\*\*Feature Branch\*\*:" "001 spec.md inline Feature Branch stripped"
 assert_not_grep "$spec1" "^\*\*Input\*\*:" "001 spec.md inline Input stripped"
+for field in revision writer_context structural_contributors derived_from; do
+  assert_not_grep "$spec1" "^${field}:" "001 spec.md has no forward ${field} metadata"
+done
 
 # plan.md: frontmatter added
 plan1="$TMP/docs/maxi/specs/001-shipped-feature/plan.md"
 assert_file_exists "$plan1" "001 plan.md created"
 assert_starts_with_yaml_frontmatter "$plan1" "001 plan.md has YAML frontmatter"
 assert_grep "$plan1" "^slug: 001-shipped-feature$" "001 plan.md slug set"
+for field in revision writer_context structural_contributors derived_from; do
+  assert_not_grep "$plan1" "^${field}:" "001 plan.md has no forward ${field} metadata"
+done
 
 # tasks.md: frontmatter added
 tasks1="$TMP/docs/maxi/specs/001-shipped-feature/tasks.md"
 assert_file_exists "$tasks1" "001 tasks.md created"
 assert_starts_with_yaml_frontmatter "$tasks1" "001 tasks.md has YAML frontmatter"
 assert_grep "$tasks1" "^slug: 001-shipped-feature$" "001 tasks.md slug set"
+for field in revision writer_context structural_contributors derived_from; do
+  assert_not_grep "$tasks1" "^${field}:" "001 tasks.md has no forward ${field} metadata"
+done
 
 # Aux files
 assert_file_exists "$TMP/docs/maxi/specs/001-shipped-feature/retrospective.md" "001 retrospective.md preserved"
@@ -110,6 +119,9 @@ assert_starts_with_yaml_frontmatter "$spec2" "002 spec.md has YAML frontmatter"
 assert_grep "$spec2" "^status: specified$" "002 spec.md status=specified"
 assert_grep "$spec2" "^slug: 002-draft-feature$" "002 spec.md slug set"
 assert_grep "$spec2" "^created: 2026-03-01$" "002 spec.md created date parsed"
+for field in revision writer_context structural_contributors derived_from; do
+  assert_not_grep "$spec2" "^${field}:" "002 spec.md has no forward ${field} metadata"
+done
 
 # ---------------------------------------------------------------------------
 # Constitution

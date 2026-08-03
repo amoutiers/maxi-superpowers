@@ -87,6 +87,9 @@ assert_grep "$new" "^source_sha: cafef00d$"       "write-spec: source sha record
 assert_grep "$new" "^slug: 0003-billing$"         "write-spec: slug set"
 assert_grep "$new" "## Migration Notes"           "write-spec: Migration Notes present"
 assert_grep "$new" "plan/tasks/analyze/implement" "write-spec: notes phases not run"
+for field in revision writer_context structural_contributors derived_from; do
+  assert_not_grep "$new" "^${field}:" "write-spec: no forward ${field} metadata"
+done
 rm -rf "$TMP4"
 
 # ---------------------------------------------------------------------------

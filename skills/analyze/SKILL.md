@@ -26,6 +26,8 @@ Required files:
 - `docs/maxi/specs/NNNN-slug/tasks.md` (task IDs, descriptions, phase grouping, [P] markers)
 - `docs/maxi/constitution.md` (principles, MUST/SHOULD rules)
 
+Also locate every support artifact present beside the plan (`research.md`, `data-model.md`, `quickstart.md`, and `contracts/*.md`). These are required direct inputs for a forward-pipeline analysis when present.
+
 Abort with actionable message if any required file is missing.
 
 ### Step 2 — Load Artifacts (Minimal Sections)
@@ -35,6 +37,7 @@ Load only what each pass needs:
 **From spec.md:** FR-### items, SC-### items, user stories, edge cases
 **From plan.md:** Architecture choices, data model references, phases, technical constraints
 **From tasks.md:** Task IDs, descriptions, [USN] labels, [P] markers, file paths
+**From support artifacts:** Claims, entities, schemas, examples, and contracts needed to cross-check the core artifacts
 **From constitution.md:** All principle names + MUST/SHOULD statements
 **From docs/maxi/adr/ (if exists):** All ADR files — adr number, title, status, Decision section, Consequences section
 
@@ -101,6 +104,18 @@ Skip this pass entirely (and note "no ADRs" in Metrics) if `docs/maxi/adr/` is e
 Write to `docs/maxi/specs/NNNN-slug/analysis.md`. Structure:
 
 ```markdown
+---
+revision: 1
+writer_context: <unique-writer-context>
+structural_contributors:
+  - <unique-writer-context>
+derived_from:
+  - spec.md@<exact-revision-read>
+  - <support-artifact-path>@<exact-revision-read>
+  - plan.md@<exact-revision-read>
+  - tasks.md@<exact-revision-read>
+---
+
 # Specification Analysis Report
 
 Generated: [date]
@@ -145,9 +160,13 @@ Spec: docs/maxi/specs/NNNN-slug/spec.md (status: [current status])
 [If LOW/MEDIUM only: may proceed; suggestions below]
 ```
 
+This frontmatter applies only to the first `analysis.md` created for a spec created through the normal forward pipeline. Generate one non-empty writer context unique across that spec's pipeline-owned documents, and include every present support artifact in `derived_from` at the exact revision read. Constitution and ADR files remain audit context outside this spec-local replay graph.
+
+On a later structural rewrite of `analysis.md`, increment only its revision, replace `writer_context` with the new unique context, and append that context to `structural_contributors`. Status, timestamps, task-completion checkboxes, and `related_adrs` are non-structural and never increment a revision or append a contributor. Do not add or infer revision, writer-context, contributor, or derived-input metadata for existing, migrated, or reverse-engineered specs.
+
 ### Step 7 — Transition Status
 
-If current status was `tasked`: update spec.md frontmatter `status: tasked → analyzed`; also set `updated: [today's ISO date]` on spec.md.
+If current status was `tasked`: update spec.md frontmatter `status: tasked → analyzed`; also set `updated: [today's ISO date]` on spec.md. This status/timestamp update is non-structural and leaves spec.md provenance unchanged.
 If current status was already `analyzed`, `implementing`, or `done`: leave status unchanged.
 
 ### Step 8 — Report

@@ -3,6 +3,15 @@ slug: NNNN-feature-slug
 spec_slug: NNNN-feature-slug
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
+revision: 1
+writer_context: <unique-writer-context>
+structural_contributors:
+  - <unique-writer-context>
+derived_from:
+  - <direct-input-path>@<exact-revision>
+# Replace the writer-context placeholders with one new context unique across this
+# spec's pipeline-owned documents. Replace the derived input placeholder with every
+# direct document input required by the forward provenance contract in SKILL.md.
 ---
 
 # Tasks: [feature-name]

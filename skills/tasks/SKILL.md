@@ -16,7 +16,7 @@ Extract a structured `tasks.md` from an existing `plan.md`. Pure extraction — 
 
 ## Process
 
-1. **Read inputs** — load `plan.md` as primary source; also load `research.md`, `data-model.md`, `contracts/` if they exist alongside it in `docs/maxi/specs/NNNN-slug/`
+1. **Read inputs** — load `plan.md` as primary source; also load `spec.md`, `research.md`, `data-model.md`, `contracts/` if they exist alongside it in `docs/maxi/specs/NNNN-slug/`, plus the current approved `reviews/plan-review.md`
 2. **Map tasks to user stories** — for each user story in `spec.md`, collect the tasks from `plan.md` that implement it. Tag each task with `[US1]`, `[US2]`, etc.
 3. **Identify parallel tasks** — mark with `[P]` any task that touches different files from all other tasks in the same phase (no shared-file writes, no dependency on concurrent tasks)
 4. **Assign sequential IDs** — number all tasks `T001`, `T002`, ... in phase order. No letters, no "Task N", no "Step N".
@@ -26,9 +26,26 @@ Extract a structured `tasks.md` from an existing `plan.md`. Pure extraction — 
    - Phase 3+: One phase per user story
    - Final phase: Polish & Cross-Cutting Concerns
    - A **Checkpoint** line after each phase
-6. **Write `tasks.md`** — output to `docs/maxi/specs/NNNN-slug/tasks.md` following the template schema. Include Dependencies & Execution Order section.
-7. **Transition status** — update spec.md frontmatter `status: planned → tasked`; also set `updated: [today's ISO date]` on spec.md and on tasks.md. When creating tasks.md, set its frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date.
+6. **Write `tasks.md`** — output to `docs/maxi/specs/NNNN-slug/tasks.md` following the template schema and forward provenance contract below. Include Dependencies & Execution Order section.
+7. **Transition status** — update spec.md frontmatter `status: planned → tasked`; also set `updated: [today's ISO date]` on spec.md and on tasks.md. When creating tasks.md, set its frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Status and timestamp changes are non-structural and do not change either document's revision, writer context, or structural contributors.
 8. **Report** — *"Tasks written to `docs/maxi/specs/NNNN-slug/tasks.md` (status: `tasked`). Next: `/maxi:analyze` (recommended) or `/maxi:implement`."*
+
+## Forward Provenance Contract
+
+Apply this contract only when creating `tasks.md` for a spec created through the normal forward pipeline. Do not add or infer this metadata on existing, migrated, or reverse-engineered specs.
+
+```yaml
+revision: 1
+writer_context: <new non-empty context unique across this spec's pipeline-owned documents>
+structural_contributors:
+  - <the exact writer_context above>
+derived_from:
+  - <direct-input-path>@<exact-revision-read>
+```
+
+Populate `derived_from` with every document read to produce `tasks.md`, including `spec.md`, `plan.md`, every support artifact read, and the current approved `reviews/plan-review.md`. The approval is a direct provenance dependency even when its findings do not contribute task text.
+
+On a later structural owner write, increment only `tasks.md`, replace its `writer_context` with the new unique context, and append that context to `structural_contributors`. Status, timestamps, task-completion checkboxes, and `related_adrs` are non-structural: they never increment revisions or append contributors.
 
 ## Task Format
 
@@ -94,6 +111,8 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 - **MVP Checkpoint after Phase 3 (US1).** Always mark the P1 user story checkpoint as the MVP.
 - **Phase structure is required even for single-story features.** One user story = at minimum: Setup → Foundational → Phase 3 (US1) → Polish. A flat list with no phases is never acceptable.
 - **Template schema required.** Follow `tasks-template.md` structure. Include Dependencies section.
+- **Exact direct inputs.** `tasks.md` derives from every document read, including the current plan and approved plan review, at their exact revisions.
+- **No metadata retrofit.** Existing, migrated, and reverse-engineered specs and their artifacts remain unchanged.
 
 ## Red Flags
 

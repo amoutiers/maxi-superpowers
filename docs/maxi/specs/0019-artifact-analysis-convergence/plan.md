@@ -3,7 +3,7 @@ slug: 0019-artifact-analysis-convergence
 spec_slug: 0019-artifact-analysis-convergence
 created: 2026-08-03
 updated: 2026-08-03
-revision: 9
+revision: 16
 derived_from:
   - spec.md@7
 ---
@@ -24,7 +24,7 @@ derived_from:
 - Version exactly `spec.md`, `research.md`, `data-model.md`, `contracts/*.md`, `reviews/spec-review.md`, `plan.md`, `reviews/plan-review.md`, `tasks.md`, and `analysis.md` when those documents are created.
 - Keep `revision`, `writer_context`, `structural_contributors`, and exact `derived_from` metadata with the owning document; a structural change increments only that document.
 - Do not add an FSM status, a workflow ledger, write-ahead recovery, agentic integration test, or ADR-currentness framework.
-- `workflow-ledger.sh` remains the sole author of `workflow.md` and `.maxi-ops`; this feature never writes either path.
+- This feature MUST NOT create or write `workflow.md` or `.maxi-ops`.
 - Keep the shared replay script read-only. It must neither write files, create review records, nor invoke skills.
 - All `SKILL.md` edits, including the new `x-review` skill, use `superpowers:writing-skills`; vendored skills remain byte-identical.
 - Bash must remain compatible with Bash 3.2.
@@ -39,21 +39,14 @@ derived_from:
 | I. Mandatory Spec-Driven Pipeline | Pass. Every forward phase remains present; review is a handoff gate, not a replacement phase. |
 | II. Delegate to Superpowers | Pass. `x-review` delegates reviewer work to `superpowers:requesting-code-review` and owns only the persisted review artifact. |
 | III. Strict Pipeline | Pass. Replay excludes only unaffected ancestors and stops before a required independent review rather than bypassing it. |
-| IV. ADR for non-trivial decisions | Pass with ADR required. Persistent review records plus a new gate are a structural pipeline decision; draft the ADR after planning and wait for explicit consent before writing it. |
+| IV. ADR for non-trivial decisions | Pass. [0019-bounded-forward-artifact-replay](../../adr/0019-bounded-forward-artifact-replay.md) and [0020-persisted-independent-handoff-reviews](../../adr/0020-persisted-independent-handoff-reviews.md) are accepted for the revision boundary and review gates. |
 | V. Artifacts Over Chat | Pass. Review verdict, subject revision, reviewer context, and verification result live in versioned review artifacts. |
 | VI. Single Responsibility per Skill | Pass. `x-review` owns review records, document producers own their artifacts and transitions, and the planner only reads and calculates. |
 
-## ADR Candidate
+## Accepted Decisions
 
-**Decision:** Preserve the existing FSM while adding versioned, independently verified review records at the clarified-to-planned and planned-to-tasked handoffs. Use persisted writer-context provenance to validate that a reviewer did not structurally contribute to the reviewed document, and pause minimal replay at each review handoff.
-
-**Options considered:**
-
-1. Persisted review records with the existing FSM, selected. It satisfies constitutional artifact persistence and keeps replay bounded without adding lifecycle state.
-2. Chat-only reviews. Rejected because verdicts and independence evidence would be ephemeral.
-3. New review FSM statuses. Rejected because it expands the state machine without making the review evidence clearer.
-
-After this plan is reviewed, invoke `maxi:x-adr`, show the complete draft to the user, and write an ADR only after an explicit `yes`. Until then, `related_adrs` remains unchanged.
+- [0019-bounded-forward-artifact-replay](../../adr/0019-bounded-forward-artifact-replay.md) records the future-forward revision boundary and read-only bounded replay.
+- [0020-persisted-independent-handoff-reviews](../../adr/0020-persisted-independent-handoff-reviews.md) records persisted independent review handoffs with the unchanged FSM.
 
 ## Project Structure
 
@@ -73,6 +66,7 @@ skills/
     └── replay-plan.sh                    # read-only graph and pause calculation
 tests/
 ├── check-bounded-replay.sh               # graph, handoff, consent, no-write checks
+├── check-x-review.sh                     # review-envelope and provenance checks
 ├── check-templates.sh                    # version/context template contracts
 ├── check-skills-present.sh               # x-review registration
 ├── run-all.sh                            # fast-tier registration
@@ -90,7 +84,6 @@ docs/
 - Create: `tests/check-bounded-replay.sh`
 - Create: `tests/fixtures/bounded-replay/current/{spec.md,research.md,data-model.md,contracts/api.md,reviews/spec-review.md,plan.md,reviews/plan-review.md,tasks.md,analysis.md}`
 - Create: `tests/fixtures/bounded-replay/{legacy,missing-review,self-review,cycle,escape}/`
-- Modify: `tests/run-all.sh`
 
 **Interfaces:**
 
@@ -122,11 +115,17 @@ docs/
 
   Expected: nonzero because `skills/revise/replay-plan.sh` and `skills/x-review/` do not yet exist.
 
-- [ ] **Step 4: Register only deterministic coverage**
+## Task 2: Register deterministic bounded-replay coverage
 
-  Add `run_check "Bounded replay" "tests/check-bounded-replay.sh"` to `tests/run-all.sh`. Do not add an agentic integration scenario.
+**Files:**
 
-## Task 2: Add revision and writer-context contracts to forward producers
+- Modify: `tests/run-all.sh`
+
+- [ ] **Step 1: Register only deterministic coverage**
+
+  Add `run_check "$TESTS_DIR/check-bounded-replay.sh" "Bounded replay"` to `tests/run-all.sh`. Do not add an agentic integration scenario.
+
+## Task 3: Add revision and writer-context contracts to forward producers
 
 **Files:**
 
@@ -164,12 +163,13 @@ docs/
 
   Expected: all commands exit 0.
 
-## Task 3: Add the independent review-record owner
+## Task 4: Add the independent review-record owner
 
 **Files:**
 
 - Create: `skills/x-review/SKILL.md`
 - Create: `skills/x-review/review-template.md`
+- Create: `tests/check-x-review.sh`
 - Modify: `tests/check-skills-present.sh`
 - Modify: `tests/check-templates.sh`
 - Modify: `tests/check-bounded-replay.sh`
@@ -183,25 +183,33 @@ docs/
 
 - [ ] **Step 1: Define RED review-record assertions**
 
-  Require the review template to persist the exact field set from Task 1 plus the reviewed SHA-256 and the harness-context equality result. Require the owner to reject an unknown subject, revision or SHA-256 mismatch, a reviewer context different from the harness-issued context, non-approved verdict, missing context, or a reviewer context present in the subject's structural contributors. Require creation to initialize, and update to append, the record's writer context in `structural_contributors`. Require the report body to preserve the review findings and verdict rather than only a chat response.
+  In `tests/check-x-review.sh`, require the review template to persist the exact field set from Task 1 plus the reviewed SHA-256 and the harness-context equality result. Require the owner to reject an unknown subject, revision or SHA-256 mismatch, a reviewer context different from the harness-issued context, non-approved verdict, missing context, or a reviewer context present in the subject's structural contributors. Require creation to initialize, and update to append, the record's writer context in `structural_contributors`. Require the report body to preserve the review findings and verdict rather than only a chat response.
 
 - [ ] **Step 2: Prove RED**
 
-  Run: `bash tests/check-bounded-replay.sh && bash tests/check-skills-present.sh`
+  Run the two expected failures without short-circuiting:
 
-  Expected: both commands fail because `x-review` is absent.
+  ```bash
+  bash tests/check-x-review.sh
+  x_review_status=$?
+  bash tests/check-skills-present.sh
+  skill_status=$?
+  test "$x_review_status" -ne 0 && test "$skill_status" -ne 0
+  ```
+
+  Expected: exit 0 only because both underlying commands fail: `x-review` and its targeted contract check are absent.
 
 - [ ] **Step 3: Author the skill through `superpowers:writing-skills`**
 
   Create one internal, single-purpose review-record owner. It must retain the vendored review checklist and output format rather than duplicate a code-review prompt. Because the vendored skill's git range cannot identify an uncommitted current artifact, supply the subject envelope as additional context and instruct the reviewer to evaluate those exact bytes, not `HEAD`. On approval, compare the returned path, revision, SHA-256, and reviewer context with the current subject and the harness-issued context; only then create or structurally update the selected record, set its direct input to the current subject revision, set the verified reviewer context as its writer context, initialize or append that context in the record's `structural_contributors`, and retain the findings plus both verification results. After the record write, it may call the read-only planner to display, but never execute, the remaining continuation.
 
-- [ ] **Step 4: Prove GREEN**
+- [ ] **Step 4: Prove the isolated review-record contract**
 
-  Run: `bash tests/check-bounded-replay.sh && bash tests/check-skills-present.sh && bash tests/check-frontmatter.sh`
+  Run: `bash tests/check-x-review.sh && bash tests/check-skills-present.sh && bash tests/check-frontmatter.sh`
 
-  Expected: all commands exit 0.
+  Expected: all commands exit 0. `tests/check-bounded-replay.sh` remains RED until Task 5 creates `skills/revise/replay-plan.sh`.
 
-## Task 4: Implement the read-only bounded replay planner
+## Task 5: Implement the read-only bounded replay planner
 
 **Files:**
 
@@ -245,7 +253,7 @@ docs/
 
   Expected: exit 0 and `All bounded replay checks passed.` Source-tree digests remain identical after every planner call.
 
-## Task 5: Gate producers and analysis on independent evidence
+## Task 6: Gate producers and analysis on independent evidence
 
 **Files:**
 
@@ -266,7 +274,7 @@ docs/
 
 - [ ] **Step 1: Add RED owner-contract checks**
 
-  Require `plan` and `tasks` to stop before their first write or status transition when the matching review is missing, rejected, malformed, stale, or self-reviewed. Require `revise` and `clarify` to render the changed revisions, stale paths, executable sequence, and `REVIEW_REQUIRED` boundary. Require the response to be literal `yes`; silence, `ok`, and prior consent produce no phase invocation. Require `implement` to reject non-independent analysis.
+  Require `plan` and `tasks` to stop before their first write or status transition when the matching review is missing, rejected, malformed, stale, or self-reviewed. Require `revise` and `clarify` to render the changed revisions, stale paths, executable sequence, and `REVIEW_REQUIRED` boundary. Require the response to be literal `yes`; silence, `ok`, and prior consent produce no phase invocation. Add a fixture where analysis fails after one approved replay and assert that no further correction or replay begins until a new explicit decision. Require `implement` to reject non-independent analysis.
 
 - [ ] **Step 2: Prove RED**
 
@@ -276,7 +284,7 @@ docs/
 
 - [ ] **Step 3: Update skills through `superpowers:writing-skills`**
 
-  Keep all writes with their owner. `x-review` creates review records, `plan` and `tasks` only validate them, and the planner only reads. `revise` retains the exceptional `specified` target for real source-spec gaps. After an approved executable segment reaches a review handoff, it stops; after a matching external review, it displays the remaining segment and obtains a new literal `yes` before executing it. No direct patch to `workflow.md` or `.maxi-ops` is allowed.
+  Keep all writes with their owner. `x-review` creates review records, `plan` and `tasks` only validate them, and the planner only reads. `revise` retains the exceptional `specified` target for real source-spec gaps. After an approved executable segment reaches a review handoff, it stops; after a matching external review, it displays the remaining segment and obtains a new literal `yes` before executing it. Do not create or write `workflow.md` or `.maxi-ops`.
 
 - [ ] **Step 4: Prove GREEN**
 
@@ -284,7 +292,7 @@ docs/
 
   Expected: both commands exit 0.
 
-## Task 6: Synchronize documented gates and finish deterministic verification
+## Task 7: Synchronize documented gates and finish deterministic verification
 
 **Files:**
 
@@ -305,7 +313,7 @@ docs/
 
 - [ ] **Step 1: Add RED documentation checks**
 
-  Extend deterministic checks to require the two review handoffs, the unchanged FSM, the `x-review` registration, the read-only `replay-plan.sh` contract, and the updated native skill count. Do not retain a superseded coordination or validation framework.
+  Extend deterministic checks to require the two review handoffs, the unchanged FSM, the `x-review` registration, the read-only `replay-plan.sh` contract, the targeted `check-x-review.sh` entry, and the updated native skill count. Do not retain a superseded coordination or validation framework.
 
 - [ ] **Step 2: Prove RED**
 

@@ -17,13 +17,14 @@ Create a technical implementation plan for an existing spec. Delegates to `/maxi
 
 ## Process
 
-1. **Read artifacts** — load `spec.md` (FRs, SCs, user stories) and `constitution.md` (principles, constraints)
-2. **Constitution check** — before planning: does anything in the spec contradict constitution principles? Flag violations to the user before proceeding. (Do NOT silently discard violating requirements — surface them.)
-3. **Invoke /maxi:writing-plans** — **REQUIRED SUB-SKILL.** Pass the spec and constitution as context. Let writing-plans run its full planning process including file structure decisions and task decomposition.
-4. **Post-format into plan schema** — write output to `docs/maxi/specs/NNNN-slug/plan.md` following `plan-template.md` structure. Set plan.md frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
-5. **ADR scan (post-planning)** — scan the just-written `plan.md` for non-obvious architectural choices. Look for: Tech Stack sections, storage/database/runtime/framework picks, phrases like "we chose X over Y because" or "considered A, B, chose C". For each detected choice, invoke `/maxi:x-adr` — it will draft the ADR, show it to the user, and write it only if the user consents. If the user declines all ADR proposals, the plan is still complete; ADR capture is opt-out, not mandatory. Do not invoke `/maxi:x-adr` for trivial choices (e.g., variable naming conventions, test library defaults).
-6. **Transition status** — update spec.md frontmatter `status → planned`; also set `updated: [today's ISO date]` on spec.md and on plan.md
-7. **Report** — *"Plan written to `docs/maxi/specs/NNNN-slug/plan.md` (status: `planned`). Next: `/maxi:tasks`."*
+1. **Read artifacts** — load `spec.md` (FRs, SCs, user stories), `constitution.md` (principles, constraints), and `reviews/spec-review.md` (approval evidence and its own exact revision)
+2. **Validate the spec review** — stop before planning if `reviews/spec-review.md` is missing, does not have `verdict: approved`, does not target `spec.md`, or its `reviewed_revision` does not equal the current spec revision. Never use stale or non-approved review evidence, and never invent a review revision for `derived_from`.
+3. **Constitution check** — before planning: does anything in the spec contradict constitution principles? Flag violations to the user before proceeding. (Do NOT silently discard violating requirements — surface them.)
+4. **Invoke /maxi:writing-plans** — **REQUIRED SUB-SKILL.** Pass the spec and constitution as context. Let writing-plans run its full planning process including file structure decisions and task decomposition.
+5. **Post-format into plan schema** — write output to `docs/maxi/specs/NNNN-slug/plan.md` following `plan-template.md` structure and the forward provenance contract below. Set plan.md frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
+6. **ADR scan (post-planning)** — scan the just-written `plan.md` for non-obvious architectural choices. Look for: Tech Stack sections, storage/database/runtime/framework picks, phrases like "we chose X over Y because" or "considered A, B, chose C". For each detected choice, invoke `/maxi:x-adr` — it will draft the ADR, show it to the user, and write it only if the user consents. If the user declines all ADR proposals, the plan is still complete; ADR capture is opt-out, not mandatory. Do not invoke `/maxi:x-adr` for trivial choices (e.g., variable naming conventions, test library defaults).
+7. **Transition status** — update spec.md frontmatter `status → planned`; also set `updated: [today's ISO date]` on spec.md and on plan.md. Status and timestamp changes are non-structural and do not change either document's revision, writer context, or structural contributors.
+8. **Report** — *"Plan written to `docs/maxi/specs/NNNN-slug/plan.md` (status: `planned`). Next: `/maxi:tasks`."*
 
 ## Constitution Check Protocol
 
@@ -53,6 +54,37 @@ All written to `docs/maxi/specs/NNNN-slug/`:
 | `data-model.md` | If needed | Entities, relationships, schemas |
 | `contracts/` | If needed | API endpoint definitions |
 
+## Forward Provenance Contract
+
+Apply this contract only when creating artifacts for a spec created through the normal forward pipeline. Do not add or infer this metadata on existing, migrated, or reverse-engineered specs.
+
+For every new `plan.md` and support artifact (`research.md`, `data-model.md`, `quickstart.md`, and each `contracts/*.md`):
+
+```yaml
+revision: 1
+writer_context: <new non-empty context unique across this spec's pipeline-owned documents>
+structural_contributors:
+  - <the exact writer_context above>
+```
+
+Each support artifact has exactly the current `spec.md` revision as its direct document input:
+
+```yaml
+derived_from:
+  - spec.md@<exact-revision-read>
+```
+
+`plan.md` records every direct document input, including the current `spec.md`, every support artifact actually read, and the current approved `reviews/spec-review.md`. Approval is a direct provenance dependency even when its findings do not contribute plan body text.
+
+```yaml
+derived_from:
+  - spec.md@<exact-revision-read>
+  - <support-artifact-path>@<exact-revision-read>
+  - reviews/spec-review.md@<exact-revision-read>
+```
+
+On a later structural owner write, increment only the artifact being written, replace its `writer_context` with the new unique context, and append that context to its `structural_contributors`. Status, timestamps, task-completion checkboxes, and `related_adrs` are non-structural: they never increment revisions or append contributors.
+
 ## Artifact reference links
 
 When this skill emits prose that references another maxi artifact (an ADR, spec, plan, tasks, constitution, or repo file) — in an artifact body or in a chat report — render it as a **relative Markdown link**, not a bare slug/number/code span:
@@ -68,6 +100,8 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 - **Template schema required.** Plan must follow `plan-template.md` structure — not free-form notes. Always copy the template structure first.
 - **All artifacts in `docs/maxi/specs/NNNN-slug/`.** Never write to project root, `docs/`, `.specify/`, or the user's current working directory.
 - **status: planned only when all artifacts written.** Transition happens after all files are on disk.
+- **Exact direct inputs.** `plan.md` derives from the current spec, every support artifact read, and the current approved spec review, all at their exact revisions. A support artifact derives directly from the current spec.
+- **No metadata retrofit.** Existing, migrated, and reverse-engineered specs and their artifacts remain unchanged.
 
 ## Red Flags
 
