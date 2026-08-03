@@ -8,7 +8,7 @@ source "$ROOT/tests/lib/test-helpers.sh"
 FIXTURES="$ROOT/tests/fixtures/bounded-replay"
 PLANNER="$ROOT/skills/revise/replay-plan.sh"
 X_REVIEW="$ROOT/skills/x-review"
-WORK="$(mktemp -d /private/tmp/maxi-bounded-replay.XXXXXX)"
+WORK="$(mktemp -d)"
 failures=0
 
 trap 'rm -rf "$WORK"' EXIT
@@ -154,6 +154,37 @@ run_planner() {
   fi
 }
 
+analysis_owner_action() {
+  local analysis_file="$1" result approved_replay
+
+  result="$(awk '
+    NR == 1 && $0 == "---" { frontmatter = 1; next }
+    frontmatter && $0 == "---" { exit }
+    frontmatter && /^analysis_result: / { print $2; exit }
+  ' "$analysis_file")"
+  approved_replay="$(awk -F ': ' '/^Approved replay: / { print $2; exit }' "$analysis_file")"
+
+  case "$result:$approved_replay" in
+    passed:yes)
+      if grep -Fq '| `analysis_result: passed` | Persist the report, then apply the Step 8 status/timestamp rule. |' "$ANALYZE_SKILL"; then
+        printf '%s\n' 'passing-result'
+      else
+        printf '%s\n' 'missing-passing-owner-branch'
+      fi
+      ;;
+    failed:yes)
+      if grep -Fq '| `analysis_result: failed` after an approved replay | Keep `status: tasked`, consume the earlier replay `yes`, start no correction, replay, or phase invocation, and require a new explicit user decision. |' "$ANALYZE_SKILL"; then
+        printf '%s\n' 'stop-for-new-decision'
+      else
+        printf '%s\n' 'missing-failed-owner-branch'
+      fi
+      ;;
+    *)
+      printf 'unsupported-owner-branch:%s:%s\n' "$result" "$approved_replay"
+      ;;
+  esac
+}
+
 # Current forward-pipeline fixtures have unique authors and valid independent reviews.
 CURRENT="$FIXTURES/current"
 CURRENT_DOCUMENTS='spec.md research.md data-model.md contracts/api.md reviews/spec-review.md plan.md reviews/plan-review.md tasks.md analysis.md'
@@ -222,6 +253,146 @@ done
 assert_file_exists "$PLANNER" "replay planner implementation exists"
 assert_file_exists "$X_REVIEW/SKILL.md" "x-review implementation exists"
 assert_file_exists "$X_REVIEW/review-template.md" "x-review template exists"
+
+# Owner contracts fail closed at independent-review and replay-consent boundaries.
+CLARIFY_SKILL="$ROOT/skills/clarify/SKILL.md"
+PLAN_SKILL="$ROOT/skills/plan/SKILL.md"
+TASKS_SKILL="$ROOT/skills/tasks/SKILL.md"
+ANALYZE_SKILL="$ROOT/skills/analyze/SKILL.md"
+IMPLEMENT_SKILL="$ROOT/skills/implement/SKILL.md"
+REVISE_SKILL="$ROOT/skills/revise/SKILL.md"
+
+assert_file_exists "$CLARIFY_SKILL" "clarify owner skill"
+assert_file_exists "$PLAN_SKILL" "plan owner skill"
+assert_file_exists "$TASKS_SKILL" "tasks owner skill"
+assert_file_exists "$ANALYZE_SKILL" "analyze owner skill"
+assert_file_exists "$IMPLEMENT_SKILL" "implement owner skill"
+assert_file_exists "$REVISE_SKILL" "revise owner skill"
+
+if [ -f "$CLARIFY_SKILL" ]; then
+  assert_grep "$CLARIFY_SKILL" 'CHANGED.*STALE.*REPLAY.*REVIEW_REQUIRED' "clarify renders the complete planner record set"
+  assert_grep "$CLARIFY_SKILL" 'previous revision.*current revision.*stale paths.*executable sequence.*review handoff' "clarify renders the replay proposal before execution"
+  assert_grep "$CLARIFY_SKILL" 'entire response is exactly the lowercase literal `yes`' "clarify accepts only literal yes"
+  assert_grep "$CLARIFY_SKILL" 'Silence, `ok`, prior consent.*no phase invocation' "clarify rejects ambiguous or reused consent"
+  assert_grep "$CLARIFY_SKILL" '[Ss]top.*`REVIEW_REQUIRED`.*no phase after.*review handoff' "clarify stops at review handoff"
+  assert_grep "$CLARIFY_SKILL" 'matching external review.*display.*remaining.*new literal `yes`' "clarify requires new consent after review"
+  assert_grep "$CLARIFY_SKILL" 'planner.*read-only.*never writes.*never invokes' "clarify keeps planner read-only"
+  assert_grep "$CLARIFY_SKILL" '[Nn]ever create or write `workflow.md`.*`.maxi-ops`' "clarify forbids undeclared runtime state"
+fi
+
+if [ -f "$PLAN_SKILL" ]; then
+  assert_grep "$PLAN_SKILL" 'missing, rejected, malformed, stale, or self-reviewed' "plan rejects every invalid review class"
+  assert_grep "$PLAN_SKILL" 'before.*writing-plans.*before.*artifact write.*before.*status' "plan gates before all output and transition"
+  assert_grep "$PLAN_SKILL" 'reviewed_document.*spec.md.*reviewed_revision.*current spec revision' "plan binds review to current spec revision"
+  assert_grep "$PLAN_SKILL" 'reviewed_sha256.*exact current bytes.*spec.md' "plan binds review to current spec bytes"
+  assert_grep "$PLAN_SKILL" 'reviewer_context_matches_harness.*true.*reviewer_context.*absent.*structural_contributors' "plan verifies reviewer independence"
+  assert_grep "$PLAN_SKILL" '`x-review`.*sole writer.*never.*review record' "plan only validates review records"
+fi
+
+if [ -f "$TASKS_SKILL" ]; then
+  assert_grep "$TASKS_SKILL" 'missing, rejected, malformed, stale, or self-reviewed' "tasks rejects every invalid review class"
+  assert_grep "$TASKS_SKILL" 'before.*task extraction.*before.*artifact write.*before.*status' "tasks gates before all output and transition"
+  assert_grep "$TASKS_SKILL" 'reviewed_document.*plan.md.*reviewed_revision.*current plan revision' "tasks binds review to current plan revision"
+  assert_grep "$TASKS_SKILL" 'reviewed_sha256.*exact current bytes.*plan.md' "tasks binds review to current plan bytes"
+  assert_grep "$TASKS_SKILL" 'reviewer_context_matches_harness.*true.*reviewer_context.*absent.*structural_contributors' "tasks verifies reviewer independence"
+  assert_grep "$TASKS_SKILL" '`x-review`.*sole writer.*never.*review record' "tasks only validates review records"
+fi
+
+if [ -f "$ANALYZE_SKILL" ]; then
+  assert_grep "$ANALYZE_SKILL" 'fresh reviewer context issued by the harness' "analyze requires a fresh harness reviewer context"
+  assert_grep "$ANALYZE_SKILL" 'reviewer context.*absent.*current `spec.md`.*`plan.md`.*`tasks.md`.*structural_contributors' "analyze verifies three-artifact independence"
+  assert_grep "$ANALYZE_SKILL" 'before.*analysis write.*before.*status transition' "analyze verifies independence before output"
+  assert_grep "$ANALYZE_SKILL" '^reviewer_context: <same-unique-writer-context>$' "analysis records reviewer context"
+  assert_grep "$ANALYZE_SKILL" '^reviewer_context_matches_harness: true$' "analysis records harness equality"
+  assert_grep "$ANALYZE_SKILL" '^independence_verified: true$' "analysis records independence result"
+  assert_grep "$ANALYZE_SKILL" '^analysis_result: <passed-or-failed>$' "analysis records explicit result"
+  assert_not_grep "$ANALYZE_SKILL" '^verdict: <passed-or-failed>$' "analysis does not collide with review verdict grammar"
+  assert_grep "$ANALYZE_SKILL" 'derived_from.*reviewed current revisions' "analysis records reviewed current revisions"
+  assert_grep "$ANALYZE_SKILL" 'approved replay.*analysis result.*failed.*new explicit user decision' "failed replay analysis requires a new decision"
+  assert_grep "$ANALYZE_SKILL" 'no correction.*no replay.*no phase invocation' "failed replay analysis cannot loop"
+  assert_grep "$ANALYZE_SKILL" 'analysis_result.*failed.*leave.*status.*`tasked`' "failed initial analysis does not advance status"
+  assert_grep "$ANALYZE_SKILL" 'Never structurally modifies source artifact bodies.*sole source-file write.*non-structural.*status/timestamp' "analyze overview scopes source writes structurally"
+  assert_grep "$ANALYZE_SKILL" 'writes no structural source artifact content.*sole source-file write.*non-structural.*status/timestamp' "analyze independence gate scopes source writes structurally"
+  assert_grep "$ANALYZE_SKILL" 'Editing structural content in any source artifact' "analyze red flag scopes source writes structurally"
+  assert_grep "$ANALYZE_SKILL" 'Structural source edits are forbidden.*status/timestamp.*non-structural' "analyze rationalization counter preserves the source-write exception"
+  assert_not_grep "$ANALYZE_SKILL" 'Never modifies source artifacts' "analyze has no absolute source-write prohibition"
+  assert_not_grep "$ANALYZE_SKILL" 'writes no source artifact' "analyze has no contradictory source-write statement"
+  assert_not_grep "$ANALYZE_SKILL" 'Editing any source artifact' "analyze red flags have no absolute source-write prohibition"
+  assert_not_grep "$ANALYZE_SKILL" 'may NEVER modify spec.md' "analyze counters have no absolute spec-write prohibition"
+fi
+
+if [ -f "$IMPLEMENT_SKILL" ]; then
+  assert_grep "$IMPLEMENT_SKILL" 'absent, malformed, stale, failed, or non-independent' "implement rejects every invalid analysis class"
+  assert_grep "$IMPLEMENT_SKILL" 'before.*status.*before.*task.*before.*x-develop' "implement gates before all mutation and delegation"
+  assert_grep "$IMPLEMENT_SKILL" 'derived_from.*exact current revisions.*`spec.md`.*`plan.md`.*`tasks.md`' "implement rejects stale analysis inputs"
+  assert_grep "$IMPLEMENT_SKILL" 'reviewer_context_matches_harness.*true.*independence_verified.*true.*analysis_result.*passed' "implement requires verified passing analysis"
+  assert_grep "$IMPLEMENT_SKILL" 'reviewer_context.*absent.*current `spec.md`.*`plan.md`.*`tasks.md`.*structural_contributors' "implement rechecks analysis independence"
+fi
+
+if [ -f "$REVISE_SKILL" ]; then
+  assert_grep "$REVISE_SKILL" 'real missing or ambiguous requirement.*exceptional.*`specified`' "revise retains exceptional specified rollback"
+  assert_grep "$REVISE_SKILL" 'never.*replay `specify`' "revise never replays specify"
+  assert_grep "$REVISE_SKILL" 'CHANGED.*STALE.*REPLAY.*REVIEW_REQUIRED' "revise renders the complete planner record set"
+  assert_grep "$REVISE_SKILL" 'previous revision.*current revision.*stale paths.*executable sequence.*review handoff' "revise renders the replay proposal before execution"
+  assert_grep "$REVISE_SKILL" 'entire response is exactly the lowercase literal `yes`' "revise accepts only literal yes"
+  assert_grep "$REVISE_SKILL" 'Silence, `ok`, prior consent.*no phase invocation' "revise rejects ambiguous or reused consent"
+  assert_grep "$REVISE_SKILL" '[Ss]top.*`REVIEW_REQUIRED`.*no phase after.*review handoff' "revise stops at review handoff"
+  assert_grep "$REVISE_SKILL" 'matching external review.*display.*remaining.*new literal `yes`' "revise requires new consent after review"
+  assert_grep "$REVISE_SKILL" 'failed analysis.*new explicit user decision.*no correction.*no replay' "revise cannot repeat a failed replay"
+  assert_grep "$REVISE_SKILL" 'planner.*read-only.*never writes.*never invokes' "revise keeps planner read-only"
+  assert_grep "$REVISE_SKILL" '[Nn]ever create or write `workflow.md`.*`.maxi-ops`' "revise forbids undeclared runtime state"
+fi
+
+# The persisted result, not the planner's terminal output, selects the analyze owner
+# branch after an approved replay. A passing control proves the probe is branch-sensitive.
+copy_fixture "$CURRENT" "failed-analysis-after-approved-replay"
+awk '
+  $0 == "---" {
+    if (frontmatter == 1) print "analysis_result: failed"
+    frontmatter++
+    print
+    next
+  }
+  { print }
+  END {
+    print ""
+    print "## Replay Outcome Fixture"
+    print ""
+    print "Approved replay: yes"
+    print "Analysis result: failed"
+  }
+' "$CASE_DIR/analysis.md" > "$CASE_DIR/analysis.md.tmp"
+mv "$CASE_DIR/analysis.md.tmp" "$CASE_DIR/analysis.md"
+run_planner "$CURRENT" "analysis.md" 0 analyze "failed analysis after approved replay"
+assert_success "$LAST_STATUS" "failed analysis fixture planner exit"
+assert_equal "$LAST_OUTPUT" 'CHANGED|analysis.md|0|1' "failed analysis fixture directs no automatic action"
+if printf '%s\n' "$LAST_OUTPUT" | grep -Eq '^(REPLAY|CORRECTION)\|'; then
+  echo "FAIL [failed analysis fixture waits for decision]: directed action found" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [failed analysis fixture waits for decision]"
+fi
+assert_equal "$(analysis_owner_action "$CASE_DIR/analysis.md")" 'stop-for-new-decision' "failed analysis fixture selects owner stop branch"
+
+copy_fixture "$CURRENT" "passed-analysis-after-approved-replay"
+awk '
+  $0 == "---" {
+    if (frontmatter == 1) print "analysis_result: passed"
+    frontmatter++
+    print
+    next
+  }
+  { print }
+  END {
+    print ""
+    print "## Replay Outcome Fixture"
+    print ""
+    print "Approved replay: yes"
+    print "Analysis result: passed"
+  }
+' "$CASE_DIR/analysis.md" > "$CASE_DIR/analysis.md.tmp"
+mv "$CASE_DIR/analysis.md.tmp" "$CASE_DIR/analysis.md"
+assert_equal "$(analysis_owner_action "$CASE_DIR/analysis.md")" 'passing-result' "passing analysis fixture selects owner passing branch"
 
 if [ "$failures" -gt 0 ]; then
   summary_and_exit "bounded replay checks"

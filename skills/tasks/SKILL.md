@@ -17,18 +17,32 @@ Extract a structured `tasks.md` from an existing `plan.md`. Pure extraction — 
 ## Process
 
 1. **Read inputs** — load `plan.md` as primary source; also load `spec.md`, `research.md`, `data-model.md`, `contracts/` if they exist alongside it in `docs/maxi/specs/NNNN-slug/`, plus the current approved `reviews/plan-review.md`
-2. **Map tasks to user stories** — for each user story in `spec.md`, collect the tasks from `plan.md` that implement it. Tag each task with `[US1]`, `[US2]`, etc.
-3. **Identify parallel tasks** — mark with `[P]` any task that touches different files from all other tasks in the same phase (no shared-file writes, no dependency on concurrent tasks)
-4. **Assign sequential IDs** — number all tasks `T001`, `T002`, ... in phase order. No letters, no "Task N", no "Step N".
-5. **Structure into phases** — verify `tasks-template.md` exists (Read tool) before proceeding; if missing, stop: *"Cannot proceed — `tasks-template.md` is missing. Please reinstall the maxi plugin."* Then follow the template:
+2. **Validate the plan review** — for a forward-pipeline spec carrying revision metadata, apply the complete independent-review gate below before extracting any task.
+3. **Map tasks to user stories** — for each user story in `spec.md`, collect the tasks from `plan.md` that implement it. Tag each task with `[US1]`, `[US2]`, etc.
+4. **Identify parallel tasks** — mark with `[P]` any task that touches different files from all other tasks in the same phase (no shared-file writes, no dependency on concurrent tasks)
+5. **Assign sequential IDs** — number all tasks `T001`, `T002`, ... in phase order. No letters, no "Task N", no "Step N".
+6. **Structure into phases** — verify `tasks-template.md` exists (Read tool) before proceeding; if missing, stop: *"Cannot proceed — `tasks-template.md` is missing. Please reinstall the maxi plugin."* Then follow the template:
    - Phase 1: Setup (project init, no deps)
    - Phase 2: Foundational (blocks all user stories — CRITICAL warning)
    - Phase 3+: One phase per user story
    - Final phase: Polish & Cross-Cutting Concerns
    - A **Checkpoint** line after each phase
-6. **Write `tasks.md`** — output to `docs/maxi/specs/NNNN-slug/tasks.md` following the template schema and forward provenance contract below. Include Dependencies & Execution Order section.
-7. **Transition status** — update spec.md frontmatter `status: planned → tasked`; also set `updated: [today's ISO date]` on spec.md and on tasks.md. When creating tasks.md, set its frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Status and timestamp changes are non-structural and do not change either document's revision, writer context, or structural contributors.
-8. **Report** — *"Tasks written to `docs/maxi/specs/NNNN-slug/tasks.md` (status: `tasked`). Next: `/maxi:analyze` (recommended) or `/maxi:implement`."*
+7. **Write `tasks.md`** — output to `docs/maxi/specs/NNNN-slug/tasks.md` following the template schema and forward provenance contract below. Include Dependencies & Execution Order section.
+8. **Transition status** — update spec.md frontmatter `status: planned → tasked`; also set `updated: [today's ISO date]` on spec.md and on tasks.md. When creating tasks.md, set its frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Status and timestamp changes are non-structural and do not change either document's revision, writer context, or structural contributors.
+9. **Report** — *"Tasks written to `docs/maxi/specs/NNNN-slug/tasks.md` (status: `tasked`). Next: a fresh independent `/maxi:analyze`; implementation remains blocked until its current passing evidence is persisted."*
+
+## Independent Plan Review Gate
+
+For a forward-pipeline spec, read `reviews/plan-review.md`, the exact current bytes of `plan.md`, and both frontmatter blocks. Validate all of these as one fail-closed gate:
+
+- the record metadata is well formed, its own `revision` is positive, and its exact `derived_from` input is the current `plan.md` revision;
+- `verdict: approved`, `reviewed_document: plan.md`, and `reviewed_revision` equals the current plan revision;
+- `reviewed_sha256` equals SHA-256 recomputed from the exact current bytes of `plan.md`;
+- `reviewer_context_matches_harness: true`, and the exact `reviewer_context` is absent from the current plan's `structural_contributors`.
+
+A missing, rejected, malformed, stale, or self-reviewed record fails this gate. Stop before task extraction, before any artifact write, and before any status or timestamp transition; leave every artifact unchanged. Never infer, repair, or accept partial evidence.
+
+`x-review` is the sole writer of review records; `tasks` only validates them and never creates, edits, or approves a review record. The read-only replay planner only calculates and displays a continuation. Neither mechanism authorizes `tasks` to create or write `workflow.md` or `.maxi-ops`.
 
 ## Forward Provenance Contract
 

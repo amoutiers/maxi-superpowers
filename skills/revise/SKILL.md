@@ -22,26 +22,41 @@ Roll back a spec to an earlier pipeline phase when requirements or design change
 1. **Ask**: *"Describe the change that requires revision."* — require a non-empty answer.
 
 2. **A+ picker — infer suggested rollback target with justification**:
+   - A real missing or ambiguous requirement in the current source `spec.md` that must be resolved by clarification → suggest the exceptional rollback target `specified`
    - Requirements change / new FR / dropped FR / user story change / scope change → suggest `clarified`
    - Plan change / architecture change / technical decision / new component → suggest `planned`
    - Task extraction error / missing tasks / wrong phasing → suggest `tasked`
    - Analysis finding needs revisiting → suggest `analyzed`
 
    **Always show the suggestion with one sentence of reasoning before offering the full list:**
-   > *"Based on your description, I suggest rolling back to `<target>` — <one-sentence justification>. This means re-running: <list of phases that follow>. Accept this, or choose a different target: `[clarified | planned | tasked | analyzed]`"*
+   > *"Based on your description, I suggest rolling back to `<target>` — <one-sentence justification>. This means re-running: <list of phases that follow>. Accept this, or choose a different target: `[clarified | planned | tasked | analyzed]`. The exceptional `specified` target is offered only for a demonstrated source-spec gap."*
 
 3. **Constitution check**: before asking for confirmation, scan constitution.md. If the described change would violate a principle, flag it now: *"Note: `<principle>` may conflict with this change — `<brief reason>`. Do you want to proceed anyway?"* Do not silently proceed past a potential violation.
 
 4. **Confirm**:
    > *"About to roll back `<slug>` from `<current>` to `<target>`. Downstream artefacts (plan.md, tasks.md, analysis.md as applicable) will stay on disk but are stale — the next pipeline skill will regenerate them. Proceed? (yes/no)"*
 
-5. **On explicit `yes` only**: write `spec.md` —
+5. **On explicit `yes` only**: capture the current `spec.md` revision, then write `spec.md` —
    - `status: <target>`
    - `updated: <today's ISO date>`
    - Append to `## Clarifications`:
      `**Revised (YYYY-MM-DD):** Rolled back from \`<current>\` to \`<target>\`. Change: <description>. Note: artefacts from phases after \`<target>\` (if any) are stale.`
+   - For a forward-pipeline spec, increment only `spec.md`, replace `writer_context` with this write's new unique context, and append that context to `structural_contributors`. The status and timestamp are non-structural; the persisted revision note is the structural owner change.
 
-6. **Report**: *"Spec `<slug>` is now at `<target>`. Next: `/maxi:<next-skill>`."*
+6. **Calculate and display replay**: for a forward-pipeline spec, call the read-only `skills/revise/replay-plan.sh` with `--changed spec.md`, the captured previous revision, and the next valid producer as `--start-phase`. A `specified` rollback starts at `clarify`; never rerun or replay `specify`. Follow the bounded replay contract below.
+
+7. **Report**: *"Spec `<slug>` is now at `<target>`. The displayed replay remains pending its own consent or external review handoff."*
+
+## Bounded Replay Contract
+
+`revise` owns only the `spec.md` write above. `x-review` is the sole writer of review records, and the replay planner is read-only: it never writes an artifact and never invokes a phase.
+
+1. Parse only the planner's `CHANGED`, `STALE`, `REPLAY`, and `REVIEW_REQUIRED` records. Before any phase invocation, display the previous revision, current revision, stale paths, executable sequence, and review handoff. Preserve the emitted phase order and explicitly say when the executable sequence is empty.
+2. One displayed executable segment ends at its first review boundary. Stop at every `REVIEW_REQUIRED` record; invoke no phase after that review handoff and do not create, approve, or write its review record.
+3. Ask separately whether to run exactly the displayed executable segment. Approval exists only when the entire response is exactly the lowercase literal `yes`; do not trim whitespace or reuse the rollback answer. Silence, `ok`, prior consent, and every other response authorize no phase invocation. A rollback `yes` authorizes only Step 5, never replay.
+4. On approval, invoke only the displayed phases, once each, in order, and stop when that segment completes. After a matching external review exists, display the remaining executable segment and obtain a new literal `yes` before invoking any of it. The review itself is never consent for the continuation.
+5. A failed analysis requires a new explicit user decision; start no correction and no replay. Never infer another correction from the earlier rollback or replay consent.
+6. Never create or write `workflow.md` or `.maxi-ops`; neither is part of this contract.
 
 ## Artifact reference links
 
@@ -54,11 +69,11 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 ## Invariants
 
 - **Always show the A+ suggestion before applying.** Never silently roll back to the inferred target.
-- **Never roll back below `clarified`.** Use `/maxi:specify` for full rewrites.
+- **Never roll back below `clarified` by default.** The sole exception is `specified` for a real missing or ambiguous requirement in the source spec; that path replays `clarify` and must never replay `specify`.
 - **Never delete, rename, or modify** `plan.md`, `tasks.md`, `analysis.md` — they stay on disk, flagged stale in `## Clarifications`.
 - **Never modify** `constitution.md` or any ADR file.
-- **Only `spec.md`** is written: `status:`, `updated:`, and `## Clarifications` section.
-- **Explicit `yes` required.** Ambiguous responses = `no`.
+- **Only `spec.md`** is written: owner provenance, `status:`, `updated:`, and the `## Clarifications` revision note. Successor phases keep ownership of their own artifacts.
+- **Two separate consent boundaries.** The rollback write and each displayed replay segment require their own exact `yes`; ambiguous responses and prior consent authorize no replay.
 
 ## Rationalization Counters
 

@@ -18,13 +18,29 @@ Create a technical implementation plan for an existing spec. Delegates to `/maxi
 ## Process
 
 1. **Read artifacts** — load `spec.md` (FRs, SCs, user stories), `constitution.md` (principles, constraints), and `reviews/spec-review.md` (approval evidence and its own exact revision)
-2. **Validate the spec review** — stop before planning if `reviews/spec-review.md` is missing, does not have `verdict: approved`, does not target `spec.md`, or its `reviewed_revision` does not equal the current spec revision. Never use stale or non-approved review evidence, and never invent a review revision for `derived_from`.
+2. **Validate the spec review** — for a forward-pipeline spec carrying revision metadata, apply the complete independent-review gate below. This gate runs before the constitution check, planning delegation, or any output.
 3. **Constitution check** — before planning: does anything in the spec contradict constitution principles? Flag violations to the user before proceeding. (Do NOT silently discard violating requirements — surface them.)
 4. **Invoke /maxi:writing-plans** — **REQUIRED SUB-SKILL.** Pass the spec and constitution as context. Let writing-plans run its full planning process including file structure decisions and task decomposition.
 5. **Post-format into plan schema** — write output to `docs/maxi/specs/NNNN-slug/plan.md` following `plan-template.md` structure and the forward provenance contract below. Set plan.md frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
 6. **ADR scan (post-planning)** — scan the just-written `plan.md` for non-obvious architectural choices. Look for: Tech Stack sections, storage/database/runtime/framework picks, phrases like "we chose X over Y because" or "considered A, B, chose C". For each detected choice, invoke `/maxi:x-adr` — it will draft the ADR, show it to the user, and write it only if the user consents. If the user declines all ADR proposals, the plan is still complete; ADR capture is opt-out, not mandatory. Do not invoke `/maxi:x-adr` for trivial choices (e.g., variable naming conventions, test library defaults).
 7. **Transition status** — update spec.md frontmatter `status → planned`; also set `updated: [today's ISO date]` on spec.md and on plan.md. Status and timestamp changes are non-structural and do not change either document's revision, writer context, or structural contributors.
-8. **Report** — *"Plan written to `docs/maxi/specs/NNNN-slug/plan.md` (status: `planned`). Next: `/maxi:tasks`."*
+8. **Stop at the plan-review handoff** — report the current `plan.md` revision that requires external review. Do not invoke `/maxi:tasks`; `/maxi:x-review` must independently create the matching approval first.
+9. **Report** — *"Plan written to `docs/maxi/specs/NNNN-slug/plan.md` (status: `planned`). Next: an external `/maxi:x-review` of the current plan revision; after approval, display the remaining continuation and obtain its own consent before `/maxi:tasks`."*
+
+## Independent Spec Review Gate
+
+For a forward-pipeline spec, read `reviews/spec-review.md`, the exact current bytes of `spec.md`, and both frontmatter blocks. Validate all of these as one fail-closed gate:
+
+- the record metadata is well formed, its own `revision` is positive, and its exact `derived_from` input is the current `spec.md` revision;
+- `verdict: approved`, `reviewed_document: spec.md`, and `reviewed_revision` equals the current spec revision;
+- `reviewed_sha256` equals SHA-256 recomputed from the exact current bytes of `spec.md`;
+- `reviewer_context_matches_harness: true`, and the exact `reviewer_context` is absent from the current spec's `structural_contributors`.
+
+A missing, rejected, malformed, stale, or self-reviewed record fails this gate. Stop before invoking `writing-plans`, before any artifact write, and before any status or timestamp transition; leave every artifact unchanged. Never infer, repair, or accept partial evidence.
+
+In particular, stop when the record is missing, does not have `verdict: approved`, does not target `spec.md`, or its `reviewed_revision` does not equal the current spec revision. Those are invalid evidence, not reasons to create a replacement.
+
+`x-review` is the sole writer of review records; `plan` only validates them and never creates, edits, or approves a review record. The read-only replay planner only calculates and displays a continuation. Neither mechanism authorizes `plan` to create or write `workflow.md` or `.maxi-ops`.
 
 ## Constitution Check Protocol
 

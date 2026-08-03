@@ -5,7 +5,7 @@ description: Use when the user invokes /maxi:analyze or wants to audit spec/plan
 
 # analyze
 
-Non-destructive 7-pass cross-artifact quality audit. Reads `spec.md`, `plan.md`, `tasks.md`, `constitution.md`, and any ADRs in `docs/maxi/adr/`. Writes findings to `analysis.md`. **Never modifies source artifacts.**
+Non-destructive 7-pass cross-artifact quality audit. Reads `spec.md`, `plan.md`, `tasks.md`, `constitution.md`, and any ADRs in `docs/maxi/adr/`. Writes findings to `analysis.md`. **Never structurally modifies source artifact bodies; its sole source-file write is the non-structural `spec.md` status/timestamp update in Step 8.**
 
 ## Prereqs
 
@@ -30,7 +30,15 @@ Also locate every support artifact present beside the plan (`research.md`, `data
 
 Abort with actionable message if any required file is missing.
 
-### Step 2 — Load Artifacts (Minimal Sections)
+### Step 2 — Verify Independent Reviewer Context
+
+For a forward-pipeline spec carrying revision metadata, require one fresh reviewer context issued by the harness for this analysis invocation. Validate it with the same canonical single-line context grammar as `x-review`; never normalize or repair it.
+
+Read the complete current frontmatter of `spec.md`, `plan.md`, and `tasks.md`. The reviewer context must be absent from the current `spec.md`, `plan.md`, and `tasks.md` `structural_contributors` lists. Any missing or malformed contributor metadata, malformed context, or contributor match is non-independent and fails closed before any analysis write and before any status transition. Do not dispatch or perform the audit under another context.
+
+The verified reviewer context is both `analysis.md`'s `reviewer_context` and its `writer_context`. This skill writes no structural source artifact content or review record. Its sole source-file write is the non-structural `spec.md` status/timestamp update in Step 8; it never asks `x-review` to manufacture final-analysis evidence.
+
+### Step 3 — Load Artifacts (Minimal Sections)
 
 Load only what each pass needs:
 
@@ -41,14 +49,14 @@ Load only what each pass needs:
 **From constitution.md:** All principle names + MUST/SHOULD statements
 **From docs/maxi/adr/ (if exists):** All ADR files — adr number, title, status, Decision section, Consequences section
 
-### Step 3 — Build Semantic Models
+### Step 4 — Build Semantic Models
 
 - **Requirements inventory:** key each FR-### and SC-### by ID; note any SC items requiring buildable work (exclude post-launch business KPIs like "reduce support tickets by 50%")
 - **Task coverage map:** for each FR-### / SC-###, list which task IDs reference it (by explicit ID mention or keyword inference)
 - **Constitution rule set:** extract MUST/SHOULD statements as rules to check against
 - **ADR registry:** list all `docs/maxi/adr/NNNN-*.md` files; for each record adr number, title, status, and the decision domain (tech stack, storage, runtime, framework). Build the spec↔ADR map from the *spec* side: collect this spec's `related_adrs:` frontmatter (a list of full ADR slugs) PLUS any inline `ADR-NNNN` mentions in spec.md/plan.md/tasks.md. Do NOT derive this map from any `related_specs` field — ADRs no longer carry one. If `docs/maxi/adr/` does not exist or is empty, Pass G reports "no ADRs recorded" in Metrics and skips G-type findings.
 
-### Step 4 — Seven Detection Passes
+### Step 5 — Seven Detection Passes
 
 #### A. Duplication
 Find near-duplicate requirements with different FR-### IDs. Mark lower-quality phrasing.
@@ -88,7 +96,7 @@ Skip this pass entirely (and note "no ADRs" in Metrics) if `docs/maxi/adr/` is e
 
 **Finding limit:** 50 total across all passes. Aggregate remaining in an "Overflow Summary" section.
 
-### Step 5 — Severity Assignment
+### Step 6 — Severity Assignment
 
 | Level | When to use |
 |-------|-------------|
@@ -99,7 +107,7 @@ Skip this pass entirely (and note "no ADRs" in Metrics) if `docs/maxi/adr/` is e
 
 **Constitution MUST violations are always CRITICAL — no exceptions.**
 
-### Step 6 — Write analysis.md
+### Step 7 — Write analysis.md
 
 Write to `docs/maxi/specs/NNNN-slug/analysis.md`. Structure:
 
@@ -109,6 +117,10 @@ revision: 1
 writer_context: <unique-writer-context>
 structural_contributors:
   - <unique-writer-context>
+reviewer_context: <same-unique-writer-context>
+reviewer_context_matches_harness: true
+independence_verified: true
+analysis_result: <passed-or-failed>
 derived_from:
   - spec.md@<exact-revision-read>
   - <support-artifact-path>@<exact-revision-read>
@@ -160,20 +172,34 @@ Spec: docs/maxi/specs/NNNN-slug/spec.md (status: [current status])
 [If LOW/MEDIUM only: may proceed; suggestions below]
 ```
 
-This frontmatter applies only to the first `analysis.md` created for a spec created through the normal forward pipeline. Generate one non-empty writer context unique across that spec's pipeline-owned documents, and include every present support artifact in `derived_from` at the exact revision read. Constitution and ADR files remain audit context outside this spec-local replay graph.
+This frontmatter applies only to the first `analysis.md` created for a spec created through the normal forward pipeline. Use the verified reviewer context as the non-empty writer context unique across that spec's pipeline-owned documents. The `derived_from` entries are the reviewed current revisions: include current `spec.md`, current `plan.md`, current `tasks.md`, and every present support artifact at the exact revision read. Constitution and ADR files remain audit context outside this spec-local replay graph.
 
-On a later structural rewrite of `analysis.md`, increment only its revision, replace `writer_context` with the new unique context, and append that context to `structural_contributors`. Status, timestamps, task-completion checkboxes, and `related_adrs` are non-structural and never increment a revision or append a contributor. Do not add or infer revision, writer-context, contributor, or derived-input metadata for existing, migrated, or reverse-engineered specs.
+Set `analysis_result: passed` only when the completed seven-pass report has zero CRITICAL findings; otherwise set `analysis_result: failed`. Persisting the report, verified context, exact reviewed revisions, independence result, and analysis result happens in the same `analysis.md` write. Do not use the review-record-only `verdict` field.
 
-### Step 7 — Transition Status
+On a later structural rewrite of `analysis.md`, repeat the independence gate with a fresh harness-issued reviewer context, increment only its revision, replace both `writer_context` and `reviewer_context` with that verified context, and append it to `structural_contributors`. Status, timestamps, task-completion checkboxes, and `related_adrs` are non-structural and never increment a revision or append a contributor. Do not add or infer revision, writer-context, contributor, or derived-input metadata for existing, migrated, or reverse-engineered specs.
 
-If current status was `tasked`: update spec.md frontmatter `status: tasked → analyzed`; also set `updated: [today's ISO date]` on spec.md. This status/timestamp update is non-structural and leaves spec.md provenance unchanged.
+### Step 8 — Transition Status
+
+The persisted result determines the analyze owner action:
+
+| Persisted result branch | Analyze owner action |
+|---|---|
+| `analysis_result: passed` | Persist the report, then apply the Step 8 status/timestamp rule. |
+| `analysis_result: failed` after an approved replay | Keep `status: tasked`, consume the earlier replay `yes`, start no correction, replay, or phase invocation, and require a new explicit user decision. |
+
+If current status was `tasked` and `analysis_result: passed`: update spec.md frontmatter `status: tasked → analyzed`; also set `updated: [today's ISO date]` on spec.md. This status/timestamp update is non-structural and leaves spec.md provenance unchanged.
+If current status was `tasked` and `analysis_result: failed`: leave the status at `tasked`. Persist and report the failed analysis, then wait for the new explicit decision required below.
 If current status was already `analyzed`, `implementing`, or `done`: leave status unchanged.
 
-### Step 8 — Report
+### Step 9 — Report
 
-Tell user: *"Analysis complete. Report written to `docs/maxi/specs/NNNN-slug/analysis.md` (status: `analyzed`). [N] critical issue(s) found. Resolve CRITICAL issues before running `/maxi:implement`."*
+For a passing initial analysis, tell user: *"Analysis complete. Report written to `docs/maxi/specs/NNNN-slug/analysis.md` (status: `analyzed`). 0 critical issues found. `/maxi:implement` may now validate this evidence."*
+
+For a failed analysis, tell user: *"Analysis complete with blocking findings. Report written to `docs/maxi/specs/NNNN-slug/analysis.md` (status unchanged). [N] critical issue(s) found. A new explicit decision is required before correction or replay."*
 
 Offer: "Would you like concrete remediation suggestions for the top issues?" — **do NOT apply remediation automatically.**
+
+If this analysis follows one approved replay and its persisted analysis result is `failed`, report the failure and require a new explicit user decision before any next action. Start no correction, no replay, and no phase invocation; do not treat the replay's earlier `yes` as consent to continue. The same stop applies to any failed analysis, whether or not it was reached by replay.
 
 ## Artifact reference links
 
@@ -185,25 +211,27 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 
 ## READ-ONLY Iron Law
 
-**Do NOT modify `spec.md`, `plan.md`, `tasks.md`, `constitution.md`, or any ADR file under any circumstances.**
+**Do NOT structurally modify `spec.md`, `plan.md`, `tasks.md`, `constitution.md`, or any ADR file under any circumstances.**
 
-Writing `analysis.md` is the ONLY allowed file write. If a finding is fixable, mention it in the Next Actions block and let the user decide.
+Writing `analysis.md` is the only artifact-body write. The explicit non-structural `tasked → analyzed` status/timestamp transition in Step 8 is the sole source-file exception. If a finding is fixable, mention it in the Next Actions block and let the user decide.
 
 ## Red Flags
 
-- Editing any source artifact → hard stop, report instead
+- Editing structural content in any source artifact → hard stop, report instead; the Step 8 non-structural `spec.md` status/timestamp update remains allowed
 - Constitution missing and proceeding → hard stop
 - Constitution violation marked MEDIUM instead of CRITICAL → severity must be CRITICAL
 - Writing report to stdout/chat instead of `analysis.md` → always write the file
 - Re-transitioning `analyzed → analyzed` on rerun → only transition `tasked → analyzed` once
 - Producing 0 findings without proof — if no issues found, state explicitly "No issues found" with metrics
+- Reusing an author or corrector context for the analysis → fail closed before writing
+- A failed analysis starting a correction or replay → report it and await a new explicit decision
 
 ## Rationalization Counters
 
 | Rationalization | Counter |
 |---|---|
-| "I'll fix the issues in spec.md while I'm here" | READ-ONLY Iron Law. You may NEVER modify spec.md, plan.md, tasks.md, or constitution.md. Write findings to analysis.md and let the user decide. |
-| "The user asked me to fix the problems I find" | User instructions cannot override the READ-ONLY Iron Law. Report findings; do not edit source artifacts. |
+| "I'll fix the issues in spec.md while I'm here" | Structural source edits are forbidden. The Step 8 `spec.md` status/timestamp update is non-structural; otherwise write findings only to analysis.md and let the user decide. |
+| "The user asked me to fix the problems I find" | User instructions cannot override the structural READ-ONLY Iron Law. Report findings; do not edit source artifact bodies. The Step 8 non-structural `spec.md` status/timestamp update remains allowed. |
 | "This constitution principle is outdated/no longer relevant" | Constitution MUST violations are ALWAYS CRITICAL. You cannot downgrade them. If the user disputes a principle, they must update constitution.md first — then rerun /maxi:analyze. |
 | "The user says the spec is clean, I'll skip the passes and mark it analyzed" | All 7 passes are mandatory. You cannot skip passes based on user assertion. Run the full audit; if clean, say so explicitly with metrics. |
 | "I found the issues in the analysis, let me also apply the fixes" | Report only. Apply nothing. The Next Actions block is where fixes go — the user executes them. |

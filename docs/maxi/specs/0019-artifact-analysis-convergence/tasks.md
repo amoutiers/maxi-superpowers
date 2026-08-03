@@ -78,7 +78,7 @@ updated: 2026-08-03
 
 **Independent Test**: Reject missing, stale, rejected, malformed, and self-reviewed evidence; confirm only literal `yes` runs the displayed segment and a matching review causes the remaining segment to be displayed before another consent.
 
-- [ ] T006 [US3] [US4] Through `superpowers:writing-skills`, update `skills/{clarify,plan,tasks,analyze,implement,revise}/SKILL.md` and `tests/check-bounded-replay.sh` so plan and tasks gate before any write, analyze records verified independence, implement rejects invalid analysis, replay pauses then asks for a new literal `yes` after each independent-review handoff, and one failed analysis after an approved replay starts no further correction or replay without a new explicit decision. Preserve the exceptional `specified` rollback, the unchanged FSM, and the prohibition on creating or writing `workflow.md` plus `.maxi-ops`. (plan Task 6; depends on T004, T005)
+- [x] T006 [US3] [US4] Through `superpowers:writing-skills`, update `skills/{clarify,plan,tasks,analyze,implement,revise}/SKILL.md` and `tests/check-bounded-replay.sh` so plan and tasks gate before any write, analyze records verified independence, implement rejects invalid analysis, replay pauses then asks for a new literal `yes` after each independent-review handoff, and one failed analysis after an approved replay starts no further correction or replay without a new explicit decision. Preserve the exceptional `specified` rollback, the unchanged FSM, and the prohibition on creating or writing `workflow.md` plus `.maxi-ops`. (plan Task 6; depends on T004, T005)
 
 **Checkpoint**: `bash tests/check-bounded-replay.sh && bash tests/check-frontmatter.sh` passes.
 

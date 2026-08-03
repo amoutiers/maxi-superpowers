@@ -18,14 +18,25 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 
 ## Process
 
-1. **Read tasks.md** — load all tasks from `docs/maxi/specs/NNNN-slug/tasks.md`. Identify which are `- [ ]` (pending) vs `- [x]` (complete). If resuming, start from first pending task.
-2. **Transition to implementing** — update spec.md frontmatter `status: → implementing`; also set `updated: [today's ISO date]` on spec.md. Do this before first task begins.
-3. **Delegate to /maxi:x-develop** — **REQUIRED SUB-SKILL.** Pass the full tasks.md content and the spec context (feature slug, plan.md overview). Do NOT implement tasks directly in this session.
-4. **Track task completion** — as each task completes, tick it in tasks.md: `- [ ] T001` → `- [x] T001`.
-5. **ADR nudge on unplanned forks** — if `/maxi:x-develop` (via subagents) surfaces a decision that wasn't in plan.md — the subagent reports "had to choose between X and Y" or "plan didn't specify Z so I chose W" — invoke `/maxi:x-adr` with the choice details. The ADR skill will draft, show, and wait for user consent. Implementation continues regardless of whether the user accepts or declines the ADR. Do not block task completion on ADR capture.
-6. **Run code review** — after all tasks complete, invoke `/maxi:requesting-code-review`. **This step is mandatory and cannot be skipped.**
-7. **Transition to done** — verify ALL tasks in tasks.md are ticked (`- [x]`). Count remaining `- [ ]` items. If count > 0, do not transition — report which tasks remain. Only when count is 0: update spec.md frontmatter `status: implementing → done` and set `updated: [today's ISO date]`.
-8. **Report** — *"Implementation complete. All tasks done. Status: `done`."*
+1. **Validate independent analysis** — for a forward-pipeline spec carrying revision metadata, apply the complete gate below. Run it on every invocation, including a resume from `implementing`.
+2. **Read tasks.md** — load all tasks from `docs/maxi/specs/NNNN-slug/tasks.md`. Identify which are `- [ ]` (pending) vs `- [x]` (complete). If resuming, start from first pending task.
+3. **Transition to implementing** — update spec.md frontmatter `status: → implementing`; also set `updated: [today's ISO date]` on spec.md. Do this before first task begins.
+4. **Delegate to /maxi:x-develop** — **REQUIRED SUB-SKILL.** Pass the full tasks.md content and the spec context (feature slug, plan.md overview). Do NOT implement tasks directly in this session.
+5. **Track task completion** — as each task completes, tick it in tasks.md: `- [ ] T001` → `- [x] T001`.
+6. **ADR nudge on unplanned forks** — if `/maxi:x-develop` (via subagents) surfaces a decision that wasn't in plan.md — the subagent reports "had to choose between X and Y" or "plan didn't specify Z so I chose W" — invoke `/maxi:x-adr` with the choice details. The ADR skill will draft, show, and wait for user consent. Implementation continues regardless of whether the user accepts or declines the ADR. Do not block task completion on ADR capture.
+7. **Run code review** — after all tasks complete, invoke `/maxi:requesting-code-review`. **This step is mandatory and cannot be skipped.**
+8. **Transition to done** — verify ALL tasks in tasks.md are ticked (`- [x]`). Count remaining `- [ ]` items. If count > 0, do not transition — report which tasks remain. Only when count is 0: update spec.md frontmatter `status: implementing → done` and set `updated: [today's ISO date]`.
+9. **Report** — *"Implementation complete. All tasks done. Status: `done`."*
+
+## Independent Analysis Gate
+
+Read the complete current `analysis.md`, `spec.md`, `plan.md`, `tasks.md`, and present support artifacts. For a forward-pipeline spec, accept the analysis only when all of these are true:
+
+- `analysis.md` metadata is well formed, has a positive revision, and its `derived_from` entries name the exact current revisions of `spec.md`, `plan.md`, `tasks.md`, and every support artifact it reviewed;
+- `reviewer_context_matches_harness: true`, `independence_verified: true`, and `analysis_result: passed` are present exactly;
+- `writer_context` equals `reviewer_context`, that context is a contributor to `analysis.md`, and the reviewer_context remains absent from the current `spec.md`, `plan.md`, and `tasks.md` `structural_contributors` lists.
+
+An absent, malformed, stale, failed, or non-independent analysis fails closed. Stop before any status or timestamp change, before any task checkbox write, and before any `x-develop` dispatch; leave all artifacts and implementation files unchanged. Do not infer, repair, or substitute chat-only evidence. A failed gate requests a new user decision but starts no correction or replay.
 
 ## Critical Rules
 
@@ -34,13 +45,15 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 - **Both statuses required.** `implementing` during work; `done` only when ALL `- [ ]` items become `- [x]`.
 - **Verify all tasks before done.** Count remaining `- [ ]` items before transitioning to `done`. If any remain, do not set done.
 - **Code review is not optional.** The user cannot waive `/maxi:requesting-code-review`. If they say "skip the review", explain it is required and run it anyway.
+- **Independent analysis is a pre-write gate.** Status alone is not evidence. Validate the persisted current passing analysis before every new or resumed implementation.
 
 ## Resuming Interrupted Implementation
 
 If status is already `implementing`:
+- Re-run the independent analysis gate against the current artifacts; stop if it no longer passes
 - Read tasks.md to find the first `- [ ]` (unchecked) task
 - Resume from there — skip all `- [x]` tasks
-- Complete the process through step 7 normally
+- Complete the process through step 8 normally
 
 ## Artifact reference links
 
