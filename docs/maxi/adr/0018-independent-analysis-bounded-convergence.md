@@ -1,12 +1,12 @@
 ---
 adr: 0018
 slug: 0018-independent-analysis-bounded-convergence
-status: accepted
+status: superseded
 created: 2026-08-01
 updated: 2026-08-01
 decider: "Antoine Moutiers"
 supersedes: 0002
-superseded_by: null
+superseded_by: 0020
 ---
 
 # ADR-0018: Independent Read-Only Analysis with Crash-Safe Bounded Convergence

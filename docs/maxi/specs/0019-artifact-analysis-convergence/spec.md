@@ -1,251 +1,179 @@
 ---
 slug: 0019-artifact-analysis-convergence
-created: 2026-08-01
-updated: 2026-08-01
-status: tasked
-# Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled
+created: 2026-08-03
+updated: 2026-08-03
+revision: 7
+status: planned
 parked_from: null
-# parked_from: set by /maxi:park to the pre-park status; cleared to null by /maxi:resume
-related_adrs: [0017-revision-bound-artifact-graph, 0018-independent-analysis-bounded-convergence]
-# related_adrs: full ADR slugs (NNNN-slug) appended by x-adr when an ADR is accepted
+related_adrs: [0019-bounded-forward-artifact-replay, 0020-persisted-independent-handoff-reviews]
 ---
 
-# Feature Specification: Artifact Revisions and Bounded Analysis Convergence
+# Feature Specification: Bounded Minimal Replay
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Block Invalid Implementation Entry (Priority: P1)
+### User Story 1 - See Current Document Versions (Priority: P1)
 
-As a feature owner, I want the final analysis gate to advance a spec only when its artifacts are current and its blocking findings are cleared, so implementation cannot start from a known-invalid design.
+As a Maxi user, I want every pipeline-owned document in a new spec to show its version and direct inputs, so I can tell which design information is current.
 
-**Why this priority**: The current status transition can make a failed analysis eligible for implementation. Preventing that unsafe transition is the minimum viable correction.
+**Why this priority**: Visible versions make the source of a stale downstream document understandable without retroactively changing existing specs.
 
-**Independent Test**: Create a tasked fixture with a blocking analysis finding, run the analysis workflow, and verify the spec remains `tasked` and implementation refuses to start. Resolve the finding, rerun analysis, and verify the spec becomes `analyzed`.
+**Independent Test**: Create a new spec through the normal pipeline and verify that every pipeline-owned document starts at revision 1; modify one owned document and verify that only its revision increments and its direct descendants are identified as stale.
 
 **Acceptance Scenarios**:
 
-1. **Given** a spec at `tasked` with at least one open blocking finding, **When** analysis completes, **Then** the spec remains at `tasked` and the report result is `failed`.
-2. **Given** a spec at `tasked` with current artifacts and no open blocking finding, **When** independent analysis completes successfully, **Then** the report records a passing result and the spec transitions to `analyzed`.
-3. **Given** a spec whose frontmatter says `analyzed` but whose analysis is failed, absent, or stale, **When** implementation is requested, **Then** implementation refuses and identifies the invalid prerequisite.
+1. **Given** a new spec created through the normal Maxi pipeline, **When** the pipeline creates `spec.md`, `research.md`, `data-model.md`, a file under `contracts/`, either review record under `reviews/`, `plan.md`, `tasks.md`, or `analysis.md`, **Then** that document has `revision: 1`.
+2. **Given** a derived document, **When** its owner creates or structurally changes it, **Then** it records each direct document input and the exact input revision.
+3. **Given** an existing or migration-created spec without revision metadata, **When** Maxi reads it, **Then** this feature does not modify it or infer a revision for it.
 
 ---
 
-### User Story 2 - Detect Stale Artifacts and Replay Minimally (Priority: P1)
+### User Story 2 - Propose the Smallest Safe Replay (Priority: P1)
 
-As a Maxi user, I want mutable artifacts to record their revisions and direct inputs, so the workflow can identify stale descendants and replay only the producers that are actually affected.
+As a Maxi user, I want Maxi to identify only the stale descendants of a changed document and propose the shortest continuation, so a correction does not restart unrelated phases.
 
-**Why this priority**: Reliable minimal replay is the primary mechanism for removing unnecessary full-pipeline regeneration.
+**Why this priority**: Avoiding unnecessary `specify -> clarify -> plan -> tasks -> analyze` loops is the feature's primary outcome.
 
-**Independent Test**: Build a current constitution/spec/plan/tasks/analysis fixture, change each upstream artifact in turn, and verify the validator reports exactly the expected stale descendants and rollback entry point.
+**Independent Test**: Change a plan and a task list independently, then verify the proposal names exactly the affected descendants and excludes unaffected ancestors.
 
 **Acceptance Scenarios**:
 
-1. **Given** a current plan derived from spec revision 3, **When** the spec advances to revision 4, **Then** the plan and all of its descendants are reported stale.
-2. **Given** a current task list derived from plan revision 5, **When** only the plan advances to revision 6, **Then** the task list and analysis are stale while the spec remains current.
-3. **Given** a defect owned only by `tasks.md`, **When** correction is approved, **Then** the workflow returns to `planned` and replays `tasks` and `analyze` without rerunning `clarify` or `plan`.
-4. **Given** a task-only correction is approved, **When** the rollback decision is persisted, **Then** it advances only the per-spec workflow ledger and does not advance the revisions of `spec.md` or `plan.md`.
+1. **Given** `plan.md` changes, **When** Maxi compares declared direct input revisions, **Then** it marks `reviews/plan-review.md`, `tasks.md`, and `analysis.md` stale, stops at the required plan-review handoff, and proposes `tasks -> analyze` only after a matching approved review is present.
+2. **Given** `tasks.md` changes, **When** Maxi compares declared direct input revisions, **Then** it marks only `analysis.md` stale and proposes a fresh independent `analyze`.
+3. **Given** `revise` changes `spec.md` and returns the spec to `specified`, **When** Maxi compares declared direct input revisions, **Then** it proposes `clarify`, stops for the required spec-review handoff, and does not rerun `specify`.
+4. **Given** `clarify` structurally changes `spec.md`, **When** Maxi compares declared direct input revisions, **Then** it requires a fresh spec review before it may propose `plan -> tasks -> analyze`; it does not rerun `clarify`.
+5. **Given** a dependency path is missing or cyclic, **When** Maxi prepares a replay proposal, **Then** it stops with an actionable diagnostic and performs no regeneration.
 
 ---
 
-### User Story 3 - Repair Original Specification Gaps (Priority: P1)
+### User Story 3 - Keep Replay Under User Control (Priority: P1)
 
-As a feature owner, I want any missing normative behavior discovered downstream to be corrected in the original specification, so plans, contracts, and tasks cannot silently become competing sources of requirements.
+As a Maxi user, I want to approve every proposed replay and to be stopped after a failed re-analysis, so Maxi cannot enter an automatic correction loop.
 
-**Why this priority**: Local compensation for specification gaps creates inconsistent sources of truth and makes later analysis unstable.
+**Why this priority**: Minimal replay is useful only when it remains visible and controllable.
 
-**Independent Test**: Present a plan-time or analysis-time finding that identifies a missing public behavior, verify the finding owner is `spec.md`, approve the rollback, and confirm only the targeted clarification plus downstream regeneration occurs.
+**Independent Test**: Trigger a stale descendant, reject and accept the same proposal, then make the resulting analysis fail and verify that Maxi requests another decision instead of replaying again.
 
 **Acceptance Scenarios**:
 
-1. **Given** a plan exposes a missing public error behavior, **When** its local gate classifies the defect, **Then** the owner is `spec.md` and the proposed rollback target is `specified`.
-2. **Given** the user approves a rollback for a real specification gap, **When** `clarify` resumes, **Then** it resolves only the identified gap and preserves previously valid clarifications.
-3. **Given** a downstream artifact attempts to add behavior absent from the spec, **When** its local gate runs, **Then** the gate refuses to advance and directs the correction to `spec.md`.
+1. **Given** stale descendants, **When** Maxi proposes a continuation, **Then** it shows the changed revisions, stale documents, and exact phase sequence before any replay-generated artifact write.
+2. **Given** a replay proposal, **When** the user has not answered `yes`, **Then** no phase runs and no replay-generated artifact changes.
+3. **Given** the user answers `yes`, **When** Maxi replays the proposal, **Then** it runs only the displayed sequence in dependency order.
+4. **Given** the analysis after one approved replay still fails, **When** Maxi reports that failure, **Then** it stops and requires a new explicit user decision before another correction or replay.
+5. **Given** a replay reaches an independent-review handoff, **When** its review is absent or stale, **Then** Maxi stops before the successor phase and names the reviewed document and revision; after a matching approved review is present, Maxi displays the remaining continuation and waits for a new explicit `yes` before executing it.
 
 ---
 
-### User Story 4 - Converge with Stable Findings (Priority: P2)
+### User Story 4 - Require Independent Reviews at Handoffs (Priority: P1)
 
-As a feature owner, I want analysis findings to retain stable identities and automatic correction to stop after one replay, so repeated reviews show a meaningful delta instead of restarting an unbounded loop.
+As a Maxi user, I want an independent review before planning, before task extraction, and before implementation, so a single author cannot silently carry an error through the pipeline.
 
-**Why this priority**: Stable evidence and a hard stop make semantic review understandable and bounded even when a second reviewer finds something new.
+**Why this priority**: The bounded replay mechanism only helps after a defect is found; independent handoff reviews make defects cheaper to find before their descendants are produced.
 
-**Independent Test**: Run two independent analyses around one approved correction cycle and verify finding identities, state changes, delta reporting, and the stop behavior after a second failure.
-
-**Acceptance Scenarios**:
-
-1. **Given** a finding recorded as `F001`, **When** a later analysis observes the same issue, **Then** it retains `F001` rather than creating a duplicate identity.
-2. **Given** one user-approved correction cycle has already completed, **When** the second complete analysis still fails, **Then** the workflow performs no further rollback or regeneration and requests a new user decision.
-3. **Given** the second analysis completes, **When** its report is written, **Then** it distinguishes new, resolved, and unchanged findings.
-
----
-
-### User Story 5 - Preserve Legacy and ADR Semantics (Priority: P2)
-
-As a maintainer, I want existing artifacts to adopt revisions incrementally while ADRs remain revision-free and append-only, so the feature does not require a destructive migration or weaken the decision log.
-
-**Why this priority**: Maxi must improve active workflows without rewriting historical project artifacts or changing ADR identity semantics.
-
-**Independent Test**: Validate legacy mutable artifacts and current, superseded, and deprecated ADR fixtures, then modify one legacy artifact and confirm only that artifact adopts revision 1.
+**Independent Test**: For a clarified spec and a planned plan, attempt the next producer without a matching approved review and verify it makes no write or status transition. Then supply an approved review from a context that did not author or correct the reviewed artifact and verify the next producer may proceed.
 
 **Acceptance Scenarios**:
 
-1. **Given** a legacy mutable artifact without revision metadata, **When** it is read, **Then** it is treated as revision 0 without being rewritten.
-2. **Given** that legacy artifact is modified by its owning skill, **When** the write completes, **Then** it records revision 1 in the same operation.
-3. **Given** an accepted ADR referenced by a current plan, **When** the artifact graph is validated, **Then** the ADR is checked by immutable slug and status without revision metadata.
-4. **Given** a referenced ADR is superseded or deprecated, **When** a phase gate runs, **Then** it blocks, identifies the obsolete reference and any declared successor, and never substitutes the successor automatically.
+1. **Given** `clarify` has completed, **When** a fresh external reviewer approves the current `spec.md`, **Then** Maxi persists a versioned review record that names the reviewed path and exact revision, its reviewer context, and the verified absence of that context from the reviewed document's structural contributors before `plan` may run.
+2. **Given** a clarified spec without a matching approved external review, **When** `plan` is invoked, **Then** it stops before writing `plan.md` or changing `status`.
+3. **Given** `plan` has completed, **When** a fresh external reviewer approves the current `plan.md`, **Then** Maxi persists a versioned review record that names the reviewed path and exact revision before `tasks` may run.
+4. **Given** a planned spec without a matching approved external review, **When** `tasks` is invoked, **Then** it stops before writing `tasks.md` or changing `status`.
+5. **Given** `tasks` has completed, **When** `analyze` runs, **Then** it is performed by a reviewer context that is absent from the persisted structural contributors of the current `spec.md`, `plan.md`, and `tasks.md`, and it persists its result in `analysis.md` before implementation may proceed.
+6. **Given** a reviewed artifact changes structurally, **When** Maxi checks its review record, **Then** that review is stale and cannot approve its successor phase.
 
 ### Edge Cases
 
-- Multiple findings belong to different artifacts: the earliest owner in the pipeline determines the rollback target for the approved batch.
-- A constitution change does not stale existing artifacts; the next phase of an active spec reruns constitution alignment, updates `validated_against` on success, and opens a finding only on a real conflict. Done and cancelled specs remain historical records without revalidation.
-- A dependency path is missing, duplicated, or cyclic: the deterministic gate fails before semantic analysis.
-- Deterministic validation fails before a reviewer is invoked: the report records `review_mode: not-run`, `result: failed`, and no reviewer identity rather than misrepresenting the run as a self-review.
-- A task references an unknown FR or SC identifier: coverage validation fails and the spec remains at its current pre-analysis status.
-- A finding disappears because its location moved but its meaning remains: semantic matching preserves the existing finding identifier when the reviewer can establish equivalence.
-- A non-blocking finding is accepted or deferred: acceptance requires a durable rationale, deferral requires a linked follow-up Maxi spec, and the disposition remains visible in later reports.
-- A constitution violation is proposed for acceptance: the workflow refuses because constitution findings are never waivable through analysis disposition.
-- The runtime cannot provide an independent reviewer context: a self-review may produce a provisional report, but the spec remains `tasked` and the workflow provides a handoff for analysis in a separate session.
-- The original independent reviewer is available after correction: the same reviewer is preferred for the second analysis in that correction cycle; otherwise another independent reviewer reconciles the persisted finding registry.
-- A user edits a mutable artifact outside its owning skill without incrementing `revision`: metadata-only validation cannot detect the silent edit; such out-of-band mutation is unsupported by this feature.
-- A mutable artifact references a valid ADR whose successor exists but is not yet reflected in the spec or plan: the gate blocks for human review rather than changing the reference.
-- A rollback is approved before any analysis report exists: the workflow creates the per-spec workflow ledger at revision 1 and records the decision there without modifying an unaffected content artifact.
+- A structural owner-managed change increments only the changed document's revision; task-completion checkboxes and operational metadata do not make descendants stale.
+- A document with multiple direct inputs is stale when any declared input revision no longer matches.
+- A proposal never includes an unaffected ancestor or a full restart unless a changed `spec.md` makes that downstream path necessary.
+- Migration and reverse-engineering workflows are outside this feature.
+- A review rejection, a stale review, or an unverifiable reviewer independence claim blocks its successor phase; it does not cause an automatic replay.
+- A replay may name a review handoff but never creates or approves a review record itself; a fresh external reviewer must create it before the user may approve the remaining continuation.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: `spec.md` MUST remain the sole source of expected behavior, public constraints, user-visible contracts, and success criteria.
-- **FR-002**: `plan.md`, supporting technical artifacts, and `tasks.md` MUST NOT introduce normative behavior absent from `spec.md`.
-- **FR-003**: Each forward phase MUST complete a gate for the artifact it owns before advancing the spec status.
-- **FR-004**: A failed final analysis MUST leave the spec at `tasked`.
-- **FR-005**: Analysis MUST transition `tasked` to `analyzed` only when an independent review result is passing and its input artifacts are current.
-- **FR-006**: Implementation MUST validate the current independent analysis result and input freshness in addition to checking `status: analyzed`.
-- **FR-007**: Every mutable per-project Maxi artifact governed by this workflow MUST carry a positive integer `revision` after creation or its first governed modification.
-- **FR-008**: A newly created mutable Maxi artifact MUST start at `revision: 1`.
-- **FR-009**: Every governed write that changes a mutable artifact's body or non-exempt frontmatter MUST increment `revision` in the same operation; the closed exemptions are `updated`, `status`, `parked_from`, task completion checkboxes, `related_adrs`, `validated_against`, and `validated_workflow`.
-- **FR-010**: Mutable derived artifacts MUST record every direct mutable content input and its exact revision in canonical `derived_from`; constitution validation MUST be recorded separately in `validated_against`, correction-state validation MUST be recorded separately in `validated_workflow`, and immutable ADR references MUST remain in `related_adrs`.
-- **FR-011**: Freshness validation MUST traverse direct dependencies to determine transitive staleness.
-- **FR-012**: A stale artifact MUST NOT satisfy a phase transition or implementation gate.
-- **FR-013**: A legacy mutable artifact with no `revision` field MUST be interpreted as revision 0 without an automatic rewrite.
-- **FR-014**: The next governed modification of a legacy revision-0 artifact MUST write revision 1.
-- **FR-015**: `updated:` MUST remain a human-readable date and MUST NOT be used as proof of artifact freshness.
-- **FR-016**: The revision mechanism MUST apply to mutable per-project Maxi artifacts, including the constitution, specs, plans, research, data models, contracts, tasks, analyses, and per-spec workflow ledgers.
-- **FR-017**: The revision mechanism MUST NOT be imposed on general repository documentation outside the per-project Maxi artifact graph.
-- **FR-018**: ADR files MUST NOT carry `revision` or `derived_from` metadata.
-- **FR-019**: Mutable artifacts MUST reference ADRs by full immutable slug separately from mutable `derived_from` entries.
-- **FR-020**: A phase gate MUST validate that each referenced ADR exists and has `status: accepted`; proposed, superseded, deprecated, or missing ADRs MUST NOT satisfy the gate.
-- **FR-021**: A reference to a superseded or deprecated ADR MUST block the relevant gate and identify any declared successor for review.
-- **FR-022**: The workflow MUST NOT substitute an ADR successor automatically.
-- **FR-023**: Every finding MUST be assigned to the earliest artifact whose content must change to resolve it.
-- **FR-024**: A missing or ambiguous normative requirement discovered downstream MUST be owned by `spec.md`.
-- **FR-025**: The rollback target MUST be `specified` for a specification gap, `clarified` for a plan or technical-contract defect, `planned` for a task defect, and `tasked` for an analysis-only defect.
-- **FR-026**: `revise` MUST allow an explicit, exceptional rollback to `specified` when a real gap in the original specification is identified.
-- **FR-027**: After a rollback to `specified`, `clarify` MUST process the identified gaps without reopening previously valid decisions unless a new finding directly invalidates them.
-- **FR-028**: Before proposing rollback, the workflow MUST complete the current finding inventory, assign owners, select the earliest owner, and list every descendant that will become stale.
-- **FR-029**: One explicit user confirmation MUST authorize the complete correction batch and its stated rollback target.
-- **FR-030**: Internal context, automatic continuation, a persisted goal, silence, and ambiguous acknowledgements MUST NOT count as rollback consent.
-- **FR-031**: After correction, the workflow MUST regenerate only the corrected artifact's descendants, in dependency order.
-- **FR-032**: Previously valid decisions and clarifications MUST be preserved during targeted replay.
-- **FR-033**: A single deterministic validation contract MUST govern artifact revision schema, content-dependency existence and freshness, cycles, constitution validation markers, ADR references, status compatibility, and explicit requirement references.
-- **FR-034**: `plan`, `tasks`, `analyze`, and `implement` MUST apply the same deterministic validation contract at their relevant gates.
-- **FR-035**: Tasks MUST reference every FR and build-relevant SC they cover using explicit identifiers.
-- **FR-036**: Keyword inference MAY suggest a missing task reference but MUST NOT count as evidence of requirement coverage.
-- **FR-037**: Deterministic validation failure during analysis MUST stop before semantic review, record actionable evidence, and leave the spec at `tasked`.
-- **FR-038**: Semantic analysis MUST evaluate ambiguity, contradiction, missing requirements, unjustified decisions, constitution and ADR alignment, testability, feasibility, and gaps revealed by the existing codebase.
-- **FR-039**: Semantic analysis MUST run in a reviewer context that did not author or correct the artifacts under review; the same independent reviewer SHOULD be reused for the second analysis in one correction cycle, with another independent reviewer allowed to reconcile the registry when reuse is unavailable.
-- **FR-040**: Every analysis report MUST declare `review_mode` as `independent`, `self-review`, or `not-run`; `not-run` is permitted only when deterministic validation stopped before semantic review, and neither `self-review` nor `not-run` MAY transition the spec to `analyzed`.
-- **FR-041**: Analysis MUST persist finding identifiers across runs and MUST NOT recycle an identifier.
-- **FR-042**: Findings MUST support `open`, `resolved`, `accepted`, and `deferred`; `accepted` MUST carry a durable rationale, while `deferred` MUST link to an existing follow-up Maxi spec that is neither `done` nor `cancelled`.
-- **FR-043**: Each analysis rerun MUST distinguish new, resolved, and unchanged findings.
-- **FR-044**: CRITICAL and HIGH findings MUST be blocking; MEDIUM and LOW findings MUST be non-blocking but require a valid `resolved`, `accepted`, or `deferred` disposition before analysis can pass, and otherwise remain `open`.
-- **FR-045**: A constitution violation MUST remain blocking and MUST NOT be accepted or deferred through analysis disposition.
-- **FR-046**: Analysis results MUST be `failed` when any blocking finding is open or any non-blocking finding lacks a valid disposition, `pass-clean` when every finding is resolved, and `pass-with-exceptions` when no blocking finding is open and at least one non-blocking finding is validly accepted or deferred.
-- **FR-047**: Only independent `pass-clean` and `pass-with-exceptions` results with current inputs MUST permit `tasked` to transition to `analyzed`.
-- **FR-048**: The first failed independent final analysis MAY initiate one user-approved correction and regeneration cycle.
-- **FR-049**: If the next complete independent analysis also fails, the workflow MUST perform no further automatic rollback, correction, or regeneration.
-- **FR-050**: After a second consecutive failed final analysis, the workflow MUST report original unresolved findings, newly discovered findings, and classification disagreements separately.
-- **FR-051**: Continuing after the correction-cycle limit MUST require a new direct user decision, and each such decision MUST authorize at most one additional correction and re-analysis cycle before the workflow stops again on failure.
-- **FR-052**: Implementation MUST refuse an absent, failed, stale, self-reviewed, not-run, or undeclared-review-mode analysis even when the spec frontmatter says `analyzed`.
-- **FR-053**: Gate failures MUST identify the earliest invalid or stale artifact and the dependency path that caused the failure.
-- **FR-054**: The feature MUST introduce no new FSM status.
-- **FR-055**: Pipeline documentation, templates, fixtures, and deterministic checks MUST be updated consistently with the new revision, rollback, analysis, and implementation-gate rules.
-- **FR-056**: Lifecycle events, rollback decisions, correction-cycle authorizations, and correction-cycle consumption MUST be persisted in a per-spec `workflow.md` ledger rather than by changing an unaffected content artifact; lifecycle events include park, resume, cancel, and revise operations.
-- **FR-057**: A workflow-ledger write MUST increment the ledger's own revision but MUST NOT by itself stale a content artifact; `analysis.md` MUST record in `validated_workflow` a canonical hash of correction-cycle events only, so a correction event stales the report while unrelated park, resume, or cancel events do not.
-- **FR-058**: New specs MUST create `workflow.md` at revision 1, while legacy specs without the ledger MUST be interpreted as having no prior rollback or correction-cycle events and MUST create it at revision 1 on the first governed workflow event.
-- **FR-059**: An analysis coordinator MUST label a review `independent` only when the runtime created a reviewer context separate from all contexts that authored or corrected the current artifacts, or when a separate-session handoff returns an explicit independence declaration; a generated identifier alone MUST NOT establish independence, and a separate-session reviewer that will be reused MUST hand correction back to an authoring context rather than editing reviewed source artifacts itself.
-- **FR-060**: Every independent or self-review report MUST persist a canonical hash of the semantic finding set returned by the reviewer; disposition-only updates MAY retain that review evidence only when the hashed semantic fields remain byte-identical, and any semantic finding change MUST require another review.
-- **FR-061**: Every lifecycle or correction-cycle mutation spanning the workflow ledger and another project file MUST use a persisted write-ahead operation identifier and idempotent recovery protocol; after interruption, the workflow MUST complete or acknowledge an already-written artifact exactly once, MUST NOT increment a revision twice, and MUST stop on any state that matches neither the recorded before-state nor a valid completed write.
-- **FR-062**: An ADR accepted after planning MUST stop forward work until the plan owner incorporates the decision, increments the plan revision, and regenerates tasks and independent analysis; an exempt spec-side `related_adrs` update alone MUST NOT allow implementation to continue.
+- **FR-001**: The revision and replay mechanism MUST apply only to specs created through the normal forward Maxi pipeline after this feature is introduced.
+- **FR-002**: Every pipeline-owned document created for such a spec, namely `spec.md`, `research.md`, `data-model.md`, every `contracts/*.md`, `reviews/spec-review.md`, `plan.md`, `reviews/plan-review.md`, `tasks.md`, and `analysis.md`, MUST start with a positive integer `revision: 1`.
+- **FR-003**: A structural owner-managed change to a versioned document MUST increment only that document's revision in the same write.
+- **FR-004**: A derived document MUST declare its direct document inputs and their exact revisions in `derived_from`.
+- **FR-005**: Maxi MUST identify a document as stale when one of its declared direct input revisions no longer matches, and MUST identify its transitive descendants as stale.
+- **FR-006**: Maxi MUST compute the earliest stale producer and the shortest dependency-ordered continuation that regenerates only stale descendants, starting from the phase supplied by the owner that made the structural change. The continuation MUST stop before its first required independent-review handoff.
+- **FR-007**: Before a replay, Maxi MUST display the owner-supplied previous revision, the current revision, stale documents, the proposed executable phase sequence, and any required review handoff that prevents a later successor phase.
+- **FR-008**: Maxi MUST not replay any phase until the user gives an explicit `yes` to that displayed proposal.
+- **FR-009**: A rejected, absent, or ambiguous response MUST leave every replay-generated artifact unchanged; it MUST NOT revert the already completed owner-managed source change that produced the proposal.
+- **FR-010**: After one approved replay, a failed analysis MUST stop further correction and replay until a new explicit user decision.
+- **FR-011**: `spec.md` changes MUST never cause `specify` to rerun; the full downstream continuation begins with `clarify`.
+- **FR-012**: Existing, migrated, and reverse-engineered specs MUST remain outside this mechanism and MUST not be retroactively versioned.
+- **FR-013**: Missing dependency paths, malformed revision metadata, dependency cycles anywhere in the pipeline-owned graph, and paths physically resolving outside the selected spec directory MUST fail closed before a replay is proposed.
+- **FR-014**: The feature MUST introduce no new FSM status.
+- **FR-015**: Owner skills remain responsible for document writes and provide the planner with the changed document, previous revision, and required first replay phase; a shared read-only support script MAY calculate staleness and format replay proposals but MUST not write artifacts or run phases.
+- **FR-016**: For a real missing or ambiguous requirement in `spec.md`, `revise` MUST offer the exceptional rollback target `specified`, then the approved replay begins with `clarify`; all other rollback target rules remain unchanged.
+- **FR-017**: Every structural write to a pipeline-owned document MUST persist its unique `writer_context` in that document's append-only `structural_contributors` list. A context that corrected a document is a structural contributor of that document.
+- **FR-018**: Before `plan` writes `plan.md` or changes `status`, it MUST require `reviews/spec-review.md` with an `approved` verdict, `derived_from` the current `spec.md` revision, and a `reviewer_context` absent from `spec.md`'s persisted `structural_contributors` list.
+- **FR-019**: Before `tasks` writes `tasks.md` or changes `status`, it MUST require `reviews/plan-review.md` with an `approved` verdict, `derived_from` the current `plan.md` revision, and a `reviewer_context` absent from `plan.md`'s persisted `structural_contributors` list.
+- **FR-020**: `analyze` MUST be the independent review gate before `implement`: its `reviewer_context` MUST be absent from the persisted `structural_contributors` lists of the current `spec.md`, `plan.md`, and `tasks.md`; `analysis.md` MUST record the reviewed revisions, its `reviewer_context`, and the verification result.
+- **FR-021**: A missing, rejected, malformed, unverified, or stale review record MUST block only its successor phase before any artifact write or status transition; it MUST not create a new FSM status, trigger replay, or alter an existing artifact.
+- **FR-022**: Review records are pipeline-owned documents: they MUST carry a revision and exact direct input revisions, and a structural change to their reviewed artifact makes them stale under the same mechanism as every other derived document.
+- **FR-023**: A replay MUST never generate or approve a review record. When a required review is stale or absent, it MUST stop before the successor phase and require an external review of the named current revision; after a matching approval is present, it MUST display the remaining continuation and require a new explicit `yes` before executing it.
 
 ### Key Entities
 
-- **Mutable Maxi artifact**: A per-project constitution, spec, plan, research document, data model, technical contract, task list, or analysis report that may be updated by its owning workflow.
-- **Artifact revision**: A positive integer representing the ordered governed writes to one mutable artifact; legacy absence is interpreted as revision 0.
-- **Direct dependency**: A mutable input path and exact revision recorded by a derived artifact in `derived_from`.
-- **Artifact graph**: The directed graph of mutable artifacts and their direct revision-bound dependencies, plus separate immutable ADR references.
-- **Analysis finding**: A persistent issue with a stable identifier, state, severity, owner, location, summary, and recommendation.
-- **Correction cycle**: One explicit user-approved rollback, correction, descendant regeneration, and complete re-analysis following a failed final analysis.
-- **Review mode**: Evidence that semantic analysis ran with an author-independent reviewer, ran as a provisional self-review, or did not run because deterministic validation failed; only the independent mode may open the implementation gate.
-- **Workflow ledger**: A per-spec mutable event record that persists lifecycle, rollback, and correction-cycle events without changing unrelated content-artifact revisions.
+- **Versioned spec document**: A document created for a new forward-pipeline spec that carries a positive `revision`.
+- **Pipeline-owned document**: `spec.md`, `research.md`, `data-model.md`, a `contracts/*.md` file, `reviews/spec-review.md`, `plan.md`, `reviews/plan-review.md`, `tasks.md`, or `analysis.md` created by the normal forward pipeline.
+- **Structural contributor**: The unique `writer_context` of a context that made a structural write to a pipeline-owned document, persisted in that document's append-only `structural_contributors` list.
+- **Review record**: `reviews/spec-review.md` or `reviews/plan-review.md`, a versioned external-review artifact with a reviewed document, exact reviewed revision, verdict, and `reviewer_context` verified against the reviewed document's structural contributors.
+- **Direct input**: A document path and exact revision recorded in `derived_from` by a derived document.
+- **Stale descendant**: A document whose direct input revision no longer matches, or whose transitive input is stale.
+- **Replay proposal**: The displayed changed revision, stale documents, and shortest phase sequence awaiting explicit user confirmation.
 
 ## Clarifications
 
-**Q: Can a self-review transition a spec to `analyzed` when the runtime cannot create a fresh reviewer?**
-A: No. Independent review is mandatory. A self-review may create a provisional report, but the spec remains `tasked`; runtimes without automatic isolation must provide a handoff for analysis in a separate session.
+**Revised (2026-08-03):** Rolled back from `planned` to `clarified`. Change: define the replay entry phase, preserve the pre-write revision in the proposal contract, and enumerate the pipeline-owned documents. Note: `plan.md` and later artifacts are stale.
 
-**Q: What review mode is recorded when deterministic validation fails before semantic review?**
-A: `not-run`. It is fail-closed, records no reviewer identity, leaves the spec at `tasked`, and cannot satisfy implementation.
+**Revised (2026-08-03):** Corrected the replay contract after independent review. A rejected proposal prevents only replay-generated writes, the planner validates the full confined graph, and a source-spec gap has the exceptional `specified` rollback required to run `clarify` legitimately.
 
-**Q: Which writes increment an artifact revision?**
-A: `revision` represents structural content. Body and non-exempt frontmatter changes increment it. The closed operational exemptions are `updated`, `status`, `parked_from`, task completion checkboxes, `related_adrs`, `validated_against`, and `validated_workflow`.
+**Revised (2026-08-03):** Rolled back from `planned` to `clarified` and added independent handoff reviews. A fresh external review now gates planning after clarification, task extraction after planning, and analysis before implementation; matching review records are versioned and stale when their reviewed artifact changes. Note: `plan.md` and later artifacts are stale.
 
-**Q: Does a constitution revision make existing specs and plans stale?**
-A: No. Constitution revision is recorded under `validated_against`, not `derived_from`. Active specs rerun constitution alignment at their next phase and update the marker on success; only a real conflict opens a finding. Done and cancelled specs remain unchanged historical records.
+**Revised (2026-08-03):** Made independent-review verification and replay handoffs explicit after review. Structural contributors are persisted and checked against a reviewer's context; replay stops at each external review rather than generating a review or continuing past it automatically.
 
-**Q: Does updating ADR traceability or constitution validation increment structural revision?**
-A: No. `related_adrs`, `validated_against`, and `validated_workflow` are traceability metadata in the closed exemption list. ADR status is checked separately, and a real architectural change increments the plan revision.
+**Revised (2026-08-03):** Corrected the post-review consent order. A matching external review causes Maxi to display the remaining continuation first; only a subsequent explicit `yes` executes it.
 
-**Q: What happens after the correction-cycle limit when the user authorizes more work?**
-A: Each new direct decision opens exactly one additional correction and independent re-analysis cycle. Another failure stops again and requires another decision.
+**Revised (2026-08-03):** Included both review records in the versioned-document acceptance scenario, matching the canonical requirement list.
 
-**Q: What is the passing result when non-blocking findings are accepted or deferred?**
-A: The result is `pass-with-exceptions`. `pass-clean` is reserved for analyses where every finding is resolved.
+**Q: Which specs receive document revisions?**
+A: Only new specs created through Maxi's normal forward pipeline. Existing, migrated, and reverse-engineered specs remain unchanged.
 
-**Q: What distinguishes `accepted` from `deferred`?**
-A: `accepted` preserves an intentional exception with a durable rationale. `deferred` records a real issue and must link to an existing follow-up Maxi spec. Without the required evidence, the finding remains open.
+**Q: What happens when Maxi finds stale descendants?**
+A: Maxi displays the smallest replay proposal and waits for an explicit `yes`; it never continues automatically.
 
-**Q: Must every re-analysis use a different reviewer?**
-A: No. Independence means separation from the artifact author. The same independent reviewer is preferred for the second pass in one correction cycle; another independent reviewer may reconcile the existing registry if reuse is unavailable.
+**Q: What happens when re-analysis fails after an approved replay?**
+A: Maxi stops and requires a new explicit user decision before another correction or replay.
 
-**Q: What happens if a correction run is interrupted between ledger and artifact writes?**
-A: The workflow resumes the same persisted operation. It either applies an untouched prepared output once, acknowledges an exact completed output without rewriting it, or stops on a conflicting state. It never regenerates blindly or increments a revision twice.
+**Q: What determines the first phase in a replay proposal?**
+A: The owner that made the structural change supplies it. A `revise` change to the source spec starts at `clarify`; a `clarify` change starts at `plan`.
 
-**Q: What happens when implementation discovers an architectural decision?**
-A: Implementation stops after the ADR decision is recorded. The plan owner must incorporate it structurally, then tasks and independent analysis replay before implementation may resume; the spec backlink alone is not freshness evidence.
+**Q: How does a replay cross an independent-review handoff?**
+A: It does not cross one automatically. The proposal stops before the handoff and names the current document and revision to review. After a matching independent review, Maxi displays the remaining phases and waits for a new explicit `yes`.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: In all analysis fixtures with at least one open blocking finding, 0 specs transition from `tasked` to `analyzed`.
-- **SC-002**: For spec-only, plan-only, and task-only mutations, deterministic validation identifies 100% of the expected stale descendants and no unaffected ancestor as stale.
-- **SC-003**: For every supported finding owner, the proposed rollback status matches the owning producer's required input status in 100% of behavioral fixtures.
-- **SC-004**: Across repeated analysis fixtures, unchanged findings retain their identifiers and every report correctly classifies all findings as new, resolved, or unchanged.
-- **SC-005**: After a second consecutive failed final analysis, 0 additional artifact corrections, rollbacks, or regenerations occur without a new direct user decision.
-- **SC-006**: Internal context, automatic continuations, persisted goals, silence, and ambiguous acknowledgements authorize 0 rollback writes in consent fixtures.
-- **SC-007**: Existing mutable artifacts without revision metadata require no bulk migration and adopt revision 1 only when individually modified by their owning workflow.
-- **SC-008**: All ADR fixtures remain revision-free; accepted current references pass, while superseded or deprecated references block without automatic substitution.
-- **SC-009**: Implementation rejects 100% of fixtures with absent, failed, stale, self-reviewed, not-run, or undeclared-review-mode analysis despite an `analyzed` spec status.
-- **SC-010**: `bash tests/run-all.sh` passes with deterministic coverage for the artifact graph and skill-contract changes.
-- **SC-011**: Lifecycle and correction interruption fixtures at authorization, consumption, preparation, status/artifact-write, and phase-completion boundaries produce exactly one intended write per artifact, exactly one structural revision increment when applicable, and no duplicate phase execution.
-- **SC-012**: Implementation refuses 100% of fixtures where spec-side ADR references differ from the current plan, including an ADR accepted after analysis, until plan, tasks, and analysis are replayed.
+- **SC-001**: 100% of pipeline-owned documents created for a new forward-pipeline spec begin at revision 1.
+- **SC-002**: In plan-only and tasks-only fixtures, the replay proposal identifies all and only stale descendants and stops at the first required independent-review handoff.
+- **SC-003**: The deterministic owner-skill contract accepts only the exact reply `yes` as approval; every fixture for silence, `ok`, or prior consent produces no directed replay invocation, and the read-only planner changes no artifact or replay-generated output.
+- **SC-004**: In 100% of accepted plan-only and tasks-only proposals, replay excludes unaffected ancestors.
+- **SC-005**: In 100% of fixtures where re-analysis fails after one approved replay, Maxi requests a new user decision and starts no further replay.
+- **SC-006**: Existing, migrated, and reverse-engineered fixture specs receive no revision metadata or replay behavior from this feature.
+- **SC-007**: In 100% of fixtures without a matching approved independent review record, `plan` and `tasks` stop before writing their output or transitioning status.
+- **SC-008**: In 100% of review fixtures, a context recorded as a structural contributor of the reviewed document cannot approve it, and a structural revision makes its prior review record stale.
+- **SC-009**: In 100% of analysis fixtures, the report records a reviewer context verified absent from the structural contributors of the reviewed current artifacts before `implement` may proceed.
 
 ## Assumptions
 
-- Mutable Maxi artifacts are normally modified through their owning skills; silent out-of-band structural edits that do not bump `revision` are unsupported and cannot be detected by revision metadata alone.
-- The canonical serialization of `derived_from` and the validator's implementation language are technical plan decisions, provided the representation is deterministic and portable across supported harnesses.
-- Direct dependency edges are sufficient because validators traverse the graph for transitive freshness.
-- Independent review is mandatory for `analyzed`; runtimes without automatic reviewer isolation must hand off analysis to a separate session, while self-review remains provisional.
-- Non-blocking findings may be accepted only with a durable rationale or deferred only with a linked follow-up Maxi spec, and the disposition remains visible in the analysis registry.
-- The accepted design document under `docs/superpowers/specs/` is local brainstorming evidence; this spec is the authoritative tracked Maxi artifact.
-- Workflow events are operational evidence, not normative requirements; content artifacts depend on their actual content inputs, while `analysis.md` separately validates the canonical correction-event state.
+- The normal forward pipeline continues to use `specify -> clarify -> plan -> tasks -> analyze -> implement`.
+- Planning support documents are the pipeline-owned `research.md`, `data-model.md`, and `contracts/*.md` files; they are versioned when created and may be direct inputs of `plan.md`.
+- Independent review records are created only at their corresponding handoffs. They are not new pipeline phases or FSM statuses.
+- This replacement supersedes the former broad 0019 scope. The pre-existing `plan.md` and `tasks.md` describe that former scope and are non-authoritative until regenerated by the pipeline.

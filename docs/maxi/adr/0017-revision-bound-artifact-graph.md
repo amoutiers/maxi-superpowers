@@ -1,12 +1,12 @@
 ---
 adr: 0017
 slug: 0017-revision-bound-artifact-graph
-status: accepted
+status: superseded
 created: 2026-08-01
 updated: 2026-08-01
 decider: "Antoine Moutiers"
 supersedes: null
-superseded_by: null
+superseded_by: 0019
 ---
 
 # ADR-0017: Revision-Bound Artifact Graph with Separate Workflow Validation
