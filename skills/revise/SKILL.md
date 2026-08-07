@@ -41,17 +41,18 @@ Roll back a spec to an earlier pipeline phase when requirements or design change
    - `updated: <today's ISO date>`
    - Append to `## Clarifications`:
      `**Revised (YYYY-MM-DD):** Rolled back from \`<current>\` to \`<target>\`. Change: <description>. Note: artefacts from phases after \`<target>\` (if any) are stale.`
-   - For a forward-pipeline spec, increment only `spec.md`, replace `writer_context` with this write's new unique context, and append that context to `structural_contributors`. The status and timestamp are non-structural; the persisted revision note is the structural owner change.
+   - Only the exact `replay_contract: bounded-v1` root marker activates revision, provenance, replay_continuation, and planner behavior. For that marked spec, increment only `spec.md`, replace `writer_context` with this write's new unique context, and append that context to `structural_contributors`. The status and timestamp are non-structural; the persisted revision note is the structural owner change. An unmarked revision-bearing spec, including pre-mechanism 0019, follows legacy revise: no provenance, no replay continuation, and no planner.
+   - For a marked exceptional `specified` target, persist `replay_continuation: clarify@<new-spec-revision>` in the same structural `spec.md` write. The marker binds only the newly written spec revision and survives a rejected, ambiguous, or interrupted replay proposal.
 
-6. **Calculate and display replay**: for a forward-pipeline spec, call the read-only `skills/revise/replay-plan.sh` with `--changed spec.md`, the captured previous revision, and the next valid producer as `--start-phase`. A `specified` rollback starts at `clarify`; never rerun or replay `specify`. Follow the bounded replay contract below.
+6. **Calculate and display replay**: only for a marked spec, call the read-only `skills/revise/replay-plan.sh` with `--changed spec.md`, the captured previous revision, and the next valid producer as `--start-phase`. A `specified` rollback starts at `clarify`; never rerun or replay `specify`. Follow the bounded replay contract below.
 
 7. **Report**: *"Spec `<slug>` is now at `<target>`. The displayed replay remains pending its own consent or external review handoff."*
 
 ## Bounded Replay Contract
 
-`revise` owns only the `spec.md` write above. `x-review` is the sole writer of review records, and the replay planner is read-only: it never writes an artifact and never invokes a phase.
+This contract applies only to the exact `replay_contract: bounded-v1` root marker; revision metadata alone never activates it. `revise` owns only the `spec.md` write above. `x-review` is the sole writer of review records, and the replay planner is read-only: it never writes an artifact and never invokes a phase.
 
-1. Parse only the planner's `CHANGED`, `STALE`, `REPLAY`, and `REVIEW_REQUIRED` records. Before any phase invocation, display the previous revision, current revision, stale paths, executable sequence, and review handoff. Preserve the emitted phase order and explicitly say when the executable sequence is empty.
+1. Parse only the planner's `CHANGED`, `STALE`, `CONTINUATION`, `REPLAY`, and `REVIEW_REQUIRED` records. Before any phase invocation, display the previous revision, current revision, persisted continuation, stale paths, executable sequence, and review handoff. Preserve the emitted phase order and explicitly say when the executable sequence is empty.
 2. One displayed executable segment ends at its first review boundary. Stop at every `REVIEW_REQUIRED` record; invoke no phase after that review handoff and do not create, approve, or write its review record.
 3. Ask separately whether to run exactly the displayed executable segment. Approval exists only when the entire response is exactly the lowercase literal `yes`; do not trim whitespace or reuse the rollback answer. Silence, `ok`, prior consent, and every other response authorize no phase invocation. A rollback `yes` authorizes only Step 5, never replay.
 4. On approval, invoke only the displayed phases, once each, in order, and stop when that segment completes. After a matching external review exists, display the remaining executable segment and obtain a new literal `yes` before invoking any of it. The review itself is never consent for the continuation.

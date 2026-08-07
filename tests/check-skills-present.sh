@@ -12,8 +12,18 @@ MAXI_SKILLS=(
   x-adr x-review analyze board cancel clarify constitution x-develop implement migrate-adr migrate-from-brownfield migrate-from-speckit park plan resume revise specify tasks using-maxi
 )
 
+if [ "${#MAXI_SKILLS[@]}" -ne 19 ]; then
+  echo "FAIL [maxi-native skill inventory]: expected 19 registered skills, got ${#MAXI_SKILLS[@]}" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [maxi-native skill inventory]: 19 registered skills"
+fi
+
 for skill in "${MAXI_SKILLS[@]}"; do
   assert_file_exists "$SKILLS_DIR/$skill/SKILL.md" "$skill"
 done
+
+assert_file_exists "$SKILLS_DIR/revise/replay-plan.sh" "read-only bounded replay planner"
+assert_file_exists "$ROOT/tests/check-x-review.sh" "targeted x-review check"
 
 summary_and_exit "maxi-native skill checks"

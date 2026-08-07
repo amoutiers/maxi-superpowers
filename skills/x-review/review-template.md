@@ -25,5 +25,5 @@ approved
 
 ## Verification Results
 
-- Exact-envelope equality: verified against the path, revision, SHA-256, and exact current bytes.
+- Structural-envelope equality: verified against the path, revision, SHA-256, and canonical structural projection.
 - Reviewer-context equality and independence: verified equal to the harness-issued context and absent from the subject's `structural_contributors`.

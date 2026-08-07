@@ -7,6 +7,12 @@ updated: 2026-08-01
 
 # Data Model: Artifact Revisions and Analysis Convergence
 
+> **Superseded historical artifact.**
+>
+> The content below is archival only and does not prescribe active Maxi behavior.
+> It does not require creating or writing `workflow.md`, `.maxi-ops`, `workflow-ledger.sh`, or `x-artifact-graph`.
+> Active requirements are governed by the current `spec.md`, `plan.md`, and `tasks.md`.
+
 ## Artifact metadata
 
 | Field | Type | Required | Rules |

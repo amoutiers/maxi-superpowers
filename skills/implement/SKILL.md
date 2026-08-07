@@ -18,7 +18,7 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 
 ## Process
 
-1. **Validate independent analysis** — for a forward-pipeline spec carrying revision metadata, apply the complete gate below. Run it on every invocation, including a resume from `implementing`.
+1. **Validate independent analysis** — activate this future-only contract only when the root `spec.md` carries exactly one exact `replay_contract: bounded-v1` root marker. Revision metadata alone never activates it. An unmarked existing, migrated, reverse-engineered, or pre-mechanism spec keeps the prior implementation behavior; a duplicate or non-exact marker is malformed and stops before any write. For an eligible root, apply the complete gate below on every invocation, including a resume from `implementing`.
 2. **Read tasks.md** — load all tasks from `docs/maxi/specs/NNNN-slug/tasks.md`. Identify which are `- [ ]` (pending) vs `- [x]` (complete). If resuming, start from first pending task.
 3. **Transition to implementing** — update spec.md frontmatter `status: → implementing`; also set `updated: [today's ISO date]` on spec.md. Do this before first task begins.
 4. **Delegate to /maxi:x-develop** — **REQUIRED SUB-SKILL.** Pass the full tasks.md content and the spec context (feature slug, plan.md overview). Do NOT implement tasks directly in this session.
@@ -30,7 +30,7 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 
 ## Independent Analysis Gate
 
-Read the complete current `analysis.md`, `spec.md`, `plan.md`, `tasks.md`, and present support artifacts. For a forward-pipeline spec, accept the analysis only when all of these are true:
+For an eligible marker-bound root, read the complete current `analysis.md`, `spec.md`, `plan.md`, `tasks.md`, and present support artifacts. Accept the analysis only when all of these are true:
 
 - `analysis.md` metadata is well formed, has a positive revision, and its `derived_from` entries name the exact current revisions of `spec.md`, `plan.md`, `tasks.md`, and every support artifact it reviewed;
 - `reviewer_context_matches_harness: true`, `independence_verified: true`, and `analysis_result: passed` are present exactly;

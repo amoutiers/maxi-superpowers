@@ -26,17 +26,17 @@ Required files:
 - `docs/maxi/specs/NNNN-slug/tasks.md` (task IDs, descriptions, phase grouping, [P] markers)
 - `docs/maxi/constitution.md` (principles, MUST/SHOULD rules)
 
-Also locate every support artifact present beside the plan (`research.md`, `data-model.md`, `quickstart.md`, and `contracts/*.md`). These are required direct inputs for a forward-pipeline analysis when present.
+For an eligible root, also locate every versioned support artifact present beside the plan (`research.md`, `data-model.md`, and `contracts/*.md`). These are required direct inputs for a forward-pipeline analysis when present. `quickstart.md` remains an optional planning output but is not a direct input of a forward-pipeline analysis and carries no revision or provenance requirement from this mechanism.
 
 Abort with actionable message if any required file is missing.
 
 ### Step 2 — Verify Independent Reviewer Context
 
-For a forward-pipeline spec carrying revision metadata, require one fresh reviewer context issued by the harness for this analysis invocation. Validate it with the same canonical single-line context grammar as `x-review`; never normalize or repair it.
+Activate this future-only contract only when the root `spec.md` carries exactly one exact `replay_contract: bounded-v1` root marker. Revision metadata alone never activates it. An unmarked existing, migrated, reverse-engineered, or pre-mechanism spec keeps the prior analysis behavior without revision, provenance, or independent-analysis metadata; a duplicate or non-exact marker is malformed and stops before any write. For an unmarked root, skip independent reviewer-context, structural-contributor, revision, provenance, and analysis-metadata requirements, then continue with the prior seven-pass audit and status behavior. For an eligible root, require one fresh reviewer context issued by the harness for this analysis invocation. Validate it with the same canonical single-line context grammar as `x-review`; never normalize or repair it.
 
-Read the complete current frontmatter of `spec.md`, `plan.md`, and `tasks.md`. The reviewer context must be absent from the current `spec.md`, `plan.md`, and `tasks.md` `structural_contributors` lists. Any missing or malformed contributor metadata, malformed context, or contributor match is non-independent and fails closed before any analysis write and before any status transition. Do not dispatch or perform the audit under another context.
+For an eligible root, read the complete current frontmatter of `spec.md`, `plan.md`, and `tasks.md`. The reviewer context must be absent from the current `spec.md`, `plan.md`, and `tasks.md` `structural_contributors` lists. Any missing or malformed contributor metadata, malformed context, or contributor match is non-independent and fails closed before any analysis write and before any status transition. Do not dispatch or perform the audit under another context.
 
-The verified reviewer context is both `analysis.md`'s `reviewer_context` and its `writer_context`. This skill writes no structural source artifact content or review record. Its sole source-file write is the non-structural `spec.md` status/timestamp update in Step 8; it never asks `x-review` to manufacture final-analysis evidence.
+For an eligible root, the verified reviewer context is both `analysis.md`'s `reviewer_context` and its `writer_context`. This skill writes no structural source artifact content or review record. Its sole source-file write is the non-structural `spec.md` status/timestamp update in Step 8; it never asks `x-review` to manufacture final-analysis evidence.
 
 ### Step 3 — Load Artifacts (Minimal Sections)
 
@@ -109,7 +109,7 @@ Skip this pass entirely (and note "no ADRs" in Metrics) if `docs/maxi/adr/` is e
 
 ### Step 7 — Write analysis.md
 
-Write to `docs/maxi/specs/NNNN-slug/analysis.md`. Structure:
+Write to `docs/maxi/specs/NNNN-slug/analysis.md`. For an eligible root, use this versioned structure. For an unmarked root, use the same report body without this future-only frontmatter.
 
 ```markdown
 ---
@@ -172,24 +172,24 @@ Spec: docs/maxi/specs/NNNN-slug/spec.md (status: [current status])
 [If LOW/MEDIUM only: may proceed; suggestions below]
 ```
 
-This frontmatter applies only to the first `analysis.md` created for a spec created through the normal forward pipeline. Use the verified reviewer context as the non-empty writer context unique across that spec's pipeline-owned documents. The `derived_from` entries are the reviewed current revisions: include current `spec.md`, current `plan.md`, current `tasks.md`, and every present support artifact at the exact revision read. Constitution and ADR files remain audit context outside this spec-local replay graph.
+For an eligible root, this frontmatter applies only to the first `analysis.md` created for a spec created through the normal forward pipeline. Use the verified reviewer context as the non-empty writer context unique across that spec's pipeline-owned documents. The `derived_from` entries are the reviewed current revisions: include current `spec.md`, current `plan.md`, current `tasks.md`, and every present support artifact at the exact revision read. Constitution and ADR files remain audit context outside this spec-local replay graph.
 
-Set `analysis_result: passed` only when the completed seven-pass report has zero CRITICAL findings; otherwise set `analysis_result: failed`. Persisting the report, verified context, exact reviewed revisions, independence result, and analysis result happens in the same `analysis.md` write. Do not use the review-record-only `verdict` field.
+For an eligible root, set `analysis_result: passed` only when the completed seven-pass report has zero CRITICAL findings; otherwise set `analysis_result: failed`. Persisting the report, verified context, exact reviewed revisions, independence result, and analysis result happens in the same `analysis.md` write. Do not use the review-record-only `verdict` field.
 
-On a later structural rewrite of `analysis.md`, repeat the independence gate with a fresh harness-issued reviewer context, increment only its revision, replace both `writer_context` and `reviewer_context` with that verified context, and append it to `structural_contributors`. Status, timestamps, task-completion checkboxes, and `related_adrs` are non-structural and never increment a revision or append a contributor. Do not add or infer revision, writer-context, contributor, or derived-input metadata for existing, migrated, or reverse-engineered specs.
+For an eligible root, on a later structural rewrite of `analysis.md`, repeat the independence gate with a fresh harness-issued reviewer context, increment only its revision, replace both `writer_context` and `reviewer_context` with that verified context, and append it to `structural_contributors`. Status, timestamps, task-completion checkboxes, and `related_adrs` are non-structural and never increment a revision or append a contributor. Do not add or infer revision, writer-context, contributor, or derived-input metadata for existing, migrated, or reverse-engineered specs.
 
 ### Step 8 — Transition Status
 
-The persisted result determines the analyze owner action:
+For an eligible root, the persisted result determines the analyze owner action:
 
 | Persisted result branch | Analyze owner action |
 |---|---|
 | `analysis_result: passed` | Persist the report, then apply the Step 8 status/timestamp rule. |
 | `analysis_result: failed` after an approved replay | Keep `status: tasked`, consume the earlier replay `yes`, start no correction, replay, or phase invocation, and require a new explicit user decision. |
 
-If current status was `tasked` and `analysis_result: passed`: update spec.md frontmatter `status: tasked → analyzed`; also set `updated: [today's ISO date]` on spec.md. This status/timestamp update is non-structural and leaves spec.md provenance unchanged.
-If current status was `tasked` and `analysis_result: failed`: leave the status at `tasked`. Persist and report the failed analysis, then wait for the new explicit decision required below.
-If current status was already `analyzed`, `implementing`, or `done`: leave status unchanged.
+For an eligible root, if current status was `tasked` and `analysis_result: passed`: update spec.md frontmatter `status: tasked → analyzed`; also set `updated: [today's ISO date]` on spec.md. This status/timestamp update is non-structural and leaves spec.md provenance unchanged.
+For an eligible root, if current status was `tasked` and `analysis_result: failed`: leave the status at `tasked`. Persist and report the failed analysis, then wait for the new explicit decision required below.
+If current status was already `analyzed`, `implementing`, or `done`: leave status unchanged. For an unmarked root, retain the prior `tasked → analyzed` status/timestamp behavior after writing the unversioned report.
 
 ### Step 9 — Report
 

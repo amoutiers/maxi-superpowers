@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.1.1 harness model (Claude Code · Codex · OpenCode · Antigravity · Cursor · Pi; plus Kimi Code, Factory Droid, and GitHub Copilot CLI via marketplace docs). It vendors superpowers' skills via git subtree and adds 18 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
+maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.1.1 harness model (Claude Code · Codex · OpenCode · Antigravity · Cursor · Pi; plus Kimi Code, Factory Droid, and GitHub Copilot CLI via marketplace docs). It vendors superpowers' skills via git subtree and adds 19 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 3 internal pipeline skills (`x-adr`, `x-develop`, `x-review`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
 
 ## Git
 
@@ -42,6 +42,20 @@ Spec→ADR traceability is recorded spec-side: `spec.md` frontmatter carries `re
 Every `spec.md` has a YAML frontmatter `status:` field:
 `drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled`
 
+The 10-state FSM remains unchanged. For a marker-bound root, `reviews/spec-review.md` gates `plan`, and `reviews/plan-review.md` gates `tasks`; both records are persisted and versioned by internal `x-review`. These external review handoffs are gates, not statuses or automatic replay phases. The read-only `skills/revise/replay-plan.sh` planner calculates bounded replay proposals and never writes artifacts, creates or approves reviews, or executes phases. `revise` reserves the exceptional `specified` rollback for a demonstrated source-spec gap and resumes replay at `clarify`, never `specify`.
+
+Bounded replay is future-only. Eligible roots carry exactly one `replay_contract: bounded-v1`; only `/maxi:specify` writes this marker, during normal forward-spec creation. An unmarked existing, migrated, or reverse-engineered spec returns `UNSUPPORTED_LEGACY`; revision metadata alone never opts it in.
+
+For a marker-bound root, `reviewed_sha256` hashes the canonical structural projection, which omits only root-frontmatter `status:` and `updated:`, preserves every other line in order, and hashes one LF after each retained line. The exact ten-field review envelope is `revision`, `writer_context`, `structural_contributors`, `derived_from`, `reviewed_document`, `reviewed_revision`, `reviewed_sha256`, `reviewer_context`, `reviewer_context_matches_harness`, and `verdict`. Before delegation, artifact write, or status/timestamp change, `plan` and `tasks` require positive record and reviewed revisions, exactly one mapped direct input, the exact current subject/revision/digest, canonical unique contributors and contexts, writer equals reviewer and appears in contributors, harness equality exactly `true`, verdict exactly `approved`, and reviewer independence from the subject contributors.
+
+The persisted continuation is `replay_continuation: clarify@<current-spec-revision>` after the exceptional source rollback; `/maxi:clarify` can re-present it with `--resume-current-source` after rejection, ambiguity, or interruption. `--resume-current-source` is legal only for `spec.md`, start phase `clarify`, and that matching current marker. Clarification replaces it with `replay_continuation: plan@<current-spec-revision>`. After `x-review` writes the matching spec review, `/maxi:plan` can re-present the spec review continuation with `--resume-current-review`; a consented plan write persists `replay_continuation: tasks@<current-plan-revision>`. After the matching plan review, `/maxi:tasks` can re-present the plan review continuation with `--resume-current-review`. `--resume-current-review` accepts exactly two combinations: `reviews/spec-review.md` with `plan`, or `reviews/plan-review.md` with `tasks`; both require the current subject and review plus every transitive `derived_from` ancestor. Each displayed executable segment requires its own fresh literal `yes`.
+
+Before plan resume, a stale `spec.md`, support artifact, or specification review is rejected before any continuation output or write, even when `plan.md` and its plan review still match.
+
+An explicit owner-managed plan correction is available only when explicitly requested at `planned`, `tasked`, `analyzed`, or `implementing`; it preserves the current spec-review gate, writes `replay_continuation: tasks@<current-plan-revision>` with the corrected plan, and returns only to `planned`. An explicit owner-managed tasks correction is available only when explicitly requested at `tasked`, `analyzed`, or `implementing`; it preserves the current plan-review gate and returns only to `tasked`. After `x-review` writes a marker-bound approved plan review, it immediately invokes the read-only planner with the predecessor review revision and displays the current approved `tasks -> analyze` continuation. `x-review` never executes a phase or obtains consent. For that marker-bearing corrected plan, `/maxi:tasks` is only the later no-write resume presenter: it invokes the read-only planner with `--resume-current-review`, redisplays that continuation, and requires a fresh literal `yes` before extraction. Rejection, ambiguity, or session interruption changes nothing and the same current review can be presented again.
+
+Only new specs created through the normal forward pipeline receive this revision and replay behavior; existing, migrated, and reverse-engineered specs remain untouched. For an unmarked root, plan and tasks use the ordinary pipeline: no review record, x-review handoff, review provenance, review reporting, or replay planner is required. This mechanism never creates or writes `workflow.md` or `.maxi-ops`.
+
 Skills read this to enforce phase gating. Never bypass it.
 
 ## Pipeline Documentation — Mandatory Sync
@@ -66,8 +80,10 @@ Run `bash tests/run-all.sh` after changes.
 - `check-frontmatter.sh` — every `skills/*/SKILL.md` has valid YAML frontmatter
 - `check-sync-invariant.sh` — vendored skills in `skills/` are byte-identical to `vendor/superpowers/skills/`
 - `check-spec-fixture.sh` — spec fixture has valid `slug`/`created` fields (the 10-status consistency check now lives in `check-status-consistency.sh`)
-- `check-templates.sh` — all 5 maxi templates + 2 fixtures have required fields and body sections
-- `check-skills-present.sh` — all 18 maxi-native skills exist
+- `check-templates.sh` — all 6 maxi templates + 2 fixtures have required fields and body sections
+- `check-bounded-replay.sh` — future-forward revision metadata, review gates, bounded replay, literal consent, and no-write behavior remain aligned
+- `check-x-review.sh` — `x-review` preserves the independent review envelope, provenance validation, and versioned record contract
+- `check-skills-present.sh` — all 19 maxi-native skills and targeted support files exist
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
 - `check-codex-plugin.sh` — `.codex-plugin/plugin.json` (`hooks: {}`), `.agents/plugins/marketplace.json`, and `plugins/maxi` are valid for Codex plugin installation
 - `check-hooks.sh` — `hooks/hooks.json` (Claude Code + Antigravity) and `hooks/hooks-cursor.json` manifests are valid; the unified `hooks/session-start` exists, is executable, and emits the right JSON shape per harness; stale per-harness wrappers and the `.antigravity-plugin/` directory are gone
@@ -84,7 +100,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly
 - `check-migrate-from-speckit.sh` — `migrate-from-speckit` detects `.specify/` and migrates non-destructively
 - `check-migrate-from-brownfield.sh` — `migrate-from-brownfield`'s `brownfield.sh` (guard / write-spec / exclude) behaves correctly
-- `check-skill-count.sh` — maxi-native skill count (derived from the filesystem) matches AGENTS.md + architecture.md
+- `check-skill-count.sh` — maxi-native skill count and documented review/replay contracts match the filesystem and Mandatory Sync 5
 - `check-status-consistency.sh` — the 10 FSM statuses are consistent across spec-template, board, and AGENTS.md
 - `check-artifact-link-convention.sh` — the duplicated artifact-link block is byte-identical to the canonical fixture
 - `check-version-consistency.sh` — superpowers version citations in `README.md`/`docs/architecture.md`/`docs/delegation-map.md` match the `VENDORED.md` pin

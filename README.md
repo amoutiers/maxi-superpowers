@@ -2,7 +2,7 @@
 
 ![maxi-superpowers](assets/logo.svg)
 
-A spec-driven development plugin for Claude Code, Codex, OpenCode, Antigravity, Cursor, Pi, Kimi Code, Factory Droid, and GitHub Copilot CLI. maxi turns "build me X" into a disciplined pipeline — **constitution → spec → clarify → plan → tasks → analyze → implement** — and gates each phase so nothing ships without the design artifacts to back it. Under the hood it delegates implementation to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
+A spec-driven development plugin for Claude Code, Codex, OpenCode, Antigravity, Cursor, Pi, Kimi Code, Factory Droid, and GitHub Copilot CLI. Its 19 maxi-native skills turn "build me X" into a disciplined pipeline — **constitution → spec → clarify → plan → tasks → analyze → implement** — and gate each phase so nothing ships without the design artifacts to back it. Under the hood it delegates implementation to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
 
 **Why maxi?**
 
@@ -88,7 +88,9 @@ Your first feature, end to end:
 /maxi:constitution                         # one-time: establish your project's principles
 /maxi:specify add email + password login   # start a spec via guided Q&A      (→ specified)
 /maxi:clarify                              # answer any open questions         (→ clarified)
+# internal x-review persists the fresh specification review handoff
 /maxi:plan                                 # technical plan + ADR proposals    (→ planned)
+# internal x-review persists the fresh plan review handoff
 /maxi:tasks                                # checkbox task list                (→ tasked)
 /maxi:analyze                              # 7-pass quality audit              (→ analyzed)
 /maxi:implement                            # TDD execution + code review       (→ done)
@@ -112,6 +114,26 @@ Full reference for the forward pipeline:
 
 > Beyond the forward pipeline there are lifecycle commands (`/maxi:board`, `/maxi:park`, `/maxi:resume`, `/maxi:cancel`, `/maxi:revise`) and the migration utilities covered under [Onboarding an existing project](#onboarding-an-existing-project).
 
+## Independent Review Handoffs and Bounded Replay
+
+For marker-bound newly versioned forward artifacts, a current approved `reviews/spec-review.md` gates `/maxi:plan`, and a current approved `reviews/plan-review.md` gates `/maxi:tasks`. The internal `x-review` skill delegates each fresh external review, verifies reviewer independence, then makes the approved record persisted and versioned.
+
+These review handoffs are gates, not statuses or automatic replay phases. The 10-state FSM remains unchanged. When an owner changes a versioned artifact, the read-only `skills/revise/replay-plan.sh` planner can calculate the shortest stale-descendant continuation and stop it at the next review handoff; it never writes artifacts, creates or approves reviews, or executes phases.
+
+Bounded replay is future-only. Eligible roots carry exactly one `replay_contract: bounded-v1`; only `/maxi:specify` writes this marker, during normal forward-spec creation. An unmarked existing, migrated, or reverse-engineered spec returns `UNSUPPORTED_LEGACY`; revision metadata alone never opts it in.
+
+For a marker-bound root, `reviewed_sha256` hashes the canonical structural projection, which omits only root-frontmatter `status:` and `updated:`, preserves every other line in order, and hashes one LF after each retained line. The exact ten-field review envelope is `revision`, `writer_context`, `structural_contributors`, `derived_from`, `reviewed_document`, `reviewed_revision`, `reviewed_sha256`, `reviewer_context`, `reviewer_context_matches_harness`, and `verdict`. Before delegation, artifact write, or status/timestamp change, `plan` and `tasks` require positive record and reviewed revisions, exactly one mapped direct input, the exact current subject/revision/digest, canonical unique contributors and contexts, writer equals reviewer and appears in contributors, harness equality exactly `true`, verdict exactly `approved`, and reviewer independence from the subject contributors.
+
+The persisted continuation is `replay_continuation: clarify@<current-spec-revision>` after the exceptional source rollback; `/maxi:clarify` can re-present it with `--resume-current-source` after rejection, ambiguity, or interruption. `--resume-current-source` is legal only for `spec.md`, start phase `clarify`, and that matching current marker. Clarification replaces it with `replay_continuation: plan@<current-spec-revision>`. After `x-review` writes the matching spec review, `/maxi:plan` can re-present the spec review continuation with `--resume-current-review`; a consented plan write persists `replay_continuation: tasks@<current-plan-revision>`. After the matching plan review, `/maxi:tasks` can re-present the plan review continuation with `--resume-current-review`. `--resume-current-review` accepts exactly two combinations: `reviews/spec-review.md` with `plan`, or `reviews/plan-review.md` with `tasks`; both require the current subject and review plus every transitive `derived_from` ancestor. Each displayed executable segment requires its own fresh literal `yes`.
+
+Before plan resume, a stale `spec.md`, support artifact, or specification review is rejected before any continuation output or write, even when `plan.md` and its plan review still match.
+
+An explicit owner-managed plan correction is available only when explicitly requested at `planned`, `tasked`, `analyzed`, or `implementing`; it preserves the current spec-review gate, writes `replay_continuation: tasks@<current-plan-revision>` with the corrected plan, and returns only to `planned`. An explicit owner-managed tasks correction is available only when explicitly requested at `tasked`, `analyzed`, or `implementing`; it preserves the current plan-review gate and returns only to `tasked`. After `x-review` writes a marker-bound approved plan review, it immediately invokes the read-only planner with the predecessor review revision and displays the current approved `tasks -> analyze` continuation. `x-review` never executes a phase or obtains consent. For that marker-bearing corrected plan, `/maxi:tasks` is only the later no-write resume presenter: it invokes the read-only planner with `--resume-current-review`, redisplays that continuation, and requires a fresh literal `yes` before extraction. Rejection, ambiguity, or session interruption changes nothing and the same current review can be presented again.
+
+Only new specs created through the normal forward pipeline receive this revision and replay behavior; existing, migrated, and reverse-engineered specs remain untouched. For an unmarked root, plan and tasks use the ordinary pipeline: no review record, x-review handoff, review provenance, review reporting, or replay planner is required. This mechanism never creates or writes `workflow.md` or `.maxi-ops`.
+
+`/maxi:revise` offers the exceptional `specified` rollback only for a demonstrated source-spec gap. The resulting replay begins at `clarify` and never reruns `specify`.
+
 ## Artifact Structure
 
 ```
@@ -125,6 +147,9 @@ docs/
       0001-my-feature/
         spec.md            # requirements, user stories, success criteria
         plan.md            # technical design and approach
+        reviews/
+          spec-review.md   # persisted external review of the current specification revision
+          plan-review.md   # persisted external review of the current plan revision
         tasks.md           # checkbox task list extracted from plan
         analysis.md        # 7-pass quality audit output
 ```

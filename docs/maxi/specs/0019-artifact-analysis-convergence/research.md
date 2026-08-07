@@ -7,6 +7,12 @@ updated: 2026-08-01
 
 # Research: Artifact Revisions and Bounded Analysis Convergence
 
+> **Superseded historical artifact.**
+>
+> The content below is archival only and does not prescribe active Maxi behavior.
+> It does not require creating or writing `workflow.md`, `.maxi-ops`, `workflow-ledger.sh`, or `x-artifact-graph`.
+> Active requirements are governed by the current `spec.md`, `plan.md`, and `tasks.md`.
+
 ## Scope
 
 This research resolves the technical choices left open by the clarified [spec](spec.md). The implementation remains a Markdown and Bash plugin with no package installation step and must work in every harness supported by Maxi.

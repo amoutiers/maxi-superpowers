@@ -1,9 +1,9 @@
 ---
 slug: 0019-artifact-analysis-convergence
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-08-07
 revision: 7
-status: implementing
+status: done
 parked_from: null
 related_adrs: [0019-bounded-forward-artifact-replay, 0020-persisted-independent-handoff-reviews]
 ---
@@ -145,6 +145,10 @@ As a Maxi user, I want an independent review before planning, before task extrac
 **Revised (2026-08-03):** Rolled back from `tasked` to `planned` after independent task review found an impossible review-record checkpoint and missing failed-reanalysis-stop coverage. Note: `tasks.md` is stale and will be regenerated from the corrected plan.
 
 **Revised (2026-08-03):** Rolled back from `analyzed` to `planned` after independent analysis found stale ADR-candidate instructions and a removed ledger reference. Note: `tasks.md` and `analysis.md` are stale and will be regenerated after the targeted plan correction.
+
+**Revised (2026-08-03):** Rolled back from `implementing` to `planned`. Change: add owner-managed correction entry points for structural `plan.md` and `tasks.md` updates, align planner validation with persisted review records, and remove unsupported `quickstart.md` provenance. Note: `tasks.md` and `analysis.md` are stale and will be regenerated after the corrected plan is analyzed.
+
+**Revised (2026-08-04):** Rolled back from `implementing` to `planned`. Change: repair the bounded replay path after a structural `spec.md` change, fail closed when any plan ancestor is stale, distinguish future forward-created specs from pre-mechanism artifacts, align review digests with structural content, and make owner gates plus metadata parsing enforce the complete review contract. Note: `tasks.md`, `analysis.md`, and the completed T007/T008 execution records are stale and will be regenerated or re-reviewed after the corrected plan is analyzed.
 
 **Q: Which specs receive document revisions?**
 A: Only new specs created through Maxi's normal forward pipeline. Existing, migrated, and reverse-engineered specs remain unchanged.
