@@ -1,4 +1,21 @@
 
+## [2.3.0] - 2026-08-16
+
+### Features
+
+- Add bounded replay foundations
+- Gate replay with independent reviews
+- Bound marker-gated artifact replay
+- Migrate harness to Codex
+
+### Documentation
+
+- Specify artifact analysis convergence
+- Plan bounded analysis convergence
+- Extract implementation tasks
+- Simplify bounded replay design
+
+
 ## [2.2.0] - 2026-07-04
 
 ### Features
@@ -253,4 +270,3 @@
 - Remove stale spec-kit-0.8.7 entry
 - Update logo to shield and bolt crest with thermal execution color scheme
 - Exclude docs/superpowers/ from tracking
-
