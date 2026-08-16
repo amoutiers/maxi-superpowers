@@ -53,6 +53,7 @@ run_check "$TESTS_DIR/check-opencode-plugin.sh"      "OpenCode plugin validation
 run_check "$TESTS_DIR/check-bootstrap-parity.sh"     "Bootstrap preamble parity"
 run_check "$TESTS_DIR/check-pi-extension.sh"        "Pi extension validation"
 run_check "$TESTS_DIR/check-integration-harness.sh"  "Integration harness validation"
+run_check "$TESTS_DIR/integration/test-codex-timeout.sh" "Codex timeout regression"
 run_check "$TESTS_DIR/check-doc-consistency-skill.sh" "doc-consistency skill validation"
 run_check "$TESTS_DIR/check-release-skill.sh"     "Release skill validation"
 run_check "$TESTS_DIR/check-skill-count.sh"          "Skill count doc consistency"

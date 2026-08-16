@@ -76,7 +76,7 @@ Skills read this to enforce phase gating. Never bypass it.
 
 Run `bash tests/run-all.sh` after changes.
 
-**Fast tier** (~10s, no agent runtime, runs by default):
+**Fast tier** (~2min, no agent runtime, runs by default):
 - `check-frontmatter.sh` — every `skills/*/SKILL.md` has valid YAML frontmatter
 - `check-sync-invariant.sh` — vendored skills in `skills/` are byte-identical to `vendor/superpowers/skills/`
 - `check-spec-fixture.sh` — spec fixture has valid `slug`/`created` fields (the 10-status consistency check now lives in `check-status-consistency.sh`)
@@ -94,7 +94,8 @@ Run `bash tests/run-all.sh` after changes.
 - `check-opencode-plugin.sh` — `.opencode/plugins/maxi.js` exports required hooks, has bootstrap caching and conditional injection
 - `check-pi-extension.sh` — `.pi/extensions/maxi.ts` and `package.json` `pi` section are valid (Pi harness packaging)
 - `check-bootstrap-parity.sh` — the `<EXTREMELY_IMPORTANT>` bootstrap preamble is identical across `hooks/session-start`, `.opencode/plugins/maxi.js`, and `.pi/extensions/maxi.ts`
-- `check-integration-harness.sh` — optional integration harness stays runnable on macOS without GNU `timeout` and keeps prompt discovery guarded
+- `check-integration-harness.sh` — optional Codex integration harness stays runnable on macOS without GNU `timeout`, keeps prompt discovery guarded, and verifies one completed JSONL command result read the byte-checked installed skill snapshot
+- `test-codex-timeout.sh` — macOS Perl deadline-supervisor regression runs in the fast tier, including material plugin staging and timeout status 124
 - `check-doc-consistency-skill.sh` — local doc-consistency skills stay aligned with the Mandatory Sync 5 rule
 - `check-release-skill.sh` — local release skill keeps the fast-tier and doc-consistency pre-flight gates
 - `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly
@@ -105,8 +106,8 @@ Run `bash tests/run-all.sh` after changes.
 - `check-artifact-link-convention.sh` — the duplicated artifact-link block is byte-identical to the canonical fixture
 - `check-version-consistency.sh` — superpowers version citations in `README.md`/`docs/architecture.md`/`docs/delegation-map.md` match the `VENDORED.md` pin
 
-**Integration tier** (opt-in, requires `claude` CLI, ~minutes):
+**Integration tier** (opt-in, requires authenticated `codex` CLI, ~minutes):
 ```
 bash tests/run-all.sh --integration
 ```
-Runs `tests/integration/run-all.sh`: every prompt in `tests/integration/prompts/*.txt` is checked to assert the matching maxi skill auto-triggers via the Skill tool.
+Runs `tests/integration/run-all.sh`: every prompt in `tests/integration/prompts/*.txt` runs in an isolated local Codex marketplace and is checked to assert one completed JSONL command result reads the byte-checked matching skill snapshot.

@@ -29,7 +29,7 @@ for skill in "${SKILLS[@]}"; do
   fi
 
   echo "Testing: $skill"
-  if "$SCRIPT_DIR/run-trigger-test.sh" "$skill" "$prompt_file" 3; then
+  if "$SCRIPT_DIR/run-codex-trigger-test.sh" "$skill" "$prompt_file"; then
     PASSED=$((PASSED + 1))
     RESULTS+=("PASS: $skill")
   else
