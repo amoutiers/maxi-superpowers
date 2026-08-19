@@ -143,7 +143,7 @@ done < "$TMP/completed-numbers"
 
 awk -v completed="$COMPLETED" '
   BEGIN { while ((getline id < completed) > 0) done[id] = 1 }
-  /^- \[[^]]*\] T/ && $0 !~ /^- \[[ xX]\] T[0-9][0-9][0-9] .+/ { bad = 1 }
+  ($0 ~ /^- \[[^]]*\] T/ || $0 ~ /^[[:space:]]+- \[[^]]*\] T[0-9]/) && $0 !~ /^- \[[ xX]\] T[0-9][0-9][0-9] .+/ { bad = 1 }
   /^- \[[ xX]\] T[0-9][0-9][0-9] .+/ {
     id = substr($0, 7, 4)
     if (seen[id]++) bad = 1

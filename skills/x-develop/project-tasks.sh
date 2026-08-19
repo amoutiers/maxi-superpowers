@@ -305,6 +305,11 @@ STATE_PARENT="$(cd -P "$(dirname "$STATE")" 2>/dev/null && pwd)" || die 'state p
 STATE="$STATE_PARENT/$(basename "$STATE")"
 under "$STATE" "$ROOT/.superpowers/sdd" || die 'state file must stay below .superpowers/sdd'
 
+WORKSPACE="$ROOT/.superpowers/sdd/$(basename "$FINAL" .md)"
+if [ ! -e "$STATE" ] && { [ -e "$FINAL" ] || [ -e "$WORKSPACE" ] || [ -L "$WORKSPACE" ]; }; then
+  die 'orphan projection or workspace exists without active pointer'
+fi
+
 PREDECESSOR=null
 if [ -e "$STATE" ]; then
   [ -f "$STATE" ] || die 'state file is not regular'
@@ -322,7 +327,7 @@ TASK_META="$TMPDIR_LOCAL/tasks.meta"
 
 awk -v mode="$MODE" '
   function invalid(message) { print message > "/dev/stderr"; bad = 1 }
-  /^- \[[^]]*\] T/ && $0 !~ /^- \[[ xX]\] T[0-9][0-9][0-9] .+/ { invalid("malformed task line: " $0); next }
+  ($0 ~ /^- \[[^]]*\] T/ || $0 ~ /^[[:space:]]+- \[[^]]*\] T[0-9]/) && $0 !~ /^- \[[ xX]\] T[0-9][0-9][0-9] .+/ { invalid("malformed task line: " $0); next }
   /^- \[[ xX]\] T[0-9][0-9][0-9] .+/ {
     state = substr($0, 4, 1)
     id = substr($0, 7, 4)
@@ -557,7 +562,6 @@ write_expected_projection "$EXPECTED_PROJECTION" "$BODY" "$EXECUTION_MODE" "$PRO
 if [ -e "$FINAL" ]; then
   cmp -s "$EXPECTED_PROJECTION" "$FINAL" || die 'existing projection differs from canonical source reconstruction'
 else
-  WORKSPACE="$ROOT/.superpowers/sdd/$(basename "$FINAL" .md)"
   [ ! -L "$WORKSPACE" ] || die 'projection workspace is a symlink'
   mkdir -p "$WORKSPACE"
   LEDGER="$WORKSPACE/progress.md"

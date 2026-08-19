@@ -154,6 +154,38 @@ UPSTREAM_WORKSPACE="$(cd "$REPO" && bash "$ROOT/skills/subagent-driven-developme
 assert_eq "$UPSTREAM_WORKSPACE" "$(dirname "$PROJECTION_LEDGER")" 'upstream workspace accepts anchored ordinary ledger'
 assert_eq "$(sha "$PROJECTION_LEDGER")" "$selection_ledger_hash" 'upstream workspace preserves selection anchor'
 
+# An absent active pointer is a fresh execution boundary, not authority to
+# resurrect deterministic projection or workspace state left behind.
+ORPHAN="$WORK/orphan-projection"
+init_repo "$ORPHAN"
+seed_case "$ORPHAN"
+run_project "$ORPHAN"
+ORPHAN_PROJECTION="$PROJECT_OUTPUT"
+ORPHAN_STATE="$ORPHAN/.superpowers/sdd/active-adapter-sample"
+ORPHAN_LEDGER="$ORPHAN/.superpowers/sdd/$(basename "$ORPHAN_PROJECTION" .md)/progress.md"
+orphan_projection_before="$(sha "$ORPHAN_PROJECTION")"
+orphan_ledger_before="$(sha "$ORPHAN_LEDGER")"
+mv "$ORPHAN_STATE" "$ORPHAN_STATE.saved"
+run_project "$ORPHAN"
+[ "$PROJECT_STATUS" -ne 0 ] && ok 'orphan projection rejects without active pointer' || fail 'orphan projection rejects without active pointer' 'existing projection recreated pointer authority'
+[ ! -e "$ORPHAN_STATE" ] && ok 'orphan projection leaves pointer absent' || fail 'orphan projection leaves pointer absent' 'pointer was recreated'
+assert_eq "$(sha "$ORPHAN_PROJECTION")" "$orphan_projection_before" 'orphan projection bytes stay immutable'
+assert_eq "$(sha "$ORPHAN_LEDGER")" "$orphan_ledger_before" 'orphan ledger bytes stay immutable'
+
+ORPHAN_WORKSPACE="$WORK/orphan-workspace"
+init_repo "$ORPHAN_WORKSPACE"
+seed_case "$ORPHAN_WORKSPACE"
+run_project "$ORPHAN_WORKSPACE"
+ORPHAN_WORKSPACE_PROJECTION="$PROJECT_OUTPUT"
+ORPHAN_WORKSPACE_STATE="$ORPHAN_WORKSPACE/.superpowers/sdd/active-adapter-sample"
+ORPHAN_WORKSPACE_DIR="$ORPHAN_WORKSPACE/.superpowers/sdd/$(basename "$ORPHAN_WORKSPACE_PROJECTION" .md)"
+mv "$ORPHAN_WORKSPACE_STATE" "$ORPHAN_WORKSPACE_STATE.saved"
+mv "$ORPHAN_WORKSPACE_PROJECTION" "$ORPHAN_WORKSPACE_PROJECTION.saved"
+mv "$ORPHAN_WORKSPACE_DIR/progress.md" "$ORPHAN_WORKSPACE_DIR/progress.md.saved"
+run_project "$ORPHAN_WORKSPACE"
+[ "$PROJECT_STATUS" -ne 0 ] && ok 'orphan workspace rejects without active pointer' || fail 'orphan workspace rejects without active pointer' 'existing workspace was reused as fresh state'
+[ ! -e "$ORPHAN_WORKSPACE_STATE" ] && [ ! -e "$ORPHAN_WORKSPACE_PROJECTION" ] && ok 'orphan workspace creates no projection or pointer' || fail 'orphan workspace creates no projection or pointer'
+
 # The real upstream extractor must retain every complete projected body.
 for task_number in 1 2 3; do
   brief="$WORK/task-$task_number-brief.md"
@@ -471,6 +503,21 @@ assert_eq "$(grep -c '^### Task [0-9][0-9]*: T001 ' "$PROJECT_OUTPUT")" 1 'legac
 assert_eq "$(grep -c '^### Task [0-9][0-9]*: T002 ' "$PROJECT_OUTPUT")" 1 'legacy T002 projected once'
 assert_eq "$(grep -c '^### Task [0-9][0-9]*: T003 ' "$PROJECT_OUTPUT")" 1 'legacy T003 projected once'
 
+# Indented task-like checkboxes fail closed, while ordinary nested checklist
+# content remains body text.
+INDENTED="$WORK/indented-task-like"
+init_repo "$INDENTED"
+seed_case "$INDENTED"
+printf '%s\n' '  - [ ] T004 hidden malformed task-like line (plan Task 4)' >> "$INDENTED/docs/maxi/specs/adapter-sample/tasks.md"
+assert_rejected_without_projection "$INDENTED" 'indented task-like checkbox'
+
+NESTED_ORDINARY="$WORK/nested-ordinary-checklist"
+init_repo "$NESTED_ORDINARY"
+seed_case "$NESTED_ORDINARY"
+printf '%s\n' '  - [ ] Todo nested ordinary body note' >> "$NESTED_ORDINARY/docs/maxi/specs/adapter-sample/tasks.md"
+run_project "$NESTED_ORDINARY"
+assert_eq "$PROJECT_STATUS" 0 'nested ordinary checklist remains valid body content'
+
 # Invalid mappings, IDs, and ambiguous fences fail before output.
 for invalid in duplicate-map missing-map unknown-map nonnumeric-map duplicate-id fence-collision; do
   BAD="$WORK/bad-$invalid"
@@ -488,6 +535,24 @@ for invalid in duplicate-map missing-map unknown-map nonnumeric-map duplicate-id
   esac
   assert_rejected_without_projection "$BAD" "$invalid"
 done
+
+# Reconciliation rejects indented task-like bytes before replacing tasks.md.
+INDENTED_RECONCILE="$WORK/indented-reconcile"
+init_repo "$INDENTED_RECONCILE"
+seed_case "$INDENTED_RECONCILE"
+run_project "$INDENTED_RECONCILE"
+INDENTED_RECONCILE_PROJECTION="$PROJECT_OUTPUT"
+INDENTED_RECONCILE_TASKS="$INDENTED_RECONCILE/docs/maxi/specs/adapter-sample/tasks.md"
+INDENTED_RECONCILE_LEDGER="$INDENTED_RECONCILE/.superpowers/sdd/$(basename "$INDENTED_RECONCILE_PROJECTION" .md)/progress.md"
+printf '%s\n' '  - [ ] T004 hidden malformed task-like line (plan Task 4)' >> "$INDENTED_RECONCILE_TASKS"
+printf '%s\n' "$COMPLETE_1_CLEAN" >> "$INDENTED_RECONCILE_LEDGER"
+indented_reconcile_before="$(sha "$INDENTED_RECONCILE_TASKS")"
+set +e
+bash "$RECONCILE" --projection "$INDENTED_RECONCILE_PROJECTION" --ledger "$INDENTED_RECONCILE_LEDGER" --tasks "$INDENTED_RECONCILE_TASKS" >/dev/null 2>&1
+indented_reconcile_status=$?
+set -e
+[ "$indented_reconcile_status" -ne 0 ] && ok 'indented task-like checkbox rejects at reconciliation boundary' || fail 'indented task-like checkbox rejects at reconciliation boundary' 'malformed task bytes were accepted'
+assert_eq "$(sha "$INDENTED_RECONCILE_TASKS")" "$indented_reconcile_before" 'indented reconciliation leaves tasks byte-identical'
 
 # Canonical path reuse and symlink handling.
 run_project "$REPO"
@@ -912,6 +977,19 @@ assert_not_has <(printf '%s\n' "$pending_output") 'READY_TO_FINISH' 'pending che
 printf '%s\n' '- [ ] T999 malformed duplicate task-like line' >> "$TERM_TASKS"
 malformed_output="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT" 2>/dev/null || true)"
 [ -z "$malformed_output" ] && ok 'malformed complete task file emits no token' || fail 'malformed complete task file emits no token' "$malformed_output"
+mv "$TERM_TASKS.saved" "$TERM_TASKS"
+
+# The result boundary identifies indented task-like bytes before any token.
+cp "$TERM_TASKS" "$TERM_TASKS.saved"
+printf '%s\n' '  - [ ] T004 hidden malformed task-like line (plan Task 4)' >> "$TERM_TASKS"
+set +e
+indented_terminal_output="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT" 2>&1)"
+indented_terminal_status=$?
+set -e
+[ "$indented_terminal_status" -ne 0 ] && ok 'indented task-like terminal evidence rejects' || fail 'indented task-like terminal evidence rejects' 'result boundary succeeded'
+assert_has <(printf '%s\n' "$indented_terminal_output") 'ERROR: tasks grammar is invalid' 'result boundary identifies indented task grammar'
+assert_not_has <(printf '%s\n' "$indented_terminal_output") 'READY_TO_FINISH' 'indented terminal evidence emits no ready token'
+assert_not_has <(printf '%s\n' "$indented_terminal_output") 'BLOCKED_PENDING_TASKS' 'indented terminal evidence emits no pending token'
 mv "$TERM_TASKS.saved" "$TERM_TASKS"
 
 # Mutating any bound receipt input invalidates terminal success.
