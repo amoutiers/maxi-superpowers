@@ -45,6 +45,21 @@ valid_context() {
   return 0
 }
 
+validate_review_conclusion() {
+  local review="$1" fix_package="$2" ready_total ready_line fix_total fix_line
+  ready_total="$(awk 'index($0, "**Ready to merge?** ") == 1 { count++ } END { print count + 0 }' "$review")"
+  fix_total="$(awk 'index($0, "**Fix round:** ") == 1 { count++ } END { print count + 0 }' "$review")"
+  if [ "$fix_package" = null ]; then
+    [ "$ready_total" -eq 1 ] && [ "$(grep -Fxc -- '**Ready to merge?** Yes' "$review" || true)" -eq 1 ] && [ "$fix_total" -eq 0 ]
+  else
+    [ "$ready_total" -eq 1 ] && [ "$(grep -Fxc -- '**Ready to merge?** With fixes' "$review" || true)" -eq 1 ] || return 1
+    [ "$fix_total" -eq 1 ] && [ "$(grep -Fxc -- '**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.' "$review" || true)" -eq 1 ] || return 1
+    ready_line="$(grep -nF -- '**Ready to merge?** With fixes' "$review" | cut -d: -f1)"
+    fix_line="$(grep -nF -- '**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.' "$review" | cut -d: -f1)"
+    [ "$ready_line" -lt "$fix_line" ]
+  fi
+}
+
 projection_body_sha() {
   awk 'NR == 1 && $0 == "---" { fm = 1; next } fm && $0 == "---" { fm = 0; next } !fm { print }' "$1" | shasum -a 256 | awk '{print $1}'
 }
@@ -211,7 +226,13 @@ awk '
   NR == 1 && $0 == "---" { fm = 1; next }
   fm && $0 == "---" { fm = 0; next }
   fm { next }
-  /^$/ || /^## (Working tree paths|Projection lineage|Rulings)$/ || /^WORKING_TREE_PATH: / || /^LINEAGE: / || /^LINEAGE_PROJECTION_SHA256: / || /^LINEAGE_LEDGER: / || /^LINEAGE_LEDGER_SHA256: / || /^Ruling:/ { next }
+  /^$/ { next }
+  $0 == "## Working tree paths" { section = "working"; next }
+  $0 == "## Projection lineage" { section = "lineage"; next }
+  $0 == "## Rulings" { section = "rulings"; next }
+  section == "working" && /^WORKING_TREE_PATH: / { next }
+  section == "lineage" && (/^LINEAGE: / || /^LINEAGE_PROJECTION_SHA256: / || /^LINEAGE_LEDGER: / || /^LINEAGE_LEDGER_SHA256: /) { next }
+  section == "rulings" && index($0, "Ruling:") > 0 { next }
   { exit 2 }
 ' "$RECEIPT" || quiet_fail 'receipt body contains unknown records'
 grep '^WORKING_TREE_PATH: ' "$RECEIPT" | sed 's/^WORKING_TREE_PATH: //' > "$TMP/working.receipt" || true
@@ -219,7 +240,7 @@ grep '^LINEAGE: ' "$RECEIPT" | sed 's/^LINEAGE: //' > "$TMP/projections" || true
 grep '^LINEAGE_PROJECTION_SHA256: ' "$RECEIPT" | sed 's/^LINEAGE_PROJECTION_SHA256: //' > "$TMP/projection-hashes" || true
 grep '^LINEAGE_LEDGER: ' "$RECEIPT" | sed 's/^LINEAGE_LEDGER: //' > "$TMP/ledgers" || true
 grep '^LINEAGE_LEDGER_SHA256: ' "$RECEIPT" | sed 's/^LINEAGE_LEDGER_SHA256: //' > "$TMP/ledger-hashes" || true
-grep '^Ruling:' "$RECEIPT" > "$TMP/rulings.receipt" || true
+awk '$0 == "## Rulings" { rulings = 1; next } rulings && $0 != "" { print }' "$RECEIPT" > "$TMP/rulings.receipt"
 lineage_count="$(wc -l < "$TMP/projections" | tr -d ' ')"
 [ "$lineage_count" -gt 0 ] || quiet_fail 'receipt lineage is empty'
 for file in projection-hashes ledgers ledger-hashes; do [ "$(wc -l < "$TMP/$file" | tr -d ' ')" -eq "$lineage_count" ] || quiet_fail 'receipt lineage record counts differ'; done
@@ -247,7 +268,7 @@ while IFS='|' read -r lineage_projection projection_hash lineage_ledger ledger_h
   [ "$lineage_ledger" = "$expected_ledger" ] || quiet_fail 'lineage ledger workspace mismatch'
   IFS= read -r first < "$lineage_ledger" || quiet_fail 'empty lineage ledger'
   [ "$first" = "# SDD ledger — plan: $lineage_projection" ] || quiet_fail 'lineage ledger identity mismatch'
-  grep '^Ruling:' "$lineage_ledger" >> "$TMP/rulings.current" || true
+  grep -F 'Ruling:' "$lineage_ledger" >> "$TMP/rulings.current" || true
   previous="$lineage_projection"
 done < "$TMP/lineage"
 [ "$previous" = "$PROJECTION" ] || quiet_fail 'current projection is not lineage terminal'
@@ -270,7 +291,7 @@ REVIEWED_TREE="$(field "$RECEIPT" reviewed_tree)"
 [ "$(field "$FINAL_REVIEW" full_review_package_sha256)" = "$(sha "$FULL_PACKAGE")" ] || quiet_fail 'final review full package hash mismatch'
 [ "$(field "$FINAL_REVIEW" fix_review_package)" = "$FIX_PACKAGE" ] || quiet_fail 'final review fix package mismatch'
 [ "$(field "$FINAL_REVIEW" fix_review_package_sha256)" = "$(field "$RECEIPT" fix_review_package_sha256)" ] || quiet_fail 'final review fix package hash mismatch'
-[ "$(field "$FINAL_REVIEW" outcome)" = finish ] && [ "$(grep -Fxc -- '**Ready to merge?** Yes' "$FINAL_REVIEW" || true)" -eq 1 ] || quiet_fail 'final review did not approve Finish'
+[ "$(field "$FINAL_REVIEW" outcome)" = finish ] && validate_review_conclusion "$FINAL_REVIEW" "$FIX_PACKAGE" || quiet_fail 'final review conclusion does not match its review-package path'
 FINAL_REVIEW_CONTEXT="$(field "$FINAL_REVIEW" reviewer_context)"
 valid_context "$FINAL_REVIEW_CONTEXT" || quiet_fail 'final reviewer context is invalid'
 [ "$FINAL_REVIEW_CONTEXT" = "$DISPATCH_CONTEXT" ] || quiet_fail 'final reviewer differs from persisted dispatch identity'

@@ -53,7 +53,7 @@ require_literal "$DEVELOP" 'normalize every accepted backtick fence delimiter to
 require_literal "$DEVELOP" "Regenerate each review package with upstream's \`review-package\` helper" 'review packages are not compared with their Git ranges'
 require_literal "$DEVELOP" 'Before dispatching the final reviewer, persist the harness-issued reviewer context' 'reviewer dispatch identity is not persisted before dispatch'
 require_literal "$DEVELOP" 'If the harness exposes no verifiable reviewer context, stop without a success token.' 'missing harness reviewer identity is not fail closed'
-require_literal "$DEVELOP" 'Accept only the canonical `**Ready to merge?** Yes` result' 'final verdict is not the upstream canonical result'
+require_literal "$DEVELOP" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.`' 'final verdict paths do not match upstream review grammar'
 
 # The changed implementation/review boundary must be visible in every Mandatory Sync 5 surface.
 for doc in \
@@ -66,6 +66,7 @@ for doc in \
   require_literal "$doc" 'Upstream SDD owns the only whole-branch review' "$(basename "$doc") keeps ambiguous final-review ownership"
   require_literal "$doc" 'immutable initial task-selection anchor' "$(basename "$doc") omits the selection anchor gate"
   require_literal "$doc" 'Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed.' "$(basename "$doc") omits the upstream completion grammar gate"
+  require_literal "$doc" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.`' "$(basename "$doc") omits the conditional final-review gate"
 done
 
 if grep -Fq '**Fresh subagent per dispatch:**' "$DEVELOP" || grep -Fq '**Review loop cap:**' "$DEVELOP"; then

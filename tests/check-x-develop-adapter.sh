@@ -381,6 +381,27 @@ fi
 assert_has "$NEW_PROJECTION" '### Task 1: T002 ' 'successor retains corrected pending task'
 assert_has "$NEW_PROJECTION" '### Task 2: T003 ' 'successor retains every other pending task'
 
+# A structural successor cannot erase an anchored, uncompleted task by
+# removing it consistently from both current source artifacts.
+DELETED_SELECTED="$WORK/deleted-selected-task"
+init_repo "$DELETED_SELECTED"
+seed_case "$DELETED_SELECTED"
+run_project "$DELETED_SELECTED"
+DELETED_PREDECESSOR="$PROJECT_OUTPUT"
+DELETED_PLAN="$DELETED_SELECTED/docs/maxi/specs/adapter-sample/plan.md"
+DELETED_TASKS="$DELETED_SELECTED/docs/maxi/specs/adapter-sample/tasks.md"
+awk '/^### Task 3: / { exit } { print }' "$DELETED_PLAN" > "$DELETED_SELECTED/change"
+mv "$DELETED_SELECTED/change" "$DELETED_PLAN"
+awk '
+  /^## Phase 1: Final body$/ { skip = 1; next }
+  skip && /^## Phase 2:/ { skip = 0 }
+  !skip { print }
+' "$DELETED_TASKS" > "$DELETED_SELECTED/change"
+mv "$DELETED_SELECTED/change" "$DELETED_TASKS"
+run_project "$DELETED_SELECTED"
+[ "$PROJECT_STATUS" -ne 0 ] && ok 'successor rejects deleted anchored T003' || fail 'successor rejects deleted anchored T003' 'structural successor silently discarded T003'
+assert_eq "$(cat "$DELETED_SELECTED/.superpowers/sdd/active-adapter-sample")" "$DELETED_PREDECESSOR" 'deleted anchored task keeps predecessor active'
+
 # Legacy roots ignore historical annotations and use tasks-file order exactly once.
 LEGACY="$WORK/legacy-repo"
 init_repo "$LEGACY"
@@ -592,7 +613,7 @@ run_project "$TERM"
 TERM_OLD="$PROJECT_OUTPUT"
 TERM_OLD_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_OLD" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_OLD_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\nRuling: first workspace ruling\n' "$TERM_OLD" "$COMPLETE_1_CLEAN" > "$TERM_OLD_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\nTask 1: parked — deferred option — Ruling: first workspace ruling\n' "$TERM_OLD" "$COMPLETE_1_CLEAN" > "$TERM_OLD_LEDGER"
 bash "$RECONCILE" --projection "$TERM_OLD" --ledger "$TERM_OLD_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 sed 's/- \[ \] T002/- [x] T002/' "$TERM/docs/maxi/specs/adapter-sample/tasks.md" > "$TERM/change"
 mv "$TERM/change" "$TERM/docs/maxi/specs/adapter-sample/tasks.md"
@@ -604,7 +625,7 @@ assert_has "$TERM_PROJECTION" '### Task 1: T002 ' 'terminal successor retains ch
 assert_has "$TERM_PROJECTION" '### Task 2: T003 ' 'terminal successor retains remaining pending task'
 TERM_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T002 T003\n%s\n%s\nRuling: successor workspace ruling\n' "$TERM_PROJECTION" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$TERM_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T002 T003\n%s\n%s\nTask 2: Ruling: successor workspace ruling\n' "$TERM_PROJECTION" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$TERM_LEDGER"
 bash "$RECONCILE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 printf 'reviewed implementation\n' >> "$TERM/app.txt"
 git -C "$TERM" add app.txt
@@ -731,13 +752,19 @@ assert_has "$RECEIPT" "reviewer_dispatch_identity: $REVIEWER_IDENTITY" 'receipt 
 assert_has "$RECEIPT" "reviewer_dispatch_identity_sha256: $(sha "$REVIEWER_IDENTITY")" 'receipt binds reviewer dispatch identity hash'
 assert_has "$RECEIPT" 'reviewer_context: independent-reviewer' 'receipt binds reviewer context value'
 RESULT_OUTPUT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT")"
-assert_has "$RECEIPT" 'Ruling: first workspace ruling' 'receipt aggregates predecessor Ruling'
-assert_has "$RECEIPT" 'Ruling: successor workspace ruling' 'receipt aggregates successor Ruling'
+assert_has "$RECEIPT" 'Task 1: parked — deferred option — Ruling: first workspace ruling' 'receipt aggregates entire predecessor Ruling line'
+assert_has "$RECEIPT" 'Task 2: Ruling: successor workspace ruling' 'receipt aggregates entire successor Ruling line'
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'READY_TO_FINISH' 'matching receipt emits READY_TO_FINISH'
-assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'Ruling: first workspace ruling' 'result returns predecessor Ruling with success'
-assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'Ruling: successor workspace ruling' 'result returns successor Ruling with success'
+assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'Task 1: parked — deferred option — Ruling: first workspace ruling' 'result returns entire predecessor Ruling line with success'
+assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'Task 2: Ruling: successor workspace ruling' 'result returns entire successor Ruling line with success'
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") "LINEAGE: $TERM_OLD" 'result returns predecessor lineage with success'
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") "LINEAGE: $TERM_PROJECTION" 'result returns current lineage with success'
+
+cp "$RECEIPT" "$RECEIPT.ruling-mutated"
+sed 's/Ruling: first workspace ruling/Ruling: mutated workspace ruling/' "$RECEIPT.ruling-mutated" > "$RECEIPT.ruling-mutated.tmp"
+mv "$RECEIPT.ruling-mutated.tmp" "$RECEIPT.ruling-mutated"
+ruling_mutated_result="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT.ruling-mutated" 2>/dev/null || true)"
+assert_not_has <(printf '%s\n' "$ruling_mutated_result") 'READY_TO_FINISH' 'mutated entire Ruling line invalidates ready'
 
 # Rewriting receipt hashes must not bless bare, malformed, or incomplete evidence.
 cp "$TERM_LEDGER" "$TERM_LEDGER.canonical"
@@ -820,11 +847,13 @@ for input in projection ledger final-review package reviewer-identity receipt; d
 done
 
 # Git HEAD/tree, staged state, allowed dirty bytes, and disallowed paths are revalidated.
+cp "$TERM_TASKS" "$WORK/term-tasks-reviewed"
 printf 'new reviewed head\n' >> "$TERM/app.txt"
 git -C "$TERM" add app.txt && git -C "$TERM" commit -qm 'post review'
 head_changed="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT" 2>/dev/null || true)"
 assert_not_has <(printf '%s\n' "$head_changed") 'READY_TO_FINISH' 'changed reviewed HEAD invalidates ready'
 git -C "$TERM" reset --hard -q "$REVIEWED_HEAD"
+cp "$WORK/term-tasks-reviewed" "$TERM_TASKS"
 
 cp "$FINAL_REVIEW" "$FINAL_REVIEW.saved"
 sed 's/^reviewed_tree: .*/reviewed_tree: 0000000000000000000000000000000000000000/' "$FINAL_REVIEW.saved" > "$FINAL_REVIEW"
@@ -878,6 +907,60 @@ bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM
 legacy_verdict_status=$?
 set -e
 [ "$legacy_verdict_status" -ne 0 ] && [ ! -e "$LEGACY_VERDICT_RECEIPT" ] && ok 'legacy local verdict creates no receipt' || fail 'legacy local verdict creates no receipt'
+
+# A whole-branch review that needed fixes terminates on the exact upstream
+# scoped re-review conclusion, not on a fabricated second Ready=Yes verdict.
+printf 'review fix\n' >> "$TERM/app.txt"
+git -C "$TERM" add app.txt
+git -C "$TERM" commit -qm 'review fix'
+FIXED_HEAD="$(git -C "$TERM" rev-parse HEAD)"
+FIXED_TREE="$(git -C "$TERM" rev-parse HEAD^{tree})"
+FIX_PACKAGE="$(dirname "$TERM_LEDGER")/review-fix.diff"
+(cd "$TERM" && bash "$REVIEW_PACKAGE" "$TERM_PROJECTION" "$REVIEWED_HEAD" "$FIXED_HEAD" "$FIX_PACKAGE") >/dev/null
+FIX_REVIEW="$(dirname "$TERM_LEDGER")/maxi-final-fix-review.md"
+awk -v head="$FIXED_HEAD" -v tree="$FIXED_TREE" -v package="$FIX_PACKAGE" -v digest="$(sha "$FIX_PACKAGE")" '
+  /^reviewed_head: / { print "reviewed_head: " head; next }
+  /^reviewed_tree: / { print "reviewed_tree: " tree; next }
+  /^fix_review_package: / { print "fix_review_package: " package; next }
+  /^fix_review_package_sha256: / { print "fix_review_package_sha256: " digest; next }
+  /^\*\*Ready to merge\?\*\* Yes$/ {
+    print "**Ready to merge?** With fixes"
+    print "**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation."
+    next
+  }
+  { print }
+' "$FINAL_REVIEW" > "$FIX_REVIEW"
+FIX_RECEIPT="$(dirname "$TERM_LEDGER")/terminal-fix-receipt.md"
+bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FIX_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$FIX_RECEIPT"
+FIX_RESULT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$FIX_RECEIPT")"
+assert_has <(printf '%s\n' "$FIX_RESULT") 'READY_TO_FINISH' 'byte-exact fix package and canonical re-review conclusion emit ready'
+
+for fix_verdict_case in missing-conclusion malformed-conclusion mixed-ready no-initial-with-fixes; do
+  BAD_FIX_REVIEW="$FIX_REVIEW.$fix_verdict_case"
+  case "$fix_verdict_case" in
+    missing-conclusion) grep -Fvx -- '**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
+    malformed-conclusion) sed 's/no out-of-scope observation\./no new observation./' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
+    mixed-ready) sed '/^\*\*Ready to merge?\*\* With fixes$/a\
+**Ready to merge?** Yes' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
+    no-initial-with-fixes) sed 's/^\*\*Ready to merge?\*\* With fixes$/\*\*Ready to merge?\*\* No/' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
+  esac
+  BAD_FIX_RECEIPT="$(dirname "$TERM_LEDGER")/$fix_verdict_case-receipt.md"
+  set +e
+  bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$BAD_FIX_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$BAD_FIX_RECEIPT" >/dev/null 2>&1
+  bad_fix_status=$?
+  set -e
+  [ "$bad_fix_status" -ne 0 ] && [ ! -e "$BAD_FIX_RECEIPT" ] && ok "$fix_verdict_case fix-review evidence rejects" || fail "$fix_verdict_case fix-review evidence rejects" 'invalid fix-review evidence created a receipt'
+done
+
+cp "$FIX_REVIEW" "$FIX_REVIEW.saved"
+cp "$FIX_RECEIPT" "$FIX_RECEIPT.saved"
+sed 's/no out-of-scope observation\./no new observation./' "$FIX_REVIEW.saved" > "$FIX_REVIEW"
+fix_review_rehash="$(sha "$FIX_REVIEW")"
+sed "s/^final_review_sha256: .*/final_review_sha256: $fix_review_rehash/" "$FIX_RECEIPT.saved" > "$FIX_RECEIPT"
+malformed_fix_result="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$FIX_RECEIPT" 2>/dev/null || true)"
+assert_not_has <(printf '%s\n' "$malformed_fix_result") 'READY_TO_FINISH' 'rehashed malformed fix conclusion cannot emit ready'
+mv "$FIX_REVIEW.saved" "$FIX_REVIEW"
+mv "$FIX_RECEIPT.saved" "$FIX_RECEIPT"
 
 if [ "$failures" -gt 0 ]; then
   echo "FAILED: $failures x-develop adapter checks failed" >&2

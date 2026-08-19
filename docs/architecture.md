@@ -123,6 +123,8 @@ Upstream SDD owns the only whole-branch review. Before dispatch, `x-develop` per
 
 Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.
 
+A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.`
+
 For a marker-bound root, `reviews/spec-review.md` gates `plan`; `reviews/plan-review.md` gates `tasks`. The records are persisted and versioned by `x-review`. These external review handoffs are gates, not statuses or automatic replay phases. `skills/revise/replay-plan.sh` is a read-only planner that calculates a bounded stale-descendant continuation, stops at the first required review, and never writes artifacts or executes phases.
 
 Bounded replay is future-only. Eligible roots carry exactly one `replay_contract: bounded-v1`; only `/maxi:specify` writes this marker, during normal forward-spec creation. An unmarked existing, migrated, or reverse-engineered spec returns `UNSUPPORTED_LEGACY`; revision metadata alone never opts it in.

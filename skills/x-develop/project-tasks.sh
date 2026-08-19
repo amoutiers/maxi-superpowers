@@ -442,9 +442,11 @@ unchecked="$(awk -F '\t' '$1 == " " { count++ } END { print count + 0 }' "$TASK_
 SELECTED_IDS="$TMPDIR_LOCAL/selected"
 ANCHORED_IDS="$TMPDIR_LOCAL/anchored"
 COMPLETED_IDS="$TMPDIR_LOCAL/predecessor-completed"
+PREDECESSOR_ANCHORED_IDS="$TMPDIR_LOCAL/predecessor-anchored"
 : > "$SELECTED_IDS"
 : > "$ANCHORED_IDS"
 : > "$COMPLETED_IDS"
+: > "$PREDECESSOR_ANCHORED_IDS"
 
 if [ -e "$FINAL" ]; then
   [ -f "$FINAL" ] || die 'projection path is not regular'
@@ -492,6 +494,12 @@ else
   PROJECT_PREDECESSOR="$PREDECESSOR"
   if [ "$PROJECT_PREDECESSOR" != null ]; then
     lineage_completed_ids "$PROJECT_PREDECESSOR" "$ROOT" "$COMPLETED_IDS" || die 'predecessor ledger lineage is invalid'
+    validate_selection_anchor "$PROJECT_PREDECESSOR" "$ROOT" "$PREDECESSOR_ANCHORED_IDS" || die 'predecessor ledger selection anchor is invalid'
+    while IFS= read -r id; do
+      if ! grep -Fqx -- "$id" "$COMPLETED_IDS"; then
+        [ "$(cut -f2 "$TASK_META" | grep -Fcx -- "$id" || true)" -eq 1 ] || die "structural successor omits anchored uncompleted task: $id"
+      fi
+    done < "$PREDECESSOR_ANCHORED_IDS"
   fi
   while IFS=$'\t' read -r state id mapping line; do
     if [ "$PROJECT_PREDECESSOR" != null ]; then

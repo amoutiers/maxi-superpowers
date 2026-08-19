@@ -62,6 +62,8 @@ The 19 Maxi-native skills remain in place; the 10-state FSM remains unchanged. `
 
 Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.
 
+A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.`
+
 Skills read this to enforce phase gating. Never bypass it.
 
 ## Pipeline Documentation — Mandatory Sync

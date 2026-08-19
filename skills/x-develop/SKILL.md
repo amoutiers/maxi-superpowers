@@ -64,7 +64,9 @@ Use upstream's final review exactly once. Intercept immediately before upstream 
 
 Before dispatching the final reviewer, persist the harness-issued reviewer context as the sole `reviewer_context: <context>` line in `final-reviewer-dispatch.identity` beside the current ledger. Use the same canonical context grammar as the independent-review gate, and require the final reviewer to return that exact context. If the harness exposes no verifiable reviewer context, stop without a success token. Never invent, infer, or repair an identity.
 
-Regenerate each review package with upstream's `review-package` helper from its recorded Git range and require byte-for-byte equality with the persisted package. A range header and matching self-hash are not review evidence. Accept only the canonical `**Ready to merge?** Yes` result; `No`, `With fixes`, and every locally invented verdict remain non-terminal.
+Regenerate each review package with upstream's `review-package` helper from its recorded Git range and require byte-for-byte equality with the persisted package. A range header and matching self-hash are not review evidence. A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.` Reject `No`, a second Ready verdict after fixes, altered conclusions, and every locally invented verdict.
+
+Every TNNN in a predecessor selection anchor must remain in corrected source artifacts unless the validated lineage contains its canonical annotated completion. A structural correction that removes an anchored uncompleted identifier fails closed. Collect and return each complete ledger line containing `Ruling:` in lineage order, including upstream parked and adjudication records whose line does not begin with `Ruling:`.
 
 Persist the complete final review, fix wave, re-review, and adjudication output
 as `maxi-final-review.md` beside the current ledger. Its frontmatter is exactly:

@@ -45,6 +45,21 @@ valid_context() {
   return 0
 }
 
+validate_review_conclusion() {
+  local review="$1" fix_package="$2" ready_total ready_line fix_total fix_line
+  ready_total="$(awk 'index($0, "**Ready to merge?** ") == 1 { count++ } END { print count + 0 }' "$review")"
+  fix_total="$(awk 'index($0, "**Fix round:** ") == 1 { count++ } END { print count + 0 }' "$review")"
+  if [ "$fix_package" = null ]; then
+    [ "$ready_total" -eq 1 ] && [ "$(grep -Fxc -- '**Ready to merge?** Yes' "$review" || true)" -eq 1 ] && [ "$fix_total" -eq 0 ]
+  else
+    [ "$ready_total" -eq 1 ] && [ "$(grep -Fxc -- '**Ready to merge?** With fixes' "$review" || true)" -eq 1 ] || return 1
+    [ "$fix_total" -eq 1 ] && [ "$(grep -Fxc -- '**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.' "$review" || true)" -eq 1 ] || return 1
+    ready_line="$(grep -nF -- '**Ready to merge?** With fixes' "$review" | cut -d: -f1)"
+    fix_line="$(grep -nF -- '**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.' "$review" | cut -d: -f1)"
+    [ "$ready_line" -lt "$fix_line" ]
+  fi
+}
+
 exact_final_review_fields() {
   local actual expected
   actual="$(awk '
@@ -201,7 +216,7 @@ done
 awk '{ line[NR] = $0 } END { for (i = NR; i >= 1; i--) print line[i] }' "$REVERSE" > "$TMP/lineage"
 : > "$TMP/rulings"
 while IFS='|' read -r lineage_projection projection_hash lineage_ledger ledger_hash; do
-  grep '^Ruling:' "$lineage_ledger" >> "$TMP/rulings" || true
+  grep -F 'Ruling:' "$lineage_ledger" >> "$TMP/rulings" || true
 done < "$TMP/lineage"
 
 exact_final_review_fields "$FINAL_REVIEW" || die 'final review envelope fields are not exact'
@@ -228,7 +243,7 @@ OUTCOME="$(field "$FINAL_REVIEW" outcome)"
 [ "$OUTCOME" = finish ] || die 'final review did not reach Finish boundary'
 valid_context "$REVIEW_CONTEXT" || die 'invalid reviewer context'
 [ "$REVIEW_CONTEXT" = "$DISPATCH_CONTEXT" ] || die 'final reviewer differs from persisted dispatch identity'
-[ "$(grep -Fxc -- '**Ready to merge?** Yes' "$FINAL_REVIEW" || true)" -eq 1 ] || die 'final review is not canonically ready to merge'
+validate_review_conclusion "$FINAL_REVIEW" "$FIX_PACKAGE" || die 'final review conclusion does not match its review-package path'
 
 case "$REVIEW_HEAD:$REVIEW_TREE" in *[!0-9a-f:]*|*:|:*) die 'invalid reviewed Git identity' ;; esac
 [ "${#REVIEW_HEAD}" -eq 40 ] && [ "${#REVIEW_TREE}" -eq 40 ] || die 'reviewed Git identity is not full length'

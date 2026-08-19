@@ -22,6 +22,8 @@ Upstream SDD owns the only whole-branch review. Before dispatch, `/maxi:x-develo
 
 Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.
 
+A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.`
+
 ### External Review Handoffs
 
 | Handoff | Successor gate | Record owner | Status effect |

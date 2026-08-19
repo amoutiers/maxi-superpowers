@@ -79,6 +79,8 @@ Upstream SDD owns the only whole-branch review. Before dispatch, internal `/maxi
 
 Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.
 
+A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.`
+
 - Internal `/maxi:x-review` is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`. It delegates a fresh independent review through `superpowers:requesting-code-review`; approved records are persisted and versioned.
 - For a marker-bound root, `reviews/spec-review.md` must approve the current `spec.md` revision before `/maxi:plan` writes or changes status. Its `reviews/plan-review.md` must approve the current `plan.md` revision before `/maxi:tasks` writes or changes status.
 - A missing, stale, malformed, rejected, or non-independent record blocks only its successor before any write or status transition.
