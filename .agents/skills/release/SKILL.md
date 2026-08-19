@@ -83,19 +83,26 @@ fi
 
 ### 5. Bump version
 
-Update `"version"` in every file that tracks it — check for all of these:
+Update every version-bearing manifest. The JSON files use `"version"`; the
+Hermes YAML manifest uses `version:`:
 
 ```
-plugin.json                  # root plugin manifest
 .claude-plugin/plugin.json   # Claude Code plugin manifest
 .codex-plugin/plugin.json    # Codex plugin manifest
-package.json                 # npm manifest
+.cursor-plugin/plugin.json   # Cursor plugin manifest
+.devin-plugin/plugin.json    # Devin plugin manifest
+.hermes-plugin/plugin.yaml   # Hermes plugin manifest
+.kimi-plugin/plugin.json     # Kimi Code plugin manifest
+gemini-extension.json        # Gemini extension manifest
+package.json                 # npm and Pi package manifest
 ```
 
 ### 6. Commit release artifacts (commit 1 of 2)
 
 ```bash
-git add CHANGELOG.md plugin.json .claude-plugin/plugin.json .codex-plugin/plugin.json package.json
+git add CHANGELOG.md .claude-plugin/plugin.json .codex-plugin/plugin.json \
+  .cursor-plugin/plugin.json .devin-plugin/plugin.json .hermes-plugin/plugin.yaml \
+  .kimi-plugin/plugin.json gemini-extension.json package.json
 git commit -m "chore(release): vX.Y.Z"
 ```
 
@@ -127,7 +134,7 @@ Commit-pinned marketplace entries now point to commit 1 (version bump + CHANGELO
 ### 8. Tag and push
 
 ```bash
-PLUGIN_NAME=$(jq -r .name plugin.json)
+PLUGIN_NAME=$(jq -r .name .claude-plugin/plugin.json)
 git tag "vX.Y.Z"
 git tag "${PLUGIN_NAME}--vX.Y.Z"
 git push origin master
@@ -158,5 +165,5 @@ echo "Action running at: https://github.com/${REMOTE}/actions"
 | Relying on the Action to pin marketplace.json | Update marketplace metadata locally in step 7, before tagging |
 | One commit for everything | Two commits: (1) version+CHANGELOG, (2) marketplace.json pin — tag on commit 2 |
 | `git status` without `--porcelain` | `--porcelain` catches untracked files that plain `git status` calls "clean" |
-| Only bumping `plugin.json` + `package.json` | Also check `.claude-plugin/plugin.json` and `.codex-plugin/plugin.json` |
+| Only bumping a subset of manifests | Bump and stage all eight manifests listed in step 5 |
 | Only creating `vX.Y.Z` tag | Always create BOTH `vX.Y.Z` AND `{name}--vX.Y.Z` |

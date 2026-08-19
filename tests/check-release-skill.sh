@@ -25,15 +25,51 @@ fi
 assert_file_exists "$CLAUDE_SKILL_DIR/SKILL.md" ".claude release skill resolves"
 
 if [ -f "$SKILL" ]; then
+  BUMP_SECTION=$(sed -n '/^### 5\. Bump version$/,/^### 6\. Commit release artifacts/p' "$SKILL")
+  STAGING_SECTION=$(sed -n '/^### 6\. Commit release artifacts/,/^### 7\. Update marketplace metadata/p' "$SKILL")
+  MARKETPLACE_SECTION=$(sed -n '/^### 7\. Update marketplace metadata/,/^### 8\. Tag and push/p' "$SKILL")
+
+  for manifest in \
+    .claude-plugin/plugin.json \
+    .codex-plugin/plugin.json \
+    .cursor-plugin/plugin.json \
+    .devin-plugin/plugin.json \
+    .hermes-plugin/plugin.yaml \
+    .kimi-plugin/plugin.json \
+    gemini-extension.json \
+    package.json; do
+    if grep -Fq "$manifest" <<<"$BUMP_SECTION"; then
+      echo "OK  [release skill: bumps $manifest]"
+    else
+      echo "FAIL [release skill: bumps $manifest]" >&2
+      failures=$((failures + 1))
+    fi
+
+    if grep -Fq "$manifest" <<<"$STAGING_SECTION"; then
+      echo "OK  [release skill: stages $manifest]"
+    else
+      echo "FAIL [release skill: stages $manifest]" >&2
+      failures=$((failures + 1))
+    fi
+  done
+
+  assert_not_grep "$SKILL" '^plugin\.json[[:space:]]' "release skill: no root plugin.json inventory entry"
   assert_grep "$SKILL" "doc-consistency" "release skill: runs doc-consistency before release"
   assert_grep "$SKILL" ".claude/skills/doc-consistency" "release skill: documents Claude doc-consistency path"
   assert_grep "$SKILL" ".agents/skills/doc-consistency" "release skill: documents .agents doc-consistency path"
   assert_grep "$SKILL" "bash tests/run-all.sh" "release skill: still runs fast tier"
   assert_grep "$SKILL" "Abort if tests fail" "release skill: keeps test failure abort"
-  assert_grep "$SKILL" ".claude-plugin/plugin.json" "release skill: includes Claude plugin manifest"
-  assert_grep "$SKILL" ".codex-plugin/plugin.json" "release skill: includes Codex plugin manifest"
-  assert_grep "$SKILL" ".claude-plugin/marketplace.json" "release skill: includes Claude marketplace"
-  assert_grep "$SKILL" ".agents/plugins/marketplace.json" "release skill: includes Codex marketplace"
+  assert_grep "$SKILL" 'PLUGIN_NAME=$(jq -r .name .claude-plugin/plugin.json)' "release skill: resolves plugin name from Claude manifest"
+  assert_grep "$SKILL" 'git tag "${PLUGIN_NAME}--vX.Y.Z"' "release skill: tags with resolved plugin name"
+
+  if grep -Fq 'git add .claude-plugin/marketplace.json .agents/plugins/marketplace.json' <<<"$MARKETPLACE_SECTION"; then
+    echo "OK  [release skill: stages marketplaces in commit 2]"
+  else
+    echo "FAIL [release skill: stages marketplaces in commit 2]" >&2
+    failures=$((failures + 1))
+  fi
 fi
+
+assert_grep "$ROOT/.gitignore" '^\.superpowers/$' ".superpowers/: execution scratch is ignored"
 
 summary_and_exit "release skill checks"
