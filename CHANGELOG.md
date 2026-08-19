@@ -1,4 +1,41 @@
 
+## [2.4.0] - 2026-08-19
+
+### Features
+
+- Add maxi task projection adapter
+- Align declarative v6.3 surfaces
+- Add gated Hermes adapter
+
+### Bug Fixes
+
+- Keep version citations scoped
+- Align current vendor pin
+- Harden maxi task adapter
+- Anchor initial task selection
+- Accept upstream completion records
+- Tighten declarative manifests
+- Preserve terminal review evidence
+- Bind projection review lineage
+- Validate reconciliation lineage
+- Reject ambiguous task state
+- Harden project activation gates
+- Handle cyclic project gates
+
+### Documentation
+
+- Align superpowers v6.3 model
+- Align superpowers v6.3 architecture
+
+### Testing
+
+- Strengthen adapter coverage
+
+### Internal
+
+- Sync superpowers v6.3.0
+
+
 ## [2.3.0] - 2026-08-16
 
 ### Features

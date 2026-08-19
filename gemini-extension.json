@@ -1,6 +1,6 @@
 {
   "name": "maxi",
   "description": "Spec-driven development pipeline for Claude Code: constitution → specify → clarify → plan → tasks → analyze → implement",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "contextFileName": "GEMINI.md"
 }
