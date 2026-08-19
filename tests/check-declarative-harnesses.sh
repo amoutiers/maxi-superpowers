@@ -59,6 +59,7 @@ if [ -f "$CURSOR" ]; then
 fi
 
 if [ -f "$KIMI" ]; then
+  assert_jq "$KIMI" 'keys | sort == ["author", "description", "homepage", "interface", "keywords", "license", "name", "sessionStart", "skillInstructions", "skills", "version"]' 'true' ".kimi-plugin/plugin.json: upstream manifest shape"
   assert_jq "$KIMI" '.skills' './skills/' ".kimi-plugin/plugin.json: skills path"
   assert_jq "$KIMI" '.sessionStart.skill' 'using-maxi' ".kimi-plugin/plugin.json: session start skill"
   for tool in AskUserQuestion TodoList Agent Skill Read Write Edit Bash Grep Glob FetchURL WebSearch; do
@@ -71,12 +72,18 @@ if [ -f "$GEMINI" ]; then
 fi
 assert_file_exists "$GEMINI_CONTEXT" "GEMINI.md"
 if [ -f "$GEMINI_CONTEXT" ]; then
-  assert_grep "$GEMINI_CONTEXT" '^@./skills/using-maxi/SKILL.md$' "GEMINI.md: imports using-maxi"
-  assert_grep "$GEMINI_CONTEXT" '^@./skills/using-superpowers/references/gemini-tools.md$' "GEMINI.md: imports Gemini tools"
+  for import in '@./skills/using-maxi/SKILL.md' '@./skills/using-superpowers/references/gemini-tools.md'; do
+    if grep -Fqx "$import" "$GEMINI_CONTEXT"; then
+      echo "OK  [GEMINI.md: imports $import]"
+    else
+      echo "FAIL [GEMINI.md: imports $import]" >&2
+      failures=$((failures + 1))
+    fi
+  done
 fi
 
 if [ -f "$DEVIN" ]; then
-  assert_jq "$DEVIN" 'has("hooks") or has("sessionStart") or has("skills") or has("contextFileName")' 'false' ".devin-plugin/plugin.json: metadata-only"
+  assert_jq "$DEVIN" 'has("skills") or has("hooks") or has("commands") or has("sessionStart") or has("contextFileName") or has("inject")' 'false' ".devin-plugin/plugin.json: metadata-only"
 fi
 
 if bash "$ROOT/tests/check-pi-extension.sh"; then
