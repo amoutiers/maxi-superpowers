@@ -29,6 +29,8 @@ Receive the exact canonical `spec.md`, `plan.md`, and `tasks.md` paths from
    correction starts a successor projection and workspace. Link that
    successor to the prior projection. Recover a predecessor only from the validated active-projection pointer.
 
+Before any task dispatch, persist the exact initial selected-TNNN set in the ordinary SDD ledger as the immutable initial task-selection anchor. Write that anchor once from the source selection; do not create a sidecar. On every projection reuse and reconciliation, combine the anchor with the bound sources and validated lineage to distinguish tasks that were initially pre-checked from tasks completed later. A missing, malformed, duplicate, or mismatched selection anchor fails closed.
+
 Reconstruct the canonical projection bytes from the bound spec, plan, tasks, and validated selection/lineage ledgers whenever an existing projection is reused. Compare those reconstructed bytes exactly; the projection's stored body hash can detect damage but can never attest its own rewritten content. While projecting task bodies, normalize every accepted backtick fence delimiter to column zero so upstream `task-brief` retains the complete body.
 
 For a successor, only one exact `Task N: complete` line in the validated predecessor ledger acquits the corresponding `TNNN`. A checkbox alone never acquits a lineage task. Project every other `TNNN`, including an item whose Maxi checkbox is already checked.

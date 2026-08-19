@@ -81,6 +81,16 @@ while IFS='|' read -r number id; do
   expected=$((expected + 1))
 done < "$MAP"
 
+anchor_count="$(grep -c '^Maxi selection:' "$LEDGER" || true)"
+anchor_like="$(grep -c '^Maxi selection' "$LEDGER" || true)"
+[ "$anchor_count" -eq 1 ] && [ "$anchor_like" -eq 1 ] || die 'ledger selection anchor is missing or duplicated'
+if [ "$map_count" -eq 0 ]; then
+  expected_anchor='Maxi selection: none'
+else
+  expected_anchor="$(awk -F'|' 'BEGIN { printf "Maxi selection:" } { printf " %s", $2 } END { print "" }' "$MAP")"
+fi
+[ "$(grep '^Maxi selection:' "$LEDGER")" = "$expected_anchor" ] || die 'ledger selection anchor is malformed or mismatched'
+
 COMPLETED="$TMP/completed"
 : > "$COMPLETED"
 while IFS= read -r line; do

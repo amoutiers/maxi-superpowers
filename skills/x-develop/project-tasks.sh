@@ -143,11 +143,13 @@ validate_lineage() {
 }
 
 ledger_completes_projection() {
-  local projection="$1" root="$2" ledger expected completed
+  local projection="$1" root="$2" ledger expected completed anchored
   ledger="$root/.superpowers/sdd/$(basename "$projection" .md)/progress.md"
   [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
   IFS= read -r expected < "$ledger" || return 1
   [ "$expected" = "# SDD ledger — plan: $projection" ] || return 1
+  anchored="$TMPDIR_LOCAL/ledger-completion-anchor"
+  validate_selection_anchor "$projection" "$root" "$anchored" || return 1
   while IFS= read -r number; do
     [ -n "$number" ] || continue
     completed="$(grep -c "^Task $number: complete$" "$ledger" || true)"
@@ -156,87 +158,60 @@ ledger_completes_projection() {
 }
 
 lineage_completed_ids() {
-  local current="$1" root="$2" output="$3" ledger first map number id completed
+  local current="$1" root="$2" output="$3" ledger first map number id completed anchor
   : > "$output"
   while [ "$current" != null ]; do
     ledger="$root/.superpowers/sdd/$(basename "$current" .md)/progress.md"
-    if [ -e "$ledger" ]; then
-      [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
-      IFS= read -r first < "$ledger" || return 1
-      [ "$first" = "# SDD ledger — plan: $current" ] || return 1
-      map="${output}.map"
-      sed -n 's/^### Task \([1-9][0-9]*\): \(T[0-9][0-9][0-9]\) .*/\1|\2/p' "$current" > "$map"
-      while IFS='|' read -r number id; do
-        [ -n "$number" ] || continue
-        completed="$(grep -c "^Task $number: complete$" "$ledger" || true)"
-        [ "$completed" -le 1 ] || return 1
-        if [ "$completed" -eq 1 ] && ! grep -Fqx -- "$id" "$output"; then
-          printf '%s\n' "$id" >> "$output"
-        fi
-      done < "$map"
-    fi
+    [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
+    IFS= read -r first < "$ledger" || return 1
+    [ "$first" = "# SDD ledger — plan: $current" ] || return 1
+    anchor="${output}.anchor"
+    validate_selection_anchor "$current" "$root" "$anchor" || return 1
+    number=0
+    while IFS= read -r id; do
+      number=$((number + 1))
+      completed="$(grep -c "^Task $number: complete$" "$ledger" || true)"
+      [ "$completed" -le 1 ] || return 1
+      if [ "$completed" -eq 1 ] && ! grep -Fqx -- "$id" "$output"; then
+        printf '%s\n' "$id" >> "$output"
+      fi
+    done < "$anchor"
     current="$(projection_field "$current" predecessor_projection 2>/dev/null)" || return 1
   done
 }
 
-select_initial_from_ledger() {
-  local ordered="$1" ledger="$2" output="$3" completion_numbers completion_csv
-  completion_numbers="${output}.completion-numbers"
-  sed -n 's/^Task \([1-9][0-9]*\): complete$/\1/p' "$ledger" > "$completion_numbers"
-  [ "$(sort -nu "$completion_numbers" | wc -l | tr -d ' ')" -eq "$(wc -l < "$completion_numbers" | tr -d ' ')" ] || return 1
-  completion_csv="$(awk '{ printf "%s,", $0 }' "$completion_numbers")"
-  awk -F '\t' -v completions="$completion_csv" '
-    function add(key, value) {
-      count[key] += value
-      if (count[key] > 1) count[key] = 2
-    }
-    BEGIN {
-      split(completions, item, ",")
-      for (i in item) if (item[i] != "") {
-        complete[item[i] + 0]++
-        if (item[i] + 0 > maximum) maximum = item[i] + 0
-      }
-      count[0 SUBSEP 0] = 1
-    }
-    {
-      task_state[NR] = $1
-      task_id[NR] = $2
-    }
-    END {
-      total_tasks = NR
-      for (i = 1; i <= total_tasks; i++) {
-        for (position = 0; position <= i; position++) {
-          if (task_state[i] != " ") add(i SUBSEP position, count[(i - 1) SUBSEP position])
-          if (position > 0 && ((task_state[i] == " " && !complete[position]) || (task_state[i] != " " && complete[position]))) {
-            add(i SUBSEP position, count[(i - 1) SUBSEP (position - 1)])
-          }
-        }
-      }
-      solutions = 0
-      for (position = maximum; position <= total_tasks; position++) {
-        solutions += count[total_tasks SUBSEP position]
-        if (count[total_tasks SUBSEP position]) final_position = position
-        if (solutions > 1) exit 2
-      }
-      if (solutions != 1) exit 2
-      position = final_position
-      for (i = total_tasks; i >= 1; i--) {
-        excluded = (task_state[i] != " ") ? count[(i - 1) SUBSEP position] : 0
-        selected = 0
-        if (position > 0 && ((task_state[i] == " " && !complete[position]) || (task_state[i] != " " && complete[position]))) {
-          selected = count[(i - 1) SUBSEP (position - 1)]
-        }
-        if (selected && !excluded) {
-          keep[i] = 1
-          position--
-        } else if (!excluded || selected) {
-          exit 2
-        }
-      }
-      if (position != 0) exit 2
-      for (i = 1; i <= total_tasks; i++) if (keep[i]) print task_id[i]
-    }
-  ' "$ordered" > "$output"
+validate_selection_anchor() {
+  local projection="$1" root="$2" output="$3" ledger line anchor_count anchor_like headings
+  ledger="$root/.superpowers/sdd/$(basename "$projection" .md)/progress.md"
+  [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
+  IFS= read -r line < "$ledger" || return 1
+  [ "$line" = "# SDD ledger — plan: $projection" ] || return 1
+  anchor_count="$(grep -c '^Maxi selection:' "$ledger" || true)"
+  anchor_like="$(grep -c '^Maxi selection' "$ledger" || true)"
+  [ "$anchor_count" -eq 1 ] && [ "$anchor_like" -eq 1 ] || return 1
+  line="$(grep '^Maxi selection:' "$ledger")"
+  : > "$output"
+  if [ "$line" != 'Maxi selection: none' ]; then
+    printf '%s\n' "$line" | grep -Eq '^Maxi selection: T[0-9][0-9][0-9]( T[0-9][0-9][0-9])*$' || return 1
+    printf '%s\n' "${line#Maxi selection: }" | tr ' ' '\n' > "$output"
+    [ "$(sort -u "$output" | wc -l | tr -d ' ')" -eq "$(wc -l < "$output" | tr -d ' ')" ] || return 1
+  fi
+  headings="${output}.headings"
+  sed -n 's/^### Task [1-9][0-9]*: \(T[0-9][0-9][0-9]\) .*/\1/p' "$projection" > "$headings"
+  cmp -s "$output" "$headings"
+}
+
+write_selection_ledger() {
+  local projection="$1" selected="$2" output="$3" anchor
+  if [ -s "$selected" ]; then
+    anchor="$(awk 'BEGIN { printf "Maxi selection:" } { printf " %s", $0 } END { print "" }' "$selected")"
+  else
+    anchor='Maxi selection: none'
+  fi
+  {
+    printf '# SDD ledger — plan: %s\n' "$projection"
+    printf '%s\n' "$anchor"
+  } > "$output"
 }
 
 SPEC='' PLAN='' TASKS='' OUTPUT='' STATE='' VERIFY_ONLY=0
@@ -445,8 +420,10 @@ write_expected_projection() {
 
 unchecked="$(awk -F '\t' '$1 == " " { count++ } END { print count + 0 }' "$TASK_META")"
 SELECTED_IDS="$TMPDIR_LOCAL/selected"
+ANCHORED_IDS="$TMPDIR_LOCAL/anchored"
 COMPLETED_IDS="$TMPDIR_LOCAL/predecessor-completed"
 : > "$SELECTED_IDS"
+: > "$ANCHORED_IDS"
 : > "$COMPLETED_IDS"
 
 if [ -e "$FINAL" ]; then
@@ -458,30 +435,14 @@ if [ -e "$FINAL" ]; then
   fi
   PROJECT_PREDECESSOR="$(projection_field "$FINAL" predecessor_projection)" || die 'existing predecessor is missing'
   EXECUTION_MODE="$(projection_field "$FINAL" execution_mode)" || die 'existing execution mode is missing'
+  validate_selection_anchor "$FINAL" "$ROOT" "$ANCHORED_IDS" || die 'current ledger selection anchor is missing, malformed, duplicated, or mismatched'
   if [ "$PROJECT_PREDECESSOR" != null ]; then
     lineage_completed_ids "$PROJECT_PREDECESSOR" "$ROOT" "$COMPLETED_IDS" || die 'predecessor ledger lineage is invalid'
     while IFS=$'\t' read -r state id mapping line; do
       grep -Fqx -- "$id" "$COMPLETED_IDS" || printf '%s\n' "$id" >> "$SELECTED_IDS"
     done < "$TASK_META"
   else
-    CURRENT_LEDGER="$ROOT/.superpowers/sdd/$(basename "$FINAL" .md)/progress.md"
-    if [ -e "$CURRENT_LEDGER" ]; then
-      [ -f "$CURRENT_LEDGER" ] && [ ! -L "$CURRENT_LEDGER" ] || die 'current ledger is not a regular file'
-      IFS= read -r first < "$CURRENT_LEDGER" || die 'current ledger is empty'
-      [ "$first" = "# SDD ledger — plan: $FINAL" ] || die 'current ledger identity mismatch'
-      ORDERED_META="$TMPDIR_LOCAL/ordered-task-states"
-      : > "$ORDERED_META"
-      if [ "$MODE" = marker-bound ]; then
-        while IFS= read -r source_number; do
-          awk -F '\t' -v number="$source_number" '$3 == number { print $1 "\t" $2; exit }' "$TASK_META" >> "$ORDERED_META"
-        done < "$PLAN_PARTS/order"
-      else
-        awk -F '\t' '{ print $1 "\t" $2 }' "$TASK_META" > "$ORDERED_META"
-      fi
-      select_initial_from_ledger "$ORDERED_META" "$CURRENT_LEDGER" "$SELECTED_IDS" || die 'current ledger cannot reconstruct one canonical initial selection'
-    else
-      sed -n 's/^### Task [1-9][0-9]*: \(T[0-9][0-9][0-9]\) .*/\1/p' "$FINAL" > "$SELECTED_IDS"
-    fi
+    cp "$ANCHORED_IDS" "$SELECTED_IDS"
   fi
   [ "$(sort -u "$SELECTED_IDS" | wc -l | tr -d ' ')" -eq "$(wc -l < "$SELECTED_IDS" | tr -d ' ')" ] || die 'existing projection repeats a Maxi task'
   while IFS= read -r id; do
@@ -528,6 +489,23 @@ else
   fi
 fi
 
+UNORDERED_IDS="$TMPDIR_LOCAL/selected-unordered"
+cp "$SELECTED_IDS" "$UNORDERED_IDS"
+: > "$SELECTED_IDS"
+if [ "$MODE" = marker-bound ]; then
+  while IFS= read -r source_number; do
+    id="$(awk -F '\t' -v number="$source_number" '$3 == number { print $2; exit }' "$TASK_META")"
+    grep -Fqx -- "$id" "$UNORDERED_IDS" && printf '%s\n' "$id" >> "$SELECTED_IDS"
+  done < "$PLAN_PARTS/order"
+else
+  while IFS=$'\t' read -r state id mapping line; do
+    grep -Fqx -- "$id" "$UNORDERED_IDS" && printf '%s\n' "$id" >> "$SELECTED_IDS"
+  done < "$TASK_META"
+fi
+if [ -e "$FINAL" ] && [ "$PROJECT_PREDECESSOR" != null ]; then
+  cmp -s "$SELECTED_IDS" "$ANCHORED_IDS" || die 'successor selection anchor disagrees with predecessor completion lineage'
+fi
+
 BODY="$TMPDIR_LOCAL/body"
 EXPECTED_PROJECTION="$TMPDIR_LOCAL/expected-projection"
 render_body "$SELECTED_IDS" "$BODY"
@@ -536,10 +514,19 @@ write_expected_projection "$EXPECTED_PROJECTION" "$BODY" "$EXECUTION_MODE" "$PRO
 if [ -e "$FINAL" ]; then
   cmp -s "$EXPECTED_PROJECTION" "$FINAL" || die 'existing projection differs from canonical source reconstruction'
 else
+  WORKSPACE="$ROOT/.superpowers/sdd/$(basename "$FINAL" .md)"
+  [ ! -L "$WORKSPACE" ] || die 'projection workspace is a symlink'
+  mkdir -p "$WORKSPACE"
+  LEDGER="$WORKSPACE/progress.md"
+  [ ! -e "$LEDGER" ] && [ ! -L "$LEDGER" ] || die 'fresh projection workspace already has a ledger'
+  TEMP_LEDGER="$(mktemp "$WORKSPACE/.progress.XXXXXX")"
+  write_selection_ledger "$FINAL" "$SELECTED_IDS" "$TEMP_LEDGER"
   TEMP_PROJECTION="$(mktemp "$OUT_PARENT/.projection.XXXXXX")"
   cp "$EXPECTED_PROJECTION" "$TEMP_PROJECTION"
   mv "$TEMP_PROJECTION" "$FINAL"
+  mv "$TEMP_LEDGER" "$LEDGER"
   verify_projection "$FINAL" "$SLUG" || die 'new projection failed integrity validation'
+  validate_selection_anchor "$FINAL" "$ROOT" "$ANCHORED_IDS" || die 'new projection selection anchor failed validation'
 fi
 
 if [ "$VERIFY_ONLY" -eq 0 ]; then

@@ -106,7 +106,7 @@ See [delegation-map.md](delegation-map.md) for the full table, and [pipeline-flo
 | `x-adr` | (internal — invoked by plan + implement; never invoked by user directly) |
 | `x-review` | `/maxi:requesting-code-review`; persists the approved handoff record and never changes status |
 
-Upstream SDD owns the only whole-branch review. `x-develop` adapts canonical Maxi tasks into an immutable SDD projection, reconciles exact ledger completions, persists and binds the harness-issued final-reviewer identity, regenerates review packages from their Git ranges, and returns `READY_TO_FINISH` only after the hash-bound receipt validates. `implement` is the sole owner of the later `done` write and does not dispatch a second final review.
+Upstream SDD owns the only whole-branch review. Before dispatch, `x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It adapts canonical Maxi tasks into an immutable SDD projection, reconciles exact ledger completions, persists and binds the harness-issued final-reviewer identity, regenerates review packages from their Git ranges, and returns `READY_TO_FINISH` only after the hash-bound receipt validates. `implement` is the sole owner of the later `done` write and does not dispatch a second final review.
 
 For a marker-bound root, `reviews/spec-review.md` gates `plan`; `reviews/plan-review.md` gates `tasks`. The records are persisted and versioned by `x-review`. These external review handoffs are gates, not statuses or automatic replay phases. `skills/revise/replay-plan.sh` is a read-only planner that calculates a bounded stale-descendant continuation, stops at the first required review, and never writes artifacts or executes phases.
 
