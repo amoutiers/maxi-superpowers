@@ -68,7 +68,11 @@ export const MaxiPlugin = async ({ client, directory }) => {
     if (_bootstrapCacheByProject.has(cacheKey)) return _bootstrapCacheByProject.get(cacheKey);
 
     const maxiDir = path.join(baseDir, 'docs/maxi');
-    if (!fs.statSync(maxiDir, { throwIfNoEntry: false })?.isDirectory()) {
+    let isMaxiProject = false;
+    try {
+      isMaxiProject = fs.statSync(maxiDir).isDirectory();
+    } catch {}
+    if (!isMaxiProject) {
       _bootstrapCacheByProject.set(cacheKey, null);
       return null;
     }

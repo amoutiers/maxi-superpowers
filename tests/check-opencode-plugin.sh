@@ -94,10 +94,12 @@ fi
 # Behavior: cache must not let a non-maxi project suppress a later maxi project.
 if command -v node >/dev/null 2>&1; then
   TMP_OC="$(mktemp -d)"
-  mkdir -p "$TMP_OC/maxi/docs/maxi" "$TMP_OC/file/docs" "$TMP_OC/plain"
+  mkdir -p "$TMP_OC/maxi/docs/maxi" "$TMP_OC/file/docs" "$TMP_OC/cyclic/docs" "$TMP_OC/dangling/docs" "$TMP_OC/plain"
   printf '%s\n' 'not a directory' > "$TMP_OC/file/docs/maxi"
-  if node --input-type=module - "$PLUGIN" "$TMP_OC/plain" "$TMP_OC/file" "$TMP_OC/maxi" <<'NODE'
-const [pluginPath, plainDir, fileDir, maxiDir] = process.argv.slice(2);
+  ln -s maxi "$TMP_OC/cyclic/docs/maxi"
+  ln -s missing "$TMP_OC/dangling/docs/maxi"
+  if node --input-type=module - "$PLUGIN" "$TMP_OC/plain" "$TMP_OC/file" "$TMP_OC/cyclic" "$TMP_OC/dangling" "$TMP_OC/maxi" <<'NODE'
+const [pluginPath, plainDir, fileDir, cyclicDir, danglingDir, maxiDir] = process.argv.slice(2);
 const mod = await import(`file://${pluginPath}`);
 
 function output(text) {
@@ -116,6 +118,20 @@ const fileOutput = output('file');
 await filePlugin['experimental.chat.messages.transform']({}, fileOutput);
 if (fileOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
   throw new Error('bootstrap injected when docs/maxi is a file');
+}
+
+const cyclicPlugin = await mod.MaxiPlugin({ directory: cyclicDir });
+const cyclicOutput = output('cyclic');
+await cyclicPlugin['experimental.chat.messages.transform']({}, cyclicOutput);
+if (cyclicOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
+  throw new Error('bootstrap injected when docs/maxi is a cyclic symlink');
+}
+
+const danglingPlugin = await mod.MaxiPlugin({ directory: danglingDir });
+const danglingOutput = output('dangling');
+await danglingPlugin['experimental.chat.messages.transform']({}, danglingOutput);
+if (danglingOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
+  throw new Error('bootstrap injected when docs/maxi is a dangling symlink');
 }
 
 const maxiPlugin = await mod.MaxiPlugin({ directory: maxiDir });

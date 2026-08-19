@@ -30,7 +30,7 @@ TMP_PROBE="$(mktemp -d)"
 trap 'rm -rf "$TMP_PROBE"' EXIT
 cat > "$TMP_PROBE/probe.mjs" <<'EOF'
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -53,12 +53,18 @@ const originalCwd = process.cwd();
 const probeRoot = await mkdtemp(join(tmpdir(), "maxi-pi-gate-"));
 const maxiProject = join(probeRoot, "project");
 const fileProject = join(probeRoot, "file-project");
+const cyclicProject = join(probeRoot, "cyclic-project");
+const danglingProject = join(probeRoot, "dangling-project");
 const outsideProject = join(probeRoot, "outside");
 
 try {
   await mkdir(join(maxiProject, "docs", "maxi"), { recursive: true });
   await mkdir(join(fileProject, "docs"), { recursive: true });
   await writeFile(join(fileProject, "docs", "maxi"), "not a directory");
+  await mkdir(join(cyclicProject, "docs"), { recursive: true });
+  await symlink("maxi", join(cyclicProject, "docs", "maxi"));
+  await mkdir(join(danglingProject, "docs"), { recursive: true });
+  await symlink("missing", join(danglingProject, "docs", "maxi"));
   await mkdir(outsideProject, { recursive: true });
   const mod = await import(pathToFileURL(process.env.PI_EXT).href + `?probe=${Date.now()}`);
   mod.default(pi);
@@ -72,6 +78,10 @@ try {
   assert.equal(await context({ messages: [user] }, {}), undefined, "first-session bootstrap must be silent outside docs/maxi");
   process.chdir(fileProject);
   assert.equal(await context({ messages: [user] }, {}), undefined, "first-session bootstrap must be silent when docs/maxi is a file");
+  process.chdir(cyclicProject);
+  assert.equal(await context({ messages: [user] }, {}), undefined, "first-session bootstrap must be silent when docs/maxi is a cyclic symlink");
+  process.chdir(danglingProject);
+  assert.equal(await context({ messages: [user] }, {}), undefined, "first-session bootstrap must be silent when docs/maxi is a dangling symlink");
   process.chdir(maxiProject);
   const firstSession = await context({ messages: [user] }, {});
   assert.equal(firstSession.messages.length, 2, "first-session bootstrap must inject inside docs/maxi");
@@ -82,6 +92,10 @@ try {
   assert.equal(await context({ messages: [user] }, {}), undefined, "post-compaction bootstrap must be silent outside docs/maxi");
   process.chdir(fileProject);
   assert.equal(await context({ messages: [user] }, {}), undefined, "post-compaction bootstrap must be silent when docs/maxi is a file");
+  process.chdir(cyclicProject);
+  assert.equal(await context({ messages: [user] }, {}), undefined, "post-compaction bootstrap must be silent when docs/maxi is a cyclic symlink");
+  process.chdir(danglingProject);
+  assert.equal(await context({ messages: [user] }, {}), undefined, "post-compaction bootstrap must be silent when docs/maxi is a dangling symlink");
   process.chdir(maxiProject);
   const summary = { role: "compactionSummary", summary: "Earlier", timestamp: 1 };
   const postCompaction = await context({ messages: [summary, user] }, {});

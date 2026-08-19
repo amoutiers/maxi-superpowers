@@ -34,7 +34,11 @@ export default function maxiPiExtension(pi: ExtensionAPI) {
 
 	pi.on("context", async (event) => {
 		if (!injectBootstrap) return;
-		if (!statSync(resolve(process.cwd(), "docs", "maxi"), { throwIfNoEntry: false })?.isDirectory()) return;
+		try {
+			if (!statSync(resolve(process.cwd(), "docs", "maxi")).isDirectory()) return;
+		} catch {
+			return;
+		}
 		if (event.messages.some(messageContainsBootstrap)) return;
 
 		const bootstrap = getBootstrapContent();
