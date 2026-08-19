@@ -29,7 +29,8 @@ flowchart TD
             TASKS["/maxi:tasks\n─────────────\nplanned → tasked\n(extraction only)"]
             ANALYZE["/maxi:analyze\n─────────────\ntasked → analyzed\n(7-pass audit)"]
             IMPLEMENT["/maxi:implement\n─────────────\nanalyzed → implementing → done"]
-            DEVELOP["/maxi:x-develop\n─────────────\n(internal — never\ninvoked by user)"]
+            DEVELOP["/maxi:x-develop\n─────────────\nprojection + upstream SDD\n+ terminal receipt"]
+            READY{{"READY_TO_FINISH\nvalidated receipt gate"}}
             ADR["/maxi:x-adr\n─────────────\n(internal — never\ninvoked by user)"]
             REVIEW["/maxi:x-review\n─────────────\n(internal review-record owner;\nno status change)"]
             REPLAY["skills/revise/replay-plan.sh\n─────────────\nread-only bounded\nreplay planner"]
@@ -52,7 +53,9 @@ flowchart TD
     PLAN_REVIEW ==>|"approved current plan"| TASKS
     TASKS ==>|"tasked → analyzed"| ANALYZE
     ANALYZE ==>|"analyzed → implementing"| IMPLEMENT
-    IMPLEMENT ==> DONE
+    IMPLEMENT ==>|"delegates execution"| DEVELOP
+    DEVELOP ==>|"hash-bound terminal evidence"| READY
+    READY ==>|"implement persists done"| DONE
 
     %% Analyze re-run loop
     ANALYZE -->|"Pass G CRITICAL →\nre-run after fix"| ANALYZE
@@ -73,9 +76,8 @@ flowchart TD
     SPECIFY -.->|"delegates"| BRAINSTORMING
     PLAN -.->|"delegates"| WRITING_PLANS
     PLAN -.->|"arch choice detected"| ADR
-    IMPLEMENT -.->|"delegates"| DEVELOP
     IMPLEMENT -.->|"unplanned fork"| ADR
-    IMPLEMENT -.->|"delegates"| CODE_REVIEW
+    DEVELOP -.->|"upstream SDD final review"| CODE_REVIEW
     REVIEW -.->|"persists approved record"| SPEC_REVIEW
     REVIEW -.->|"persists approved record"| PLAN_REVIEW
     REVIEW -.->|"delegates fresh review"| CODE_REVIEW
@@ -106,6 +108,7 @@ flowchart TD
 - `/maxi:analyze` is non-destructive and can be re-run at any status from `tasked` onward; status does not change after the first run.
 - `/maxi:x-adr` is internal and is never invoked directly by the user.
 - `/maxi:x-review` is internal. It is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`; each approved review record is persisted and versioned.
+- Upstream SDD owns the only whole-branch review. `/maxi:x-develop` persists the harness-issued final-reviewer identity, regenerates the Git review package byte-for-byte, and returns `READY_TO_FINISH` only with a valid hash-bound terminal receipt. `/maxi:implement` alone then persists `done`; it never dispatches a duplicate final review.
 - The two external review handoffs are gates, not statuses or automatic replay phases. For a marker-bound root, `/maxi:plan` requires the current approved specification review, and `/maxi:tasks` requires the current approved plan review.
 - `skills/revise/replay-plan.sh` is a read-only planner: it calculates a bounded stale-descendant continuation and stops at the next required review handoff. It never writes artifacts, creates or approves reviews, or executes phases.
 - Bounded replay is future-only. Eligible roots carry exactly one `replay_contract: bounded-v1`; only `/maxi:specify` writes this marker, during normal forward-spec creation. An unmarked existing, migrated, or reverse-engineered spec returns `UNSUPPORTED_LEGACY`; revision metadata alone never opts it in.

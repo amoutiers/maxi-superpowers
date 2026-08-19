@@ -7,6 +7,8 @@ PROJECT="$ROOT/skills/x-develop/project-tasks.sh"
 RECONCILE="$ROOT/skills/x-develop/reconcile-tasks.sh"
 RECORD="$ROOT/skills/x-develop/record-terminal.sh"
 RESULT="$ROOT/skills/x-develop/result-contract.sh"
+TASK_BRIEF="$ROOT/skills/subagent-driven-development/scripts/task-brief"
+REVIEW_PACKAGE="$ROOT/skills/subagent-driven-development/scripts/review-package"
 FIXTURES="$ROOT/tests/fixtures/x-develop-adapter"
 
 for helper in project-tasks.sh reconcile-tasks.sh record-terminal.sh result-contract.sh; do
@@ -122,11 +124,33 @@ line_t3="$(grep -n '^### Task 3: T003 ' "$PROJECTION" | cut -d: -f1)"
 [ "$line_t1" -lt "$line_t2" ] && [ "$line_t2" -lt "$line_t3" ] && ok 'mapped projection follows source plan order' || fail 'mapped projection follows source plan order'
 assert_has "$PROJECTION" '### Task 99: This fenced heading is not executable' 'backtick-fenced heading stays in Task 1 body'
 assert_has "$PROJECTION" 'Keep this line after the backtick fence.' 'Task 1 body is complete'
+if grep -Eq '^[[:space:]]+```' "$PROJECTION"; then
+  fail 'indented backtick delimiters are normalized' 'an indented backtick delimiter remains'
+else
+  ok 'indented backtick delimiters are normalized'
+fi
 assert_has "$PROJECTION" '```markdown' 'tilde opening fence is normalized'
 assert_has "$PROJECTION" '### Task 88: This tilde-fenced heading is not executable' 'tilde-fenced heading stays in Task 2 body'
 assert_not_has "$PROJECTION" '~~~' 'tilde fence delimiters are absent'
 assert_has "$PROJECTION" 'Write the complete third task body through end of file.' 'final task body is complete'
 assert_eq "$(cat "$STATE")" "$PROJECTION" 'active pointer stores one canonical projection'
+
+# The real upstream extractor must retain every complete projected body.
+for task_number in 1 2 3; do
+  brief="$WORK/task-$task_number-brief.md"
+  if (cd "$REPO" && bash "$TASK_BRIEF" "$PROJECTION" "$task_number" "$brief") >/dev/null 2>&1; then
+    ok "upstream task-brief extracts Task $task_number"
+  else
+    fail "upstream task-brief extracts Task $task_number" 'extractor rejected the projection'
+  fi
+done
+assert_has "$WORK/task-1-brief.md" '### Task 99: This fenced heading is not executable' 'Task 1 brief retains fenced heading'
+assert_has "$WORK/task-1-brief.md" 'Keep this line after the backtick fence.' 'Task 1 brief retains complete tail'
+assert_not_has "$WORK/task-1-brief.md" '### Task 2: T002 ' 'Task 1 brief stops at Task 2'
+assert_has "$WORK/task-2-brief.md" '### Task 88: This tilde-fenced heading is not executable' 'Task 2 brief retains normalized fenced heading'
+assert_has "$WORK/task-2-brief.md" 'Keep this line after the tilde fence.' 'Task 2 brief retains complete tail'
+assert_not_has "$WORK/task-2-brief.md" '### Task 3: T003 ' 'Task 2 brief stops at Task 3'
+assert_has "$WORK/task-3-brief.md" 'Write the complete third task body through end of file.' 'Task 3 brief retains complete tail'
 
 projection_hash="$(sha "$PROJECTION")"
 sed 's/- \[ \] T001/- [x] T001/' "$TASKS" > "$TASKS.tmp" && mv "$TASKS.tmp" "$TASKS"
@@ -135,6 +159,56 @@ run_project "$REPO"
 assert_eq "$PROJECT_STATUS" 0 'checkbox and updated-only resume succeeds'
 assert_eq "$PROJECT_OUTPUT" "$PROJECTION" 'checkbox and updated-only change preserves workspace identity'
 assert_eq "$(sha "$PROJECTION")" "$projection_hash" 'existing projection bytes are never regenerated'
+
+# A projection cannot attest a rewritten body by updating its own stored hash.
+TAMPERED="$WORK/tampered-projection"
+init_repo "$TAMPERED"
+seed_case "$TAMPERED"
+run_project "$TAMPERED"
+TAMPERED_PROJECTION="$PROJECT_OUTPUT"
+sed 's/Write the complete first task body\./Write a forged first task body./' "$TAMPERED_PROJECTION" > "$TAMPERED/change"
+mv "$TAMPERED/change" "$TAMPERED_PROJECTION"
+tampered_body_sha="$(awk '
+  NR == 1 && $0 == "---" { fm = 1; next }
+  fm && $0 == "---" { fm = 0; next }
+  !fm { print }
+' "$TAMPERED_PROJECTION" | shasum -a 256 | awk '{print $1}')"
+sed "s/^projection_body_sha256: .*/projection_body_sha256: $tampered_body_sha/" "$TAMPERED_PROJECTION" > "$TAMPERED/change"
+mv "$TAMPERED/change" "$TAMPERED_PROJECTION"
+tampered_projection_sha="$(sha "$TAMPERED_PROJECTION")"
+run_project "$TAMPERED"
+[ "$PROJECT_STATUS" -ne 0 ] && ok 'rewritten projection with recomputed self-hash is rejected' || fail 'rewritten projection with recomputed self-hash is rejected' 'command accepted forged canonical bytes'
+assert_eq "$(sha "$TAMPERED_PROJECTION")" "$tampered_projection_sha" 'forged existing projection is never regenerated'
+
+# The projection cannot define its own selected-task set after reconciliation.
+OMITTED="$WORK/omitted-selected-task"
+init_repo "$OMITTED"
+seed_case "$OMITTED"
+run_project "$OMITTED"
+OMITTED_PROJECTION="$PROJECT_OUTPUT"
+OMITTED_TASKS="$OMITTED/docs/maxi/specs/adapter-sample/tasks.md"
+OMITTED_LEDGER="$OMITTED/.superpowers/sdd/$(basename "$OMITTED_PROJECTION" .md)/progress.md"
+mkdir -p "$(dirname "$OMITTED_LEDGER")"
+printf '# SDD ledger — plan: %s\nTask 1: complete\n' "$OMITTED_PROJECTION" > "$OMITTED_LEDGER"
+bash "$RECONCILE" --projection "$OMITTED_PROJECTION" --ledger "$OMITTED_LEDGER" --tasks "$OMITTED_TASKS" >/dev/null
+awk '
+  /^### Task 1: T001 / { skip = 1; next }
+  /^### Task 2: T002 / { skip = 0; sub(/^### Task 2:/, "### Task 1:") }
+  /^### Task 3: T003 / { sub(/^### Task 3:/, "### Task 2:") }
+  !skip { print }
+' "$OMITTED_PROJECTION" > "$OMITTED/change"
+mv "$OMITTED/change" "$OMITTED_PROJECTION"
+omitted_body_sha="$(awk '
+  NR == 1 && $0 == "---" { fm = 1; next }
+  fm && $0 == "---" { fm = 0; next }
+  !fm { print }
+' "$OMITTED_PROJECTION" | shasum -a 256 | awk '{print $1}')"
+sed "s/^projection_body_sha256: .*/projection_body_sha256: $omitted_body_sha/" "$OMITTED_PROJECTION" > "$OMITTED/change"
+mv "$OMITTED/change" "$OMITTED_PROJECTION"
+omitted_projection_sha="$(sha "$OMITTED_PROJECTION")"
+run_project "$OMITTED"
+[ "$PROJECT_STATUS" -ne 0 ] && ok 'projection cannot self-attest its selected-task set' || fail 'projection cannot self-attest its selected-task set' 'rehashed omission was accepted'
+assert_eq "$(sha "$OMITTED_PROJECTION")" "$omitted_projection_sha" 'selected-task forgery is never regenerated'
 
 # A separately checked initial task is omitted before any projection exists.
 CHECKED_REPO="$WORK/checked-repo"
@@ -168,7 +242,7 @@ for field in task-line phase goal dependency checkpoint; do
   assert_has "$PROJECT_OUTPUT" "predecessor_projection: $old" "$field correction links predecessor"
 done
 
-# A completed predecessor never causes a pending successor task to be skipped.
+# In lineage, only an exact predecessor-ledger completion can remove a task.
 CORRECT="$WORK/correction-repo"
 init_repo "$CORRECT"
 seed_case "$CORRECT"
@@ -178,6 +252,8 @@ OLD_LEDGER="$CORRECT/.superpowers/sdd/$(basename "$OLD_PROJECTION" .md)/progress
 mkdir -p "$(dirname "$OLD_LEDGER")"
 printf '# SDD ledger — plan: %s\nTask 1: complete\nRuling: preserve old evidence\n' "$OLD_PROJECTION" > "$OLD_LEDGER"
 bash "$RECONCILE" --projection "$OLD_PROJECTION" --ledger "$OLD_LEDGER" --tasks "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
+sed 's/- \[ \] T002/- [x] T002/' "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md" > "$CORRECT/change"
+mv "$CORRECT/change" "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md"
 sed 's/Write the second file/Write the newly corrected second file/' "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md" > "$CORRECT/change"
 mv "$CORRECT/change" "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md"
 run_project "$CORRECT"
@@ -381,10 +457,14 @@ TERM_OLD_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_OLD" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_OLD_LEDGER")"
 printf '# SDD ledger — plan: %s\nTask 1: complete\nRuling: first workspace ruling\n' "$TERM_OLD" > "$TERM_OLD_LEDGER"
 bash "$RECONCILE" --projection "$TERM_OLD" --ledger "$TERM_OLD_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
+sed 's/- \[ \] T002/- [x] T002/' "$TERM/docs/maxi/specs/adapter-sample/tasks.md" > "$TERM/change"
+mv "$TERM/change" "$TERM/docs/maxi/specs/adapter-sample/tasks.md"
 sed 's/Write the second file/Write the corrected terminal file/' "$TERM/docs/maxi/specs/adapter-sample/tasks.md" > "$TERM/change"
 mv "$TERM/change" "$TERM/docs/maxi/specs/adapter-sample/tasks.md"
 run_project "$TERM"
 TERM_PROJECTION="$PROJECT_OUTPUT"
+assert_has "$TERM_PROJECTION" '### Task 1: T002 ' 'terminal successor retains checkbox-only uncompleted task'
+assert_has "$TERM_PROJECTION" '### Task 2: T003 ' 'terminal successor retains remaining pending task'
 TERM_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_LEDGER")"
 printf '# SDD ledger — plan: %s\nTask 1: complete\nTask 2: complete\nRuling: successor workspace ruling\n' "$TERM_PROJECTION" > "$TERM_LEDGER"
@@ -395,11 +475,10 @@ git -C "$TERM" commit -qm 'implementation'
 REVIEWED_HEAD="$(git -C "$TERM" rev-parse HEAD)"
 REVIEWED_TREE="$(git -C "$TERM" rev-parse HEAD^{tree})"
 FULL_PACKAGE="$TERM/.superpowers/sdd/$(basename "$TERM_PROJECTION" .md)/review-full.diff"
-{
-  printf '# Review package: %s..%s\n\n' "$MERGE_BASE" "$REVIEWED_HEAD"
-  git -C "$TERM" diff "$MERGE_BASE..$REVIEWED_HEAD"
-} > "$FULL_PACKAGE"
+(cd "$TERM" && bash "$REVIEW_PACKAGE" "$TERM_PROJECTION" "$MERGE_BASE" "$REVIEWED_HEAD" "$FULL_PACKAGE") >/dev/null
 FINAL_REVIEW="$(dirname "$TERM_LEDGER")/maxi-final-review.md"
+REVIEWER_IDENTITY="$(dirname "$TERM_LEDGER")/final-reviewer-dispatch.identity"
+printf 'reviewer_context: independent-reviewer\n' > "$REVIEWER_IDENTITY"
 TERM_SPEC="$TERM/docs/maxi/specs/adapter-sample/spec.md"
 TERM_TASKS="$TERM/docs/maxi/specs/adapter-sample/tasks.md"
 {
@@ -422,13 +501,71 @@ TERM_TASKS="$TERM/docs/maxi/specs/adapter-sample/tasks.md"
   echo 'outcome: finish'
   echo '---'
   echo
-  echo '# Final review'
+  echo '### Strengths'
+  echo '- The reviewed change matches its task projection.'
   echo
-  echo 'Verdict: approved'
+  echo '### Issues'
+  echo
+  echo '#### Critical (Must Fix)'
+  echo 'None.'
+  echo
+  echo '#### Important (Should Fix)'
+  echo 'None.'
+  echo
+  echo '#### Minor (Nice to Have)'
+  echo 'None.'
+  echo
+  echo '### Recommendations'
+  echo 'None.'
+  echo
+  echo '### Assessment'
+  echo
+  echo '**Ready to merge?** Yes'
+  echo
+  echo '**Reasoning:** The complete Git range satisfies the projection and has no blocking findings.'
 } > "$FINAL_REVIEW"
+
+# A valid-looking range header is not a review package, even with matching hashes.
+TRUNCATED_PACKAGE="$(dirname "$TERM_LEDGER")/review-truncated.diff"
+printf '# Review package: %s..%s\n' "$MERGE_BASE" "$REVIEWED_HEAD" > "$TRUNCATED_PACKAGE"
+TRUNCATED_REVIEW="$FINAL_REVIEW.truncated-package"
+awk -v package="$TRUNCATED_PACKAGE" -v digest="$(sha "$TRUNCATED_PACKAGE")" '
+  /^full_review_package: / { print "full_review_package: " package; next }
+  /^full_review_package_sha256: / { print "full_review_package_sha256: " digest; next }
+  { print }
+' "$FINAL_REVIEW" > "$TRUNCATED_REVIEW"
+TRUNCATED_RECEIPT="$(dirname "$TERM_LEDGER")/truncated-package-receipt.md"
+set +e
+bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$TRUNCATED_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$TRUNCATED_RECEIPT" >/dev/null 2>&1
+truncated_status=$?
+set -e
+[ "$truncated_status" -ne 0 ] && [ ! -e "$TRUNCATED_RECEIPT" ] && ok 'truncated review package creates no receipt' || fail 'truncated review package creates no receipt' 'valid-looking header was accepted as the package'
+
+# The final reviewer must be the exact harness identity persisted before dispatch.
+mv "$REVIEWER_IDENTITY" "$REVIEWER_IDENTITY.saved"
+MISSING_IDENTITY_RECEIPT="$(dirname "$TERM_LEDGER")/missing-reviewer-identity-receipt.md"
+set +e
+bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FINAL_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$MISSING_IDENTITY_RECEIPT" >/dev/null 2>&1
+missing_identity_status=$?
+set -e
+mv "$REVIEWER_IDENTITY.saved" "$REVIEWER_IDENTITY"
+[ "$missing_identity_status" -ne 0 ] && [ ! -e "$MISSING_IDENTITY_RECEIPT" ] && ok 'missing harness reviewer identity creates no receipt' || fail 'missing harness reviewer identity creates no receipt'
+
+FORGED_REVIEW="$FINAL_REVIEW.forged-reviewer"
+sed 's/^reviewer_context: independent-reviewer$/reviewer_context: forged-reviewer/' "$FINAL_REVIEW" > "$FORGED_REVIEW"
+FORGED_RECEIPT="$(dirname "$TERM_LEDGER")/forged-reviewer-receipt.md"
+set +e
+bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FORGED_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$FORGED_RECEIPT" >/dev/null 2>&1
+forged_status=$?
+set -e
+[ "$forged_status" -ne 0 ] && [ ! -e "$FORGED_RECEIPT" ] && ok 'forged reviewer identity creates no receipt' || fail 'forged reviewer identity creates no receipt' 'arbitrary review context was accepted'
+
 RECEIPT="$(dirname "$TERM_LEDGER")/terminal-receipt.md"
 bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FINAL_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$RECEIPT"
 [ -f "$RECEIPT" ] && ok 'terminal receipt is created at Finish boundary' || fail 'terminal receipt is created at Finish boundary'
+assert_has "$RECEIPT" "reviewer_dispatch_identity: $REVIEWER_IDENTITY" 'receipt binds persisted reviewer dispatch identity'
+assert_has "$RECEIPT" "reviewer_dispatch_identity_sha256: $(sha "$REVIEWER_IDENTITY")" 'receipt binds reviewer dispatch identity hash'
+assert_has "$RECEIPT" 'reviewer_context: independent-reviewer' 'receipt binds reviewer context value'
 RESULT_OUTPUT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT")"
 assert_has "$RECEIPT" 'Ruling: first workspace ruling' 'receipt aggregates predecessor Ruling'
 assert_has "$RECEIPT" 'Ruling: successor workspace ruling' 'receipt aggregates successor Ruling'
@@ -485,12 +622,13 @@ malformed_output="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT" 2>
 mv "$TERM_TASKS.saved" "$TERM_TASKS"
 
 # Mutating any bound receipt input invalidates terminal success.
-for input in projection ledger final-review package receipt; do
+for input in projection ledger final-review package reviewer-identity receipt; do
   case "$input" in
     projection) target="$TERM_PROJECTION" ;;
     ledger) target="$TERM_LEDGER" ;;
     final-review) target="$FINAL_REVIEW" ;;
     package) target="$FULL_PACKAGE" ;;
+    reviewer-identity) target="$REVIEWER_IDENTITY" ;;
     receipt) target="$RECEIPT" ;;
   esac
   cp "$target" "$target.saved"
@@ -531,13 +669,34 @@ git -C "$TERM" checkout -q -- app.txt
 
 # Missing review verdict prevents receipt creation.
 NO_VERDICT="$FINAL_REVIEW.no-verdict"
-grep -v '^Verdict: approved$' "$FINAL_REVIEW" > "$NO_VERDICT"
+grep -v '^\*\*Ready to merge?\*\* Yes$' "$FINAL_REVIEW" > "$NO_VERDICT"
 NO_RECEIPT="$(dirname "$TERM_LEDGER")/no-verdict-receipt.md"
 set +e
 bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$NO_VERDICT" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$NO_RECEIPT" >/dev/null 2>&1
 no_verdict_status=$?
 set -e
 [ "$no_verdict_status" -ne 0 ] && [ ! -e "$NO_RECEIPT" ] && ok 'missing final verdict creates no receipt' || fail 'missing final verdict creates no receipt'
+
+for nonterminal_verdict in No 'With fixes'; do
+  verdict_slug="$(printf '%s' "$nonterminal_verdict" | tr '[:upper:] ' '[:lower:]-')"
+  NONTERMINAL_REVIEW="$FINAL_REVIEW.$verdict_slug"
+  sed "s/^\*\*Ready to merge?\*\* Yes$/\*\*Ready to merge?\*\* $nonterminal_verdict/" "$FINAL_REVIEW" > "$NONTERMINAL_REVIEW"
+  NONTERMINAL_RECEIPT="$(dirname "$TERM_LEDGER")/$verdict_slug-receipt.md"
+  set +e
+  bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$NONTERMINAL_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$NONTERMINAL_RECEIPT" >/dev/null 2>&1
+  nonterminal_status=$?
+  set -e
+  [ "$nonterminal_status" -ne 0 ] && [ ! -e "$NONTERMINAL_RECEIPT" ] && ok "Ready to merge $nonterminal_verdict creates no receipt" || fail "Ready to merge $nonterminal_verdict creates no receipt"
+done
+
+LEGACY_VERDICT_REVIEW="$FINAL_REVIEW.legacy-verdict"
+sed 's/^\*\*Ready to merge?\*\* Yes$/Verdict: approved/' "$FINAL_REVIEW" > "$LEGACY_VERDICT_REVIEW"
+LEGACY_VERDICT_RECEIPT="$(dirname "$TERM_LEDGER")/legacy-verdict-receipt.md"
+set +e
+bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$LEGACY_VERDICT_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$LEGACY_VERDICT_RECEIPT" >/dev/null 2>&1
+legacy_verdict_status=$?
+set -e
+[ "$legacy_verdict_status" -ne 0 ] && [ ! -e "$LEGACY_VERDICT_RECEIPT" ] && ok 'legacy local verdict creates no receipt' || fail 'legacy local verdict creates no receipt'
 
 if [ "$failures" -gt 0 ]; then
   echo "FAILED: $failures x-develop adapter checks failed" >&2

@@ -56,6 +56,8 @@ An explicit owner-managed plan correction is available only when explicitly requ
 
 Only new specs created through the normal forward pipeline receive this revision and replay behavior; existing, migrated, and reverse-engineered specs remain untouched. For an unmarked root, plan and tasks use the ordinary pipeline: no review record, x-review handoff, review provenance, review reporting, or replay planner is required. This mechanism never creates or writes `workflow.md` or `.maxi-ops`.
 
+Upstream SDD owns the only whole-branch review. Internal `x-develop` owns immutable task projection, ledger reconciliation, persisted harness reviewer identity, byte-exact Git review packages, and the hash-bound terminal receipt. It returns `READY_TO_FINISH` only when all evidence validates. `implement` owns the sole `implementing → done` transition and never dispatches a duplicate final review.
+
 Skills read this to enforce phase gating. Never bypass it.
 
 ## Pipeline Documentation — Mandatory Sync
@@ -82,6 +84,8 @@ Run `bash tests/run-all.sh` after changes.
 - `check-spec-fixture.sh` — spec fixture has valid `slug`/`created` fields (the 10-status consistency check now lives in `check-status-consistency.sh`)
 - `check-templates.sh` — all 6 maxi templates + 2 fixtures have required fields and body sections
 - `check-bounded-replay.sh` — future-forward revision metadata, review gates, bounded replay, literal consent, and no-write behavior remain aligned
+- `check-x-develop-adapter.sh` — immutable task projection, lineage reconciliation, final-review identity/package validation, and terminal receipts remain fail-closed
+- `check-implement-handoff.sh` — `implement`/`x-develop` ownership and Mandatory Sync 5 terminal-gate contracts remain aligned
 - `check-x-review.sh` — `x-review` preserves the independent review envelope, provenance validation, and versioned record contract
 - `check-skills-present.sh` — all 19 maxi-native skills and targeted support files exist
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields

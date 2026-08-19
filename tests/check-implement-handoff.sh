@@ -44,6 +44,24 @@ require_literal "$DEVELOP" 'final-review-only' 'all-checked final review path is
 require_literal "$DEVELOP" 'Intercept immediately before upstream workspace deletion and `superpowers:finishing-a-development-branch`.' 'finish boundary is not intercepted'
 require_literal "$DEVELOP" 'Return the projection lineage and aggregated `Ruling:` lines only together with `READY_TO_FINISH`.' 'result evidence contract is missing'
 require_literal "$DEVELOP" 'return without a success token' 'blocked result can look successful'
+require_literal "$DEVELOP" 'A checkbox alone never acquits a lineage task.' 'lineage can trust a checkbox without predecessor completion'
+require_literal "$DEVELOP" 'Reconstruct the canonical projection bytes from the bound spec, plan, tasks, and validated selection/lineage ledgers' 'projection verification can self-attest from stored bytes'
+require_literal "$DEVELOP" 'normalize every accepted backtick fence delimiter to column zero' 'projection does not preserve upstream task-brief extraction'
+require_literal "$DEVELOP" "Regenerate each review package with upstream's \`review-package\` helper" 'review packages are not compared with their Git ranges'
+require_literal "$DEVELOP" 'Before dispatching the final reviewer, persist the harness-issued reviewer context' 'reviewer dispatch identity is not persisted before dispatch'
+require_literal "$DEVELOP" 'If the harness exposes no verifiable reviewer context, stop without a success token.' 'missing harness reviewer identity is not fail closed'
+require_literal "$DEVELOP" 'Accept only the canonical `**Ready to merge?** Yes` result' 'final verdict is not the upstream canonical result'
+
+# The changed implementation/review boundary must be visible in every Mandatory Sync 5 surface.
+for doc in \
+  "$ROOT/docs/pipeline-flow.md" \
+  "$ROOT/docs/delegation-map.md" \
+  "$ROOT/skills/using-maxi/SKILL.md" \
+  "$ROOT/AGENTS.md" \
+  "$ROOT/docs/architecture.md"; do
+  require_literal "$doc" 'READY_TO_FINISH' "$(basename "$doc") omits the terminal receipt gate"
+  require_literal "$doc" 'Upstream SDD owns the only whole-branch review' "$(basename "$doc") keeps ambiguous final-review ownership"
+done
 
 if grep -Fq '**Fresh subagent per dispatch:**' "$DEVELOP" || grep -Fq '**Review loop cap:**' "$DEVELOP"; then
   fail_contract 'obsolete v6.1 fix-loop overrides remain'

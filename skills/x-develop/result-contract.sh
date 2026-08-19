@@ -5,6 +5,12 @@ set -euo pipefail
 LC_ALL=C
 export LC_ALL
 
+SCRIPT_DIR="$(cd -P "$(dirname "$0")" && pwd)"
+PROJECT_HELPER="$SCRIPT_DIR/project-tasks.sh"
+REVIEW_PACKAGE_HELPER="$SCRIPT_DIR/../subagent-driven-development/scripts/review-package"
+[ -f "$PROJECT_HELPER" ] || { echo 'ERROR: projection helper is missing' >&2; exit 2; }
+[ -f "$REVIEW_PACKAGE_HELPER" ] || { echo 'ERROR: upstream review-package helper is missing' >&2; exit 2; }
+
 quiet_fail() { echo "ERROR: $*" >&2; exit 2; }
 sha() { shasum -a 256 "$1" | awk '{print $1}'; }
 under() { case "$1" in "$2"|"$2"/*) return 0 ;; *) return 1 ;; esac; }
@@ -79,7 +85,7 @@ exact_receipt_fields() {
     fm && /^[^[:space:]][^:]*:/ { key = $0; sub(/:.*/, "", key); print key }
     END { if (!closed) exit 2 }
   ' "$1" | sort)" || return 1
-  expected="$(printf '%s\n' final_review final_review_sha256 fix_review_package fix_review_package_sha256 full_review_package full_review_package_sha256 ledger ledger_sha256 lineage_sha256 merge_base outcome projection projection_sha256 receipt_contract reviewed_head reviewed_tree rulings_sha256 spec spec_sha256 tasks tasks_sha256 working_tree_paths_sha256 worktree | sort)"
+  expected="$(printf '%s\n' final_review final_review_sha256 fix_review_package fix_review_package_sha256 full_review_package full_review_package_sha256 ledger ledger_sha256 lineage_sha256 merge_base outcome projection projection_sha256 receipt_contract reviewed_head reviewed_tree reviewer_context reviewer_dispatch_identity reviewer_dispatch_identity_sha256 rulings_sha256 spec spec_sha256 tasks tasks_sha256 working_tree_paths_sha256 worktree | sort)"
   [ "$actual" = "$expected" ]
 }
 
@@ -96,6 +102,12 @@ exact_final_review_fields() {
 }
 
 package_range() { sed -n '1s/^# Review package: \([0-9a-f]\{40\}\)\.\.\([0-9a-f]\{40\}\)$/\1|\2/p' "$1"; }
+
+verify_package_bytes() {
+  local worktree="$1" projection="$2" start="$3" end="$4" package="$5" expected="$6"
+  (cd "$worktree" && bash "$REVIEW_PACKAGE_HELPER" "$projection" "$start" "$end" "$expected") >/dev/null || return 1
+  cmp -s "$expected" "$package"
+}
 
 TASKS_ARG='' RECEIPT=''
 while [ $# -gt 0 ]; do
@@ -127,11 +139,12 @@ PHYSICAL_ROOT="$(cd -P "$WORKTREE" && pwd)"
 PROJECTION="$(field "$RECEIPT" projection)"
 LEDGER="$(field "$RECEIPT" ledger)"
 FINAL_REVIEW="$(field "$RECEIPT" final_review)"
+REVIEWER_IDENTITY="$(field "$RECEIPT" reviewer_dispatch_identity)"
 FULL_PACKAGE="$(field "$RECEIPT" full_review_package)"
 FIX_PACKAGE="$(field "$RECEIPT" fix_review_package)"
 SPEC="$(field "$RECEIPT" spec)"
 TASKS="$(field "$RECEIPT" tasks)"
-for path in "$PROJECTION" "$LEDGER" "$FINAL_REVIEW" "$FULL_PACKAGE" "$SPEC" "$TASKS"; do
+for path in "$PROJECTION" "$LEDGER" "$FINAL_REVIEW" "$REVIEWER_IDENTITY" "$FULL_PACKAGE" "$SPEC" "$TASKS"; do
   canonical_file "$path" >/dev/null || quiet_fail "receipt path is missing, symlinked, or noncanonical: $path"
   under "$path" "$PHYSICAL_ROOT" || quiet_fail "receipt path escapes worktree: $path"
 done
@@ -142,6 +155,13 @@ done
 [ "$(field "$RECEIPT" projection_sha256)" = "$(sha "$PROJECTION")" ] || quiet_fail 'projection hash mismatch'
 [ "$(field "$RECEIPT" ledger_sha256)" = "$(sha "$LEDGER")" ] || quiet_fail 'ledger hash mismatch'
 [ "$(field "$RECEIPT" final_review_sha256)" = "$(sha "$FINAL_REVIEW")" ] || quiet_fail 'final review hash mismatch'
+[ "$(field "$RECEIPT" reviewer_dispatch_identity_sha256)" = "$(sha "$REVIEWER_IDENTITY")" ] || quiet_fail 'reviewer dispatch identity hash mismatch'
+[ "$REVIEWER_IDENTITY" = "$(dirname "$LEDGER")/final-reviewer-dispatch.identity" ] || quiet_fail 'reviewer dispatch identity is not beside current ledger'
+[ "$(wc -l < "$REVIEWER_IDENTITY" | tr -d ' ')" -eq 1 ] || quiet_fail 'reviewer dispatch identity must contain one line'
+IFS= read -r identity_line < "$REVIEWER_IDENTITY" || quiet_fail 'empty reviewer dispatch identity'
+case "$identity_line" in reviewer_context:\ *) DISPATCH_CONTEXT="${identity_line#reviewer_context: }" ;; *) quiet_fail 'reviewer dispatch identity is malformed' ;; esac
+valid_context "$DISPATCH_CONTEXT" || quiet_fail 'invalid persisted reviewer dispatch context'
+[ "$(field "$RECEIPT" reviewer_context)" = "$DISPATCH_CONTEXT" ] || quiet_fail 'receipt reviewer context differs from dispatch identity'
 [ "$(field "$RECEIPT" full_review_package_sha256)" = "$(sha "$FULL_PACKAGE")" ] || quiet_fail 'full package hash mismatch'
 [ "$(field "$RECEIPT" spec_sha256)" = "$(sha "$SPEC")" ] || quiet_fail 'spec hash mismatch'
 [ "$(field "$RECEIPT" tasks_sha256)" = "$(sha "$TASKS")" ] || quiet_fail 'tasks hash mismatch'
@@ -150,6 +170,18 @@ if [ "$FIX_PACKAGE" = null ]; then
 else
   [ "$(field "$RECEIPT" fix_review_package_sha256)" = "$(sha "$FIX_PACKAGE")" ] || quiet_fail 'fix package hash mismatch'
 fi
+
+SLUG="$(field "$SPEC" slug 2>/dev/null)" || quiet_fail 'spec slug is invalid'
+PLAN="$(field "$PROJECTION" source_plan 2>/dev/null)" || quiet_fail 'projection source plan is missing'
+PLAN="$(canonical_file "$PLAN")" || quiet_fail 'projection source plan is missing, symlinked, or noncanonical'
+[ "$(dirname "$PLAN")" = "$(dirname "$SPEC")" ] || quiet_fail 'projection source plan is outside the spec root'
+STATE_FILE="$PHYSICAL_ROOT/.superpowers/sdd/active-$SLUG"
+[ -f "$STATE_FILE" ] && [ ! -L "$STATE_FILE" ] || quiet_fail 'active projection pointer is missing or symlinked'
+[ "$(wc -l < "$STATE_FILE" | tr -d ' ')" -eq 1 ] || quiet_fail 'active projection pointer is malformed'
+IFS= read -r active_projection < "$STATE_FILE" || quiet_fail 'active projection pointer is empty'
+[ "$active_projection" = "$PROJECTION" ] || quiet_fail 'receipt projection is not active'
+verified_projection="$(cd "$PHYSICAL_ROOT" && bash "$PROJECT_HELPER" --spec "$SPEC" --plan "$PLAN" --tasks "$TASKS" --output "$PROJECTION" --state-file "$STATE_FILE" --verify-only)" || quiet_fail 'projection cannot be reconstructed from canonical sources and lineage'
+[ "$verified_projection" = "$PROJECTION" ] || quiet_fail 'projection reconstruction returned another identity'
 
 TMP="$(mktemp -d "$(dirname "$RECEIPT")/.result.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
@@ -174,7 +206,6 @@ paste -d'|' "$TMP/projections" "$TMP/projection-hashes" "$TMP/ledgers" "$TMP/led
 [ "$(field "$RECEIPT" rulings_sha256)" = "$(sha "$TMP/rulings.receipt")" ] || quiet_fail 'ruling payload hash mismatch'
 [ "$(field "$RECEIPT" working_tree_paths_sha256)" = "$(sha "$TMP/working.receipt")" ] || quiet_fail 'working path payload hash mismatch'
 
-SLUG="$(field "$SPEC" slug 2>/dev/null)" || quiet_fail 'spec slug is invalid'
 previous=null
 : > "$TMP/rulings.current"
 i=0
@@ -219,8 +250,10 @@ REVIEWED_TREE="$(field "$RECEIPT" reviewed_tree)"
 [ "$(field "$FINAL_REVIEW" full_review_package_sha256)" = "$(sha "$FULL_PACKAGE")" ] || quiet_fail 'final review full package hash mismatch'
 [ "$(field "$FINAL_REVIEW" fix_review_package)" = "$FIX_PACKAGE" ] || quiet_fail 'final review fix package mismatch'
 [ "$(field "$FINAL_REVIEW" fix_review_package_sha256)" = "$(field "$RECEIPT" fix_review_package_sha256)" ] || quiet_fail 'final review fix package hash mismatch'
-[ "$(field "$FINAL_REVIEW" outcome)" = finish ] && [ "$(grep -c '^Verdict: approved$' "$FINAL_REVIEW" || true)" -eq 1 ] || quiet_fail 'final review did not approve Finish'
-valid_context "$(field "$FINAL_REVIEW" reviewer_context)" || quiet_fail 'final reviewer context is invalid'
+[ "$(field "$FINAL_REVIEW" outcome)" = finish ] && [ "$(grep -Fxc -- '**Ready to merge?** Yes' "$FINAL_REVIEW" || true)" -eq 1 ] || quiet_fail 'final review did not approve Finish'
+FINAL_REVIEW_CONTEXT="$(field "$FINAL_REVIEW" reviewer_context)"
+valid_context "$FINAL_REVIEW_CONTEXT" || quiet_fail 'final reviewer context is invalid'
+[ "$FINAL_REVIEW_CONTEXT" = "$DISPATCH_CONTEXT" ] || quiet_fail 'final reviewer differs from persisted dispatch identity'
 
 [ "$(git -C "$PHYSICAL_ROOT" rev-parse HEAD)" = "$REVIEWED_HEAD" ] || quiet_fail 'HEAD changed after review'
 [ "$(git -C "$PHYSICAL_ROOT" rev-parse HEAD^{tree})" = "$REVIEWED_TREE" ] || quiet_fail 'tree changed after review'
@@ -229,10 +262,12 @@ git -C "$PHYSICAL_ROOT" diff --cached --quiet -- || quiet_fail 'staged state cha
 full_range="$(package_range "$FULL_PACKAGE")"
 [ "${full_range%%|*}" = "$MERGE_BASE" ] || quiet_fail 'full review package starts at wrong commit'
 initial_head="${full_range#*|}"
+verify_package_bytes "$PHYSICAL_ROOT" "$PROJECTION" "$MERGE_BASE" "$initial_head" "$FULL_PACKAGE" "$TMP/expected-full-review.diff" || quiet_fail 'full review package bytes do not match the Git range'
 if [ "$FIX_PACKAGE" = null ]; then
   [ "$initial_head" = "$REVIEWED_HEAD" ] || quiet_fail 'full review package ends at wrong commit'
 else
   [ "$(package_range "$FIX_PACKAGE")" = "$initial_head|$REVIEWED_HEAD" ] || quiet_fail 'fix review package range is discontinuous'
+  verify_package_bytes "$PHYSICAL_ROOT" "$PROJECTION" "$initial_head" "$REVIEWED_HEAD" "$FIX_PACKAGE" "$TMP/expected-fix-review.diff" || quiet_fail 'fix review package bytes do not match the Git range'
 fi
 
 git -C "$PHYSICAL_ROOT" status --porcelain --untracked-files=all | awk '{ print substr($0, 4) }' | sort > "$TMP/working.current"

@@ -5,6 +5,12 @@ set -euo pipefail
 LC_ALL=C
 export LC_ALL
 
+SCRIPT_DIR="$(cd -P "$(dirname "$0")" && pwd)"
+PROJECT_HELPER="$SCRIPT_DIR/project-tasks.sh"
+REVIEW_PACKAGE_HELPER="$SCRIPT_DIR/../subagent-driven-development/scripts/review-package"
+[ -f "$PROJECT_HELPER" ] || { echo 'ERROR: projection helper is missing' >&2; exit 2; }
+[ -f "$REVIEW_PACKAGE_HELPER" ] || { echo 'ERROR: upstream review-package helper is missing' >&2; exit 2; }
+
 die() { echo "ERROR: $*" >&2; exit 2; }
 sha() { shasum -a 256 "$1" | awk '{print $1}'; }
 under() { case "$1" in "$2"|"$2"/*) return 0 ;; *) return 1 ;; esac; }
@@ -81,6 +87,12 @@ package_range() {
   sed -n '1s/^# Review package: \([0-9a-f]\{40\}\)\.\.\([0-9a-f]\{40\}\)$/\1|\2/p' "$1"
 }
 
+verify_package_bytes() {
+  local worktree="$1" projection="$2" start="$3" end="$4" package="$5" expected="$6"
+  (cd "$worktree" && bash "$REVIEW_PACKAGE_HELPER" "$projection" "$start" "$end" "$expected") >/dev/null || return 1
+  cmp -s "$expected" "$package"
+}
+
 WORKTREE='' MERGE_BASE='' PROJECTION='' LEDGER='' FINAL_REVIEW='' SPEC='' TASKS='' OUTPUT=''
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -128,9 +140,25 @@ expected_ledger="$PHYSICAL_ROOT/.superpowers/sdd/$(basename "$PROJECTION" .md)/p
 [ "$LEDGER" = "$expected_ledger" ] || die 'ledger is outside the projection workspace'
 IFS= read -r first < "$LEDGER" || die 'empty ledger'
 [ "$first" = "# SDD ledger — plan: $PROJECTION" ] || die 'ledger plan identity mismatch'
+REVIEWER_IDENTITY="$(canonical_file "$(dirname "$LEDGER")/final-reviewer-dispatch.identity")" || die 'persisted reviewer dispatch identity is missing, symlinked, or noncanonical'
+[ "$REVIEWER_IDENTITY" = "$(dirname "$LEDGER")/final-reviewer-dispatch.identity" ] || die 'reviewer dispatch identity is not beside current ledger'
+[ "$(wc -l < "$REVIEWER_IDENTITY" | tr -d ' ')" -eq 1 ] || die 'reviewer dispatch identity must contain one line'
+IFS= read -r identity_line < "$REVIEWER_IDENTITY" || die 'empty reviewer dispatch identity'
+case "$identity_line" in reviewer_context:\ *) DISPATCH_CONTEXT="${identity_line#reviewer_context: }" ;; *) die 'reviewer dispatch identity is malformed' ;; esac
+valid_context "$DISPATCH_CONTEXT" || die 'invalid persisted reviewer dispatch context'
 while IFS= read -r number; do
   [ "$(grep -c "^Task $number: complete$" "$LEDGER" || true)" -eq 1 ] || die "ledger does not complete Task $number"
 done < <(sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$PROJECTION")
+PLAN="$(field "$PROJECTION" source_plan 2>/dev/null)" || die 'projection source plan is missing'
+PLAN="$(canonical_file "$PLAN")" || die 'projection source plan is missing, symlinked, or noncanonical'
+[ "$(dirname "$PLAN")" = "$(dirname "$SPEC")" ] || die 'projection source plan is outside the spec root'
+STATE_FILE="$PHYSICAL_ROOT/.superpowers/sdd/active-$SLUG"
+[ -f "$STATE_FILE" ] && [ ! -L "$STATE_FILE" ] || die 'active projection pointer is missing or symlinked'
+[ "$(wc -l < "$STATE_FILE" | tr -d ' ')" -eq 1 ] || die 'active projection pointer is malformed'
+IFS= read -r active_projection < "$STATE_FILE" || die 'active projection pointer is empty'
+[ "$active_projection" = "$PROJECTION" ] || die 'terminal projection is not active'
+verified_projection="$(cd "$PHYSICAL_ROOT" && bash "$PROJECT_HELPER" --spec "$SPEC" --plan "$PLAN" --tasks "$TASKS" --output "$PROJECTION" --state-file "$STATE_FILE" --verify-only)" || die 'projection cannot be reconstructed from canonical sources and lineage'
+[ "$verified_projection" = "$PROJECTION" ] || die 'projection reconstruction returned another identity'
 
 TMP="$(mktemp -d "$OUTPUT_PARENT/.terminal.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
@@ -179,7 +207,8 @@ OUTCOME="$(field "$FINAL_REVIEW" outcome)"
 [ "$REVIEW_TASKS" = "$TASKS" ] && [ "$REVIEW_TASKS_HASH" = "$(sha "$TASKS")" ] || die 'final review tasks mismatch'
 [ "$OUTCOME" = finish ] || die 'final review did not reach Finish boundary'
 valid_context "$REVIEW_CONTEXT" || die 'invalid reviewer context'
-[ "$(grep -c '^Verdict: approved$' "$FINAL_REVIEW" || true)" -eq 1 ] || die 'missing approved final verdict'
+[ "$REVIEW_CONTEXT" = "$DISPATCH_CONTEXT" ] || die 'final reviewer differs from persisted dispatch identity'
+[ "$(grep -Fxc -- '**Ready to merge?** Yes' "$FINAL_REVIEW" || true)" -eq 1 ] || die 'final review is not canonically ready to merge'
 
 case "$REVIEW_HEAD:$REVIEW_TREE" in *[!0-9a-f:]*|*:|:*) die 'invalid reviewed Git identity' ;; esac
 [ "${#REVIEW_HEAD}" -eq 40 ] && [ "${#REVIEW_TREE}" -eq 40 ] || die 'reviewed Git identity is not full length'
@@ -195,6 +224,7 @@ full_range="$(package_range "$FULL_PACKAGE")"
 [ -n "$full_range" ] || die 'full review package header is malformed'
 full_start="${full_range%%|*}"; initial_head="${full_range#*|}"
 [ "$full_start" = "$MERGE_BASE" ] || die 'full review package starts at wrong commit'
+verify_package_bytes "$PHYSICAL_ROOT" "$PROJECTION" "$MERGE_BASE" "$initial_head" "$FULL_PACKAGE" "$TMP/expected-full-review.diff" || die 'full review package bytes do not match the Git range'
 if [ "$FIX_PACKAGE" = null ] || [ "$FIX_PACKAGE_HASH" = null ]; then
   [ "$FIX_PACKAGE" = null ] && [ "$FIX_PACKAGE_HASH" = null ] || die 'partial null fix package'
   [ "$initial_head" = "$REVIEW_HEAD" ] || die 'full review package does not end at reviewed HEAD'
@@ -204,6 +234,7 @@ else
   [ "$FIX_PACKAGE_HASH" = "$(sha "$FIX_PACKAGE")" ] || die 'fix review package hash mismatch'
   fix_range="$(package_range "$FIX_PACKAGE")"
   [ "$fix_range" = "$initial_head|$REVIEW_HEAD" ] || die 'fix review package range is discontinuous'
+  verify_package_bytes "$PHYSICAL_ROOT" "$PROJECTION" "$initial_head" "$REVIEW_HEAD" "$FIX_PACKAGE" "$TMP/expected-fix-review.diff" || die 'fix review package bytes do not match the Git range'
 fi
 
 SPEC_REL="${SPEC#$PHYSICAL_ROOT/}"
@@ -231,6 +262,9 @@ TEMP_RECEIPT="$(mktemp "$OUTPUT_PARENT/.terminal-receipt.XXXXXX")"
   echo "ledger_sha256: $(sha "$LEDGER")"
   echo "final_review: $FINAL_REVIEW"
   echo "final_review_sha256: $(sha "$FINAL_REVIEW")"
+  echo "reviewer_dispatch_identity: $REVIEWER_IDENTITY"
+  echo "reviewer_dispatch_identity_sha256: $(sha "$REVIEWER_IDENTITY")"
+  echo "reviewer_context: $DISPATCH_CONTEXT"
   echo "full_review_package: $FULL_PACKAGE"
   echo "full_review_package_sha256: $FULL_PACKAGE_HASH"
   echo "fix_review_package: $FIX_PACKAGE"

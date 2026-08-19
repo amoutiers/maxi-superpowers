@@ -155,7 +155,91 @@ ledger_completes_projection() {
   done < <(sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$projection")
 }
 
-SPEC='' PLAN='' TASKS='' OUTPUT='' STATE=''
+lineage_completed_ids() {
+  local current="$1" root="$2" output="$3" ledger first map number id completed
+  : > "$output"
+  while [ "$current" != null ]; do
+    ledger="$root/.superpowers/sdd/$(basename "$current" .md)/progress.md"
+    if [ -e "$ledger" ]; then
+      [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
+      IFS= read -r first < "$ledger" || return 1
+      [ "$first" = "# SDD ledger — plan: $current" ] || return 1
+      map="${output}.map"
+      sed -n 's/^### Task \([1-9][0-9]*\): \(T[0-9][0-9][0-9]\) .*/\1|\2/p' "$current" > "$map"
+      while IFS='|' read -r number id; do
+        [ -n "$number" ] || continue
+        completed="$(grep -c "^Task $number: complete$" "$ledger" || true)"
+        [ "$completed" -le 1 ] || return 1
+        if [ "$completed" -eq 1 ] && ! grep -Fqx -- "$id" "$output"; then
+          printf '%s\n' "$id" >> "$output"
+        fi
+      done < "$map"
+    fi
+    current="$(projection_field "$current" predecessor_projection 2>/dev/null)" || return 1
+  done
+}
+
+select_initial_from_ledger() {
+  local ordered="$1" ledger="$2" output="$3" completion_numbers completion_csv
+  completion_numbers="${output}.completion-numbers"
+  sed -n 's/^Task \([1-9][0-9]*\): complete$/\1/p' "$ledger" > "$completion_numbers"
+  [ "$(sort -nu "$completion_numbers" | wc -l | tr -d ' ')" -eq "$(wc -l < "$completion_numbers" | tr -d ' ')" ] || return 1
+  completion_csv="$(awk '{ printf "%s,", $0 }' "$completion_numbers")"
+  awk -F '\t' -v completions="$completion_csv" '
+    function add(key, value) {
+      count[key] += value
+      if (count[key] > 1) count[key] = 2
+    }
+    BEGIN {
+      split(completions, item, ",")
+      for (i in item) if (item[i] != "") {
+        complete[item[i] + 0]++
+        if (item[i] + 0 > maximum) maximum = item[i] + 0
+      }
+      count[0 SUBSEP 0] = 1
+    }
+    {
+      task_state[NR] = $1
+      task_id[NR] = $2
+    }
+    END {
+      total_tasks = NR
+      for (i = 1; i <= total_tasks; i++) {
+        for (position = 0; position <= i; position++) {
+          if (task_state[i] != " ") add(i SUBSEP position, count[(i - 1) SUBSEP position])
+          if (position > 0 && ((task_state[i] == " " && !complete[position]) || (task_state[i] != " " && complete[position]))) {
+            add(i SUBSEP position, count[(i - 1) SUBSEP (position - 1)])
+          }
+        }
+      }
+      solutions = 0
+      for (position = maximum; position <= total_tasks; position++) {
+        solutions += count[total_tasks SUBSEP position]
+        if (count[total_tasks SUBSEP position]) final_position = position
+        if (solutions > 1) exit 2
+      }
+      if (solutions != 1) exit 2
+      position = final_position
+      for (i = total_tasks; i >= 1; i--) {
+        excluded = (task_state[i] != " ") ? count[(i - 1) SUBSEP position] : 0
+        selected = 0
+        if (position > 0 && ((task_state[i] == " " && !complete[position]) || (task_state[i] != " " && complete[position]))) {
+          selected = count[(i - 1) SUBSEP (position - 1)]
+        }
+        if (selected && !excluded) {
+          keep[i] = 1
+          position--
+        } else if (!excluded || selected) {
+          exit 2
+        }
+      }
+      if (position != 0) exit 2
+      for (i = 1; i <= total_tasks; i++) if (keep[i]) print task_id[i]
+    }
+  ' "$ordered" > "$output"
+}
+
+SPEC='' PLAN='' TASKS='' OUTPUT='' STATE='' VERIFY_ONLY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --spec) [ $# -ge 2 ] || die 'missing --spec value'; SPEC="$2"; shift 2 ;;
@@ -163,6 +247,7 @@ while [ $# -gt 0 ]; do
     --tasks) [ $# -ge 2 ] || die 'missing --tasks value'; TASKS="$2"; shift 2 ;;
     --output) [ $# -ge 2 ] || die 'missing --output value'; OUTPUT="$2"; shift 2 ;;
     --state-file) [ $# -ge 2 ] || die 'missing --state-file value'; STATE="$2"; shift 2 ;;
+    --verify-only) VERIFY_ONLY=1; shift ;;
     *) die "unknown argument: $1" ;;
   esac
 done
@@ -233,6 +318,7 @@ awk -v mode="$MODE" '
     id = substr($0, 7, 4)
     if (seen[id]++) invalid("duplicate task id: " id)
     line = $0
+    sub(/^- \[[ xX]\]/, "- [ ]", line)
     mapping = ""
     if (mode == "marker-bound") {
       copy = line
@@ -304,47 +390,17 @@ if [ "$MODE" = marker-bound ]; then
   done < "$PLAN_PARTS/order"
 fi
 
-unchecked="$(awk -F '\t' '$1 == " " { count++ } END { print count + 0 }' "$TASK_META")"
-EXECUTION_MODE=ordinary
-if [ "$unchecked" -eq 0 ]; then
-  if [ "$PREDECESSOR" != null ]; then
-    [ "$PREDECESSOR" = "$FINAL" ] || die 'all-checked structural correction cannot skip review evidence'
-    ledger_completes_projection "$PREDECESSOR" "$ROOT" || die 'active ledger does not complete the projection'
-  elif [ -e "$FINAL" ]; then
-    verify_projection "$FINAL" "$SLUG" || die 'existing projection is invalid'
-    ledger_completes_projection "$FINAL" "$ROOT" || die 'existing ledger does not complete the projection'
-  else
-    EXECUTION_MODE=final-review-only
-  fi
-fi
-
-if [ -e "$FINAL" ]; then
-  [ -f "$FINAL" ] || die 'projection path is not regular'
-  verify_projection "$FINAL" "$SLUG" || die 'existing projection failed integrity validation'
-  validate_lineage "$FINAL" "$SLUG" "$SPEC" "$ROOT" || die 'existing projection lineage is invalid'
-  [ "$(projection_field "$FINAL" source_spec)" = "$SPEC" ] || die 'existing projection spec mismatch'
-  [ "$(projection_field "$FINAL" source_plan)" = "$PLAN" ] || die 'existing projection plan mismatch'
-  [ "$(projection_field "$FINAL" source_plan_sha256)" = "$PLAN_HASH" ] || die 'existing projection plan hash mismatch'
-  [ "$(projection_field "$FINAL" tasks_structural_sha256)" = "$TASKS_HASH" ] || die 'existing projection tasks hash mismatch'
-  [ "$(projection_field "$FINAL" mode)" = "$MODE" ] || die 'existing projection mode mismatch'
-  if [ "$PREDECESSOR" != null ] && [ "$PREDECESSOR" != "$FINAL" ]; then
-    die 'active projection disagrees with existing current identity'
-  fi
-else
-  [ "$unchecked" -gt 0 ] || [ "$EXECUTION_MODE" = final-review-only ] || die 'cannot create an all-checked successor'
-  BODY="$TMPDIR_LOCAL/body"
-  : > "$BODY"
-  cat "$PLAN_PARTS/preamble" >> "$BODY"
+render_body() {
+  local selected="$1" output="$2" projected=0 section=0 source_number row id line description body_file backticks tildes state mapping
+  : > "$output"
+  cat "$PLAN_PARTS/preamble" >> "$output"
   if [ "$MODE" = marker-bound ]; then
-    projected=0
-    section=0
     while IFS= read -r source_number; do
       section=$((section + 1))
       row="$(awk -F '\t' -v number="$source_number" '$3 == number { print; exit }' "$TASK_META")"
       [ -n "$row" ] || die "unmapped source Task $source_number"
-      state="$(printf '%s\n' "$row" | cut -f1)"
-      [ "$state" = ' ' ] || continue
       id="$(printf '%s\n' "$row" | cut -f2)"
+      grep -Fqx -- "$id" "$selected" || continue
       line="$(printf '%s\n' "$row" | cut -f4-)"
       description="${line#- [ ] $id }"
       projected=$((projected + 1))
@@ -352,42 +408,143 @@ else
       backticks="$(grep -c '^[[:space:]]*```' "$body_file" 2>/dev/null || true)"
       tildes="$(grep -c '^[[:space:]]*~~~' "$body_file" 2>/dev/null || true)"
       [ "$backticks" -eq 0 ] || [ "$tildes" -eq 0 ] || die "ambiguous fence collision in source Task $source_number"
-      printf '\n### Task %s: %s %s\n' "$projected" "$id" "$description" >> "$BODY"
-      sed -E 's/^[[:space:]]*~~~+/```/' "$body_file" >> "$BODY"
+      printf '\n### Task %s: %s %s\n' "$projected" "$id" "$description" >> "$output"
+      sed -E -e 's/^[[:space:]]*```+/```/' -e 's/^[[:space:]]*~~~+/```/' "$body_file" >> "$output"
     done < "$PLAN_PARTS/order"
   else
-    projected=0
     while IFS=$'\t' read -r state id mapping line; do
-      [ "$state" = ' ' ] || continue
+      grep -Fqx -- "$id" "$selected" || continue
       projected=$((projected + 1))
       description="${line#- [ ] $id }"
-      printf '\n### Task %s: %s %s\n\n%s\n' "$projected" "$id" "$description" "$line" >> "$BODY"
+      printf '\n### Task %s: %s %s\n\n%s\n' "$projected" "$id" "$description" "$line" >> "$output"
     done < "$TASK_META"
   fi
-  BODY_HASH="$(sha "$BODY")"
-  TEMP_PROJECTION="$(mktemp "$OUT_PARENT/.projection.XXXXXX")"
+}
+
+write_expected_projection() {
+  local output="$1" body="$2" execution_mode="$3" predecessor="$4" body_hash
+  body_hash="$(sha "$body")"
   {
     echo '---'
     echo 'sdd_projection: maxi-v1'
     echo "slug: $SLUG"
     echo "mode: $MODE"
-    echo "execution_mode: $EXECUTION_MODE"
+    echo "execution_mode: $execution_mode"
     echo "source_spec: $SPEC"
     echo "source_plan: $PLAN"
     echo "source_plan_sha256: $PLAN_HASH"
     echo "tasks_structural_sha256: $TASKS_HASH"
     echo "plan_revision: $PLAN_REV"
     echo "tasks_revision: $TASKS_REV"
-    echo "predecessor_projection: $PREDECESSOR"
-    echo "projection_body_sha256: $BODY_HASH"
+    echo "predecessor_projection: $predecessor"
+    echo "projection_body_sha256: $body_hash"
     echo '---'
-    cat "$BODY"
-  } > "$TEMP_PROJECTION"
+    cat "$body"
+  } > "$output"
+}
+
+unchecked="$(awk -F '\t' '$1 == " " { count++ } END { print count + 0 }' "$TASK_META")"
+SELECTED_IDS="$TMPDIR_LOCAL/selected"
+COMPLETED_IDS="$TMPDIR_LOCAL/predecessor-completed"
+: > "$SELECTED_IDS"
+: > "$COMPLETED_IDS"
+
+if [ -e "$FINAL" ]; then
+  [ -f "$FINAL" ] || die 'projection path is not regular'
+  verify_projection "$FINAL" "$SLUG" || die 'existing projection failed integrity validation'
+  validate_lineage "$FINAL" "$SLUG" "$SPEC" "$ROOT" || die 'existing projection lineage is invalid'
+  if [ "$PREDECESSOR" != null ] && [ "$PREDECESSOR" != "$FINAL" ]; then
+    die 'active projection disagrees with existing current identity'
+  fi
+  PROJECT_PREDECESSOR="$(projection_field "$FINAL" predecessor_projection)" || die 'existing predecessor is missing'
+  EXECUTION_MODE="$(projection_field "$FINAL" execution_mode)" || die 'existing execution mode is missing'
+  if [ "$PROJECT_PREDECESSOR" != null ]; then
+    lineage_completed_ids "$PROJECT_PREDECESSOR" "$ROOT" "$COMPLETED_IDS" || die 'predecessor ledger lineage is invalid'
+    while IFS=$'\t' read -r state id mapping line; do
+      grep -Fqx -- "$id" "$COMPLETED_IDS" || printf '%s\n' "$id" >> "$SELECTED_IDS"
+    done < "$TASK_META"
+  else
+    CURRENT_LEDGER="$ROOT/.superpowers/sdd/$(basename "$FINAL" .md)/progress.md"
+    if [ -e "$CURRENT_LEDGER" ]; then
+      [ -f "$CURRENT_LEDGER" ] && [ ! -L "$CURRENT_LEDGER" ] || die 'current ledger is not a regular file'
+      IFS= read -r first < "$CURRENT_LEDGER" || die 'current ledger is empty'
+      [ "$first" = "# SDD ledger — plan: $FINAL" ] || die 'current ledger identity mismatch'
+      ORDERED_META="$TMPDIR_LOCAL/ordered-task-states"
+      : > "$ORDERED_META"
+      if [ "$MODE" = marker-bound ]; then
+        while IFS= read -r source_number; do
+          awk -F '\t' -v number="$source_number" '$3 == number { print $1 "\t" $2; exit }' "$TASK_META" >> "$ORDERED_META"
+        done < "$PLAN_PARTS/order"
+      else
+        awk -F '\t' '{ print $1 "\t" $2 }' "$TASK_META" > "$ORDERED_META"
+      fi
+      select_initial_from_ledger "$ORDERED_META" "$CURRENT_LEDGER" "$SELECTED_IDS" || die 'current ledger cannot reconstruct one canonical initial selection'
+    else
+      sed -n 's/^### Task [1-9][0-9]*: \(T[0-9][0-9][0-9]\) .*/\1/p' "$FINAL" > "$SELECTED_IDS"
+    fi
+  fi
+  [ "$(sort -u "$SELECTED_IDS" | wc -l | tr -d ' ')" -eq "$(wc -l < "$SELECTED_IDS" | tr -d ' ')" ] || die 'existing projection repeats a Maxi task'
+  while IFS= read -r id; do
+    [ "$(cut -f2 "$TASK_META" | grep -Fcx -- "$id" || true)" -eq 1 ] || die "existing projection names unknown task: $id"
+  done < "$SELECTED_IDS"
+  if [ "$PROJECT_PREDECESSOR" != null ]; then
+    while IFS=$'\t' read -r state id mapping line; do
+      if grep -Fqx -- "$id" "$COMPLETED_IDS"; then
+        ! grep -Fqx -- "$id" "$SELECTED_IDS" || die "successor reprojects completed task: $id"
+      else
+        grep -Fqx -- "$id" "$SELECTED_IDS" || die "successor omits uncompleted task: $id"
+      fi
+    done < "$TASK_META"
+  else
+    while IFS=$'\t' read -r state id mapping line; do
+      [ "$state" != ' ' ] || grep -Fqx -- "$id" "$SELECTED_IDS" || die "initial projection omits pending task: $id"
+    done < "$TASK_META"
+  fi
+  selected_count="$(wc -l < "$SELECTED_IDS" | tr -d ' ')"
+  case "$EXECUTION_MODE" in
+    ordinary) [ "$selected_count" -gt 0 ] || die 'ordinary projection has no tasks' ;;
+    final-review-only) [ "$selected_count" -eq 0 ] || die 'final-review-only projection has tasks' ;;
+    *) die 'unknown existing execution mode' ;;
+  esac
+  [ "$unchecked" -gt 0 ] || [ "$EXECUTION_MODE" = final-review-only ] || ledger_completes_projection "$FINAL" "$ROOT" || die 'existing ledger does not complete the projection'
+else
+  PROJECT_PREDECESSOR="$PREDECESSOR"
+  if [ "$PROJECT_PREDECESSOR" != null ]; then
+    lineage_completed_ids "$PROJECT_PREDECESSOR" "$ROOT" "$COMPLETED_IDS" || die 'predecessor ledger lineage is invalid'
+  fi
+  while IFS=$'\t' read -r state id mapping line; do
+    if [ "$PROJECT_PREDECESSOR" != null ]; then
+      grep -Fqx -- "$id" "$COMPLETED_IDS" || printf '%s\n' "$id" >> "$SELECTED_IDS"
+    elif [ "$state" = ' ' ]; then
+      printf '%s\n' "$id" >> "$SELECTED_IDS"
+    fi
+  done < "$TASK_META"
+  selected_count="$(wc -l < "$SELECTED_IDS" | tr -d ' ')"
+  if [ "$selected_count" -eq 0 ]; then
+    [ "$PROJECT_PREDECESSOR" = null ] || die 'all-checked structural correction cannot skip review evidence'
+    EXECUTION_MODE=final-review-only
+  else
+    EXECUTION_MODE=ordinary
+  fi
+fi
+
+BODY="$TMPDIR_LOCAL/body"
+EXPECTED_PROJECTION="$TMPDIR_LOCAL/expected-projection"
+render_body "$SELECTED_IDS" "$BODY"
+write_expected_projection "$EXPECTED_PROJECTION" "$BODY" "$EXECUTION_MODE" "$PROJECT_PREDECESSOR"
+
+if [ -e "$FINAL" ]; then
+  cmp -s "$EXPECTED_PROJECTION" "$FINAL" || die 'existing projection differs from canonical source reconstruction'
+else
+  TEMP_PROJECTION="$(mktemp "$OUT_PARENT/.projection.XXXXXX")"
+  cp "$EXPECTED_PROJECTION" "$TEMP_PROJECTION"
   mv "$TEMP_PROJECTION" "$FINAL"
   verify_projection "$FINAL" "$SLUG" || die 'new projection failed integrity validation'
 fi
 
-STATE_TEMP="$(mktemp "$STATE_PARENT/.active-projection.XXXXXX")"
-printf '%s\n' "$FINAL" > "$STATE_TEMP"
-mv "$STATE_TEMP" "$STATE"
+if [ "$VERIFY_ONLY" -eq 0 ]; then
+  STATE_TEMP="$(mktemp "$STATE_PARENT/.active-projection.XXXXXX")"
+  printf '%s\n' "$FINAL" > "$STATE_TEMP"
+  mv "$STATE_TEMP" "$STATE"
+fi
 printf '%s\n' "$FINAL"

@@ -29,6 +29,10 @@ Receive the exact canonical `spec.md`, `plan.md`, and `tasks.md` paths from
    correction starts a successor projection and workspace. Link that
    successor to the prior projection. Recover a predecessor only from the validated active-projection pointer.
 
+Reconstruct the canonical projection bytes from the bound spec, plan, tasks, and validated selection/lineage ledgers whenever an existing projection is reused. Compare those reconstructed bytes exactly; the projection's stored body hash can detect damage but can never attest its own rewritten content. While projecting task bodies, normalize every accepted backtick fence delimiter to column zero so upstream `task-brief` retains the complete body.
+
+For a successor, only one exact `Task N: complete` line in the validated predecessor ledger acquits the corresponding `TNNN`. A checkbox alone never acquits a lineage task. Project every other `TNNN`, including an item whose Maxi checkbox is already checked.
+
 Never infer a predecessor from chat, directory order, a historical annotation,
 or an arbitrary ledger.
 
@@ -53,6 +57,10 @@ final-review instructions here. Upstream SDD remains authoritative for them.
 ## Intercept the Finish boundary
 
 Use upstream's final review exactly once. Intercept immediately before upstream workspace deletion and `superpowers:finishing-a-development-branch`. Do not delete any workspace and do not finish the branch in this skill.
+
+Before dispatching the final reviewer, persist the harness-issued reviewer context as the sole `reviewer_context: <context>` line in `final-reviewer-dispatch.identity` beside the current ledger. Use the same canonical context grammar as the independent-review gate, and require the final reviewer to return that exact context. If the harness exposes no verifiable reviewer context, stop without a success token. Never invent, infer, or repair an identity.
+
+Regenerate each review package with upstream's `review-package` helper from its recorded Git range and require byte-for-byte equality with the persisted package. A range header and matching self-hash are not review evidence. Accept only the canonical `**Ready to merge?** Yes` result; `No`, `With fixes`, and every locally invented verdict remain non-terminal.
 
 Persist the complete final review, fix wave, re-review, and adjudication output
 as `maxi-final-review.md` beside the current ledger. Its frontmatter is exactly:
@@ -80,7 +88,8 @@ Then:
 
 1. Run `record-terminal.sh` with the bound worktree, merge base, projection,
    ledger, persisted final review, exact spec/tasks paths, and a receipt beside
-   the current ledger.
+   the current ledger. The receipt binds the persisted reviewer-dispatch file,
+   its SHA-256, and the exact returned reviewer context.
 2. Run `result-contract.sh` with the exact tasks path and terminal receipt.
 3. Return the projection lineage and aggregated `Ruling:` lines only together with `READY_TO_FINISH`.
 

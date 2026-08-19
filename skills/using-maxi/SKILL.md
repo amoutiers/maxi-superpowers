@@ -24,7 +24,7 @@ maxi bundles superpowers skills, available as `maxi:<skill>` (e.g. `/maxi:brains
 /maxi:x-review      →  persist a fresh external reviews/plan-review.md handoff (bounded-v1 roots only; internal; no status change)
 /maxi:tasks         →  extract tasks.md from plan (status: tasked)
 /maxi:analyze       →  7-pass cross-artifact audit → analysis.md (status: analyzed)
-/maxi:implement     →  execute tasks, write code (status: implementing → done)
+/maxi:implement     →  delegate to x-develop; persist done only after READY_TO_FINISH
 /maxi:board         →  kanban overview of all specs grouped by status (read-only)
 /maxi:migrate-adr   →  import existing ADRs (Nygard/MADR/plain) + discover undocumented decisions from source code
 
@@ -59,7 +59,7 @@ Each skill enforces the required status strictly:
 | `/maxi:plan` | `clarified`; for marker-bound roots, current approved `reviews/spec-review.md` | none | `planned` |
 | `/maxi:tasks` | `planned`; for marker-bound roots, current approved `reviews/plan-review.md` | none | `tasked` |
 | `/maxi:analyze` | `tasked`+ | re-run ok on `analyzed`/`implementing`/`done` | `analyzed` |
-| `/maxi:implement` | `analyzed` | none | `implementing` → `done` |
+| `/maxi:implement` | `analyzed` | none | `implementing`; `READY_TO_FINISH` receipt gate; then `done` |
 
 Lifecycle skills act on a spec's status outside the forward flow:
 
@@ -72,6 +72,8 @@ Lifecycle skills act on a spec's status outside the forward flow:
 | `/maxi:revise` | `clarified` through `implementing` | rolls back to `clarified`/`planned`/`tasked`/`analyzed`; exceptional `specified` rollback for a source-spec gap |
 
 ## External Review Handoffs and Replay
+
+Upstream SDD owns the only whole-branch review. Internal `/maxi:x-develop` persists the harness-issued final-reviewer identity before dispatch, regenerates the recorded Git review packages byte-for-byte, and returns `READY_TO_FINISH` only with a valid hash-bound terminal receipt. `/maxi:implement` never dispatches another final review and alone persists `done` after that token.
 
 - Internal `/maxi:x-review` is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`. It delegates a fresh independent review through `superpowers:requesting-code-review`; approved records are persisted and versioned.
 - For a marker-bound root, `reviews/spec-review.md` must approve the current `spec.md` revision before `/maxi:plan` writes or changes status. Its `reviews/plan-review.md` must approve the current `plan.md` revision before `/maxi:tasks` writes or changes status.
