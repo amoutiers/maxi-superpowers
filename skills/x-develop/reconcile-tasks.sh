@@ -5,6 +5,10 @@ set -euo pipefail
 LC_ALL=C
 export LC_ALL
 
+SCRIPT_DIR="$(cd -P "$(dirname "$0")" && pwd)"
+PROJECT_HELPER="$SCRIPT_DIR/project-tasks.sh"
+[ -f "$PROJECT_HELPER" ] || { echo 'ERROR: projection helper is missing' >&2; exit 2; }
+
 die() { echo "ERROR: $*" >&2; exit 2; }
 sha() { shasum -a 256 "$1" | awk '{print $1}'; }
 under() { case "$1" in "$2"|"$2"/*) return 0 ;; *) return 1 ;; esac; }
@@ -76,10 +80,13 @@ IFS= read -r first < "$LEDGER" || die 'empty ledger'
 [ "$(field "$PROJECTION" sdd_projection 2>/dev/null)" = maxi-v1 ] || die 'invalid projection contract'
 SPEC="$(field "$PROJECTION" source_spec 2>/dev/null)" || die 'projection has no source spec'
 SPEC="$(canonical_file "$SPEC")" || die 'projection source spec is missing or noncanonical'
+PLAN="$(field "$PROJECTION" source_plan 2>/dev/null)" || die 'projection has no source plan'
+PLAN="$(canonical_file "$PLAN")" || die 'projection source plan is missing or noncanonical'
 ROOT="$(git -C "$(dirname "$SPEC")" rev-parse --show-toplevel 2>/dev/null)" || die 'projection source spec is outside Git'
 ROOT="$(cd -P "$ROOT" && pwd)"
 under "$PROJECTION" "$ROOT/.superpowers/sdd" || die 'projection escapes the bound SDD workspace'
 under "$TASKS" "$ROOT" || die 'tasks escape the bound worktree'
+[ "$(dirname "$SPEC")" = "$(dirname "$PLAN")" ] || die 'projection source plan is outside the spec root'
 expected_ledger="$ROOT/.superpowers/sdd/$(basename "$PROJECTION" .md)/progress.md"
 [ "$LEDGER" = "$expected_ledger" ] || die 'ledger is outside the projection workspace'
 projection_anchor_count="$(grep -c '^Maxi projection SHA256:' "$LEDGER" || true)"
@@ -91,6 +98,14 @@ projection_anchor_like="$(grep -c '^Maxi projection SHA256' "$LEDGER" || true)"
 stored_body="$(field "$PROJECTION" projection_body_sha256 2>/dev/null)" || die 'projection body hash missing'
 actual_body="$(awk 'NR == 1 && $0 == "---" { fm = 1; next } fm && $0 == "---" { fm = 0; next } !fm { print }' "$PROJECTION" | shasum -a 256 | awk '{print $1}')"
 [ "$stored_body" = "$actual_body" ] || die 'projection body hash mismatch'
+SLUG="$(field "$PROJECTION" slug 2>/dev/null)" || die 'projection slug is missing or duplicated'
+STATE_FILE="$ROOT/.superpowers/sdd/active-$SLUG"
+[ -f "$STATE_FILE" ] && [ ! -L "$STATE_FILE" ] || die 'active projection pointer is missing or symlinked'
+[ "$(wc -l < "$STATE_FILE" | tr -d ' ')" -eq 1 ] || die 'active projection pointer is malformed'
+IFS= read -r active_projection < "$STATE_FILE" || die 'active projection pointer is empty'
+[ "$active_projection" = "$PROJECTION" ] || die 'reconciled projection is not active'
+verified_projection="$(cd "$ROOT" && bash "$PROJECT_HELPER" --spec "$SPEC" --plan "$PLAN" --tasks "$TASKS" --output "$PROJECTION" --state-file "$STATE_FILE" --verify-only)" || die 'projection cannot be reconstructed from canonical sources and lineage'
+[ "$verified_projection" = "$PROJECTION" ] || die 'projection reconstruction returned another identity'
 
 TMP="$(mktemp -d "$(dirname "$TASKS")/.reconcile.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT

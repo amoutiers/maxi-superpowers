@@ -617,6 +617,43 @@ assert_has "$RESUME_TASKS" '- [x] T002 ' 'second reconciliation checks T002'
 assert_eq "$(grep -c '^### Task 3: T003 ' "$RESUME_PROJECTION")" 1 'T003 remains pending exactly once in immutable projection'
 assert_has "$RESUME_LEDGER" 'Ruling: keep numbering stable' 'ledger Ruling persists unchanged'
 
+# Reconciliation must validate every predecessor byte anchor before checking a
+# current task, not only the active projection and ledger.
+STALE_PREDECESSOR="$WORK/stale-reconciliation-predecessor"
+init_repo "$STALE_PREDECESSOR"
+seed_case "$STALE_PREDECESSOR"
+run_project "$STALE_PREDECESSOR"
+STALE_OLD_PROJECTION="$PROJECT_OUTPUT"
+STALE_TASKS="$STALE_PREDECESSOR/docs/maxi/specs/adapter-sample/tasks.md"
+STALE_STATE="$STALE_PREDECESSOR/.superpowers/sdd/active-adapter-sample"
+STALE_OLD_LEDGER="$STALE_PREDECESSOR/.superpowers/sdd/$(basename "$STALE_OLD_PROJECTION" .md)/progress.md"
+printf '%s\n' "$COMPLETE_1_CLEAN" >> "$STALE_OLD_LEDGER"
+bash "$RECONCILE" --projection "$STALE_OLD_PROJECTION" --ledger "$STALE_OLD_LEDGER" --tasks "$STALE_TASKS" >/dev/null
+sed 's/Write the second file/Write the corrected second file/' "$STALE_TASKS" > "$STALE_PREDECESSOR/change"
+mv "$STALE_PREDECESSOR/change" "$STALE_TASKS"
+run_project "$STALE_PREDECESSOR"
+STALE_NEW_PROJECTION="$PROJECT_OUTPUT"
+STALE_NEW_LEDGER="$STALE_PREDECESSOR/.superpowers/sdd/$(basename "$STALE_NEW_PROJECTION" .md)/progress.md"
+sed 's/Write the complete first task body\./Write a forged predecessor task body./' "$STALE_OLD_PROJECTION" > "$STALE_PREDECESSOR/change"
+mv "$STALE_PREDECESSOR/change" "$STALE_OLD_PROJECTION"
+stale_predecessor_body_sha="$(awk '
+  NR == 1 && $0 == "---" { fm = 1; next }
+  fm && $0 == "---" { fm = 0; next }
+  !fm { print }
+' "$STALE_OLD_PROJECTION" | shasum -a 256 | awk '{print $1}')"
+sed "s/^projection_body_sha256: .*/projection_body_sha256: $stale_predecessor_body_sha/" "$STALE_OLD_PROJECTION" > "$STALE_PREDECESSOR/change"
+mv "$STALE_PREDECESSOR/change" "$STALE_OLD_PROJECTION"
+printf '%s\n' "$COMPLETE_1_CLEAN" >> "$STALE_NEW_LEDGER"
+stale_tasks_before="$(sha "$STALE_TASKS")"
+stale_state_before="$(cat "$STALE_STATE")"
+set +e
+bash "$RECONCILE" --projection "$STALE_NEW_PROJECTION" --ledger "$STALE_NEW_LEDGER" --tasks "$STALE_TASKS" >/dev/null 2>&1
+stale_reconciliation_status=$?
+set -e
+[ "$stale_reconciliation_status" -ne 0 ] && ok 'stale predecessor anchor rejects at reconciliation boundary' || fail 'stale predecessor anchor rejects at reconciliation boundary' 'reconciliation accepted a forged predecessor'
+assert_eq "$(sha "$STALE_TASKS")" "$stale_tasks_before" 'stale predecessor rejection leaves tasks byte-identical'
+assert_eq "$(cat "$STALE_STATE")" "$stale_state_before" 'stale predecessor rejection keeps active pointer unchanged'
+
 # Reconciliation rejects bare and malformed completion records before writing.
 for completion_case in bare malformed; do
   RECONCILE_REPO="$WORK/reconcile-$completion_case"
