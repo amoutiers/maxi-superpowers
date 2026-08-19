@@ -6,16 +6,21 @@ ROOT="$(git rev-parse --show-toplevel)"
 source "$ROOT/tests/lib/test-helpers.sh"
 
 MANIFEST="$ROOT/.codex-plugin/plugin.json"
+PACKAGE="$ROOT/package.json"
 MARKETPLACE="$ROOT/.agents/plugins/marketplace.json"
 RELEASE_SKILL="$ROOT/.agents/skills/release/SKILL.md"
 PLUGIN_LINK="$ROOT/plugins/maxi"
 failures=0
 
 assert_file_exists "$MANIFEST" ".codex-plugin/plugin.json"
+assert_file_exists "$PACKAGE" "package.json"
 if [ -f "$MANIFEST" ]; then
   assert_json_valid "$MANIFEST" ".codex-plugin/plugin.json: valid JSON"
   assert_jq "$MANIFEST" ".name" "maxi" ".codex-plugin/plugin.json: name is maxi"
   assert_jq "$MANIFEST" ".version | test(\"^[0-9]+\\\\.[0-9]+\\\\.[0-9]+([+-].*)?$\")" "true" ".codex-plugin/plugin.json: version is semver-compatible"
+  if [ -f "$PACKAGE" ]; then
+    assert_jq "$MANIFEST" '.version' "$(jq -r '.version' "$PACKAGE")" ".codex-plugin/plugin.json: version matches package.json"
+  fi
   assert_jq "$MANIFEST" ".skills" "./skills" ".codex-plugin/plugin.json: skills path"
   assert_jq "$MANIFEST" ".hooks == {}" "true" ".codex-plugin/plugin.json: hooks is empty object (Codex native skill discovery)"
   assert_jq "$MANIFEST" ".interface.displayName" "maxi" ".codex-plugin/plugin.json: interface displayName"

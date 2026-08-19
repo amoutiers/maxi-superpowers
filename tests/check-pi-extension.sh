@@ -26,4 +26,72 @@ assert_jq "$PKG" '.pi.skills | index("./skills") != null' "true" "package.json: 
 assert_jq "$PKG" '.type == "module"' "true" "package.json: type is module"
 assert_jq "$PKG" '.main == ".opencode/plugins/maxi.js"' "true" "package.json: main points to maxi.js"
 
+TMP_PROBE="$(mktemp -d)"
+trap 'rm -rf "$TMP_PROBE"' EXIT
+cat > "$TMP_PROBE/probe.mjs" <<'EOF'
+import assert from "node:assert/strict";
+import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const handlers = new Map();
+const pi = {
+  on(event, handler) {
+    const registered = handlers.get(event) ?? [];
+    registered.push(handler);
+    handlers.set(event, registered);
+  },
+};
+const handler = (event) => {
+  const registered = handlers.get(event) ?? [];
+  assert.equal(registered.length, 1, `expected one ${event} handler`);
+  return registered[0];
+};
+const textOf = (message) => message.content.map((part) => part.text).join("\n");
+const originalCwd = process.cwd();
+const probeRoot = await mkdtemp(join(tmpdir(), "maxi-pi-gate-"));
+const maxiProject = join(probeRoot, "project");
+const outsideProject = join(probeRoot, "outside");
+
+try {
+  await mkdir(join(maxiProject, "docs", "maxi"), { recursive: true });
+  await mkdir(outsideProject, { recursive: true });
+  const mod = await import(pathToFileURL(process.env.PI_EXT).href + `?probe=${Date.now()}`);
+  mod.default(pi);
+  const sessionStart = handler("session_start");
+  const sessionCompact = handler("session_compact");
+  const context = handler("context");
+  const user = { role: "user", content: [{ type: "text", text: "Continue" }], timestamp: 1 };
+
+  await sessionStart({}, {});
+  process.chdir(outsideProject);
+  assert.equal(await context({ messages: [user] }, {}), undefined, "first-session bootstrap must be silent outside docs/maxi");
+  process.chdir(maxiProject);
+  const firstSession = await context({ messages: [user] }, {});
+  assert.equal(firstSession.messages.length, 2, "first-session bootstrap must inject inside docs/maxi");
+  assert.match(textOf(firstSession.messages[0]), /You have maxi/);
+
+  await sessionCompact({}, {});
+  process.chdir(outsideProject);
+  assert.equal(await context({ messages: [user] }, {}), undefined, "post-compaction bootstrap must be silent outside docs/maxi");
+  process.chdir(maxiProject);
+  const summary = { role: "compactionSummary", summary: "Earlier", timestamp: 1 };
+  const postCompaction = await context({ messages: [summary, user] }, {});
+  assert.equal(postCompaction.messages.length, 3, "post-compaction bootstrap must inject inside docs/maxi");
+  assert.equal(postCompaction.messages[0], summary);
+  assert.match(textOf(postCompaction.messages[1]), /You have maxi/);
+} finally {
+  process.chdir(originalCwd);
+  await rm(probeRoot, { recursive: true, force: true });
+}
+EOF
+
+if PI_EXT="$PI_EXT" node --experimental-strip-types "$TMP_PROBE/probe.mjs"; then
+  echo "OK  [maxi.ts: dynamically gates first-session and post-compaction bootstrap]"
+else
+  echo "FAIL [maxi.ts: dynamically gates first-session and post-compaction bootstrap]" >&2
+  failures=$((failures + 1))
+fi
+
 summary_and_exit "pi extension checks"

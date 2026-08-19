@@ -23,6 +23,7 @@ assert_jq "$HOOKS_JSON" 'keys == ["hooks"]' "true" "hooks.json: strict top-level
 assert_jq "$HOOKS_JSON" ".hooks.SessionStart | length > 0" "true" "hooks.json: SessionStart hooks present"
 assert_jq "$HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd")' "true" "hooks.json: uses CLAUDE_PLUGIN_ROOT"
 assert_jq "$HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].command | contains("session-start")' "true" "hooks.json: runs session-start"
+assert_jq "$HOOKS_JSON" '.hooks.SessionStart[0].hooks[0].shell' "bash" "hooks.json: SessionStart command uses bash"
 
 # --- Cursor manifest: hooks-cursor.json ---
 assert_file_exists "$CURSOR_HOOKS_JSON" "hooks-cursor.json"

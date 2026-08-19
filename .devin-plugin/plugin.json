@@ -1,0 +1,19 @@
+{
+  "name": "maxi",
+  "version": "2.3.0",
+  "description": "Spec-driven development pipeline for Claude Code: constitution → specify → clarify → plan → tasks → analyze → implement",
+  "author": {
+    "name": "maxi-superpowers contributors"
+  },
+  "homepage": "https://github.com/amoutiers/maxi-superpowers",
+  "repository": "https://github.com/amoutiers/maxi-superpowers",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "spec-driven",
+    "workflow",
+    "constitution",
+    "planning",
+    "analysis"
+  ]
+}

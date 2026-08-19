@@ -35,6 +35,7 @@ export default function maxiPiExtension(pi: ExtensionAPI) {
 
 	pi.on("context", async (event) => {
 		if (!injectBootstrap) return;
+		if (!existsSync(resolve(process.cwd(), "docs", "maxi"))) return;
 		if (event.messages.some(messageContainsBootstrap)) return;
 
 		const bootstrap = getBootstrapContent();
