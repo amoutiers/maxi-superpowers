@@ -12,6 +12,7 @@ import re
 import shutil
 import sys
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -20,17 +21,18 @@ ROOT = Path(os.environ["REPO_ROOT"])
 PLUGIN = ROOT / ".hermes-plugin"
 SKILLS = ROOT / "skills"
 MAPPING = SKILLS / "using-superpowers" / "references" / "hermes-tools.md"
+USING_MAXI = SKILLS / "using-maxi" / "SKILL.md"
 
 
 class FakeContext:
     def __init__(self):
-        self.skills = {}
+        self.skill_calls = []
         self.hooks = {}
 
     def register_skill(self, name, path):
         assert isinstance(path, Path), f"{name} was registered as {type(path).__name__}"
         assert path.is_file(), f"{name} path does not exist: {path}"
-        self.skills[name] = path
+        self.skill_calls.append((name, path))
 
     def register_hook(self, event, hook):
         self.hooks[event] = hook
@@ -60,10 +62,25 @@ def expected_skills(skills_dir):
     }
 
 
+def body_without_frontmatter(path):
+    parts = path.read_text(encoding="utf-8").split("---\n", 2)
+    assert len(parts) == 3 and not parts[0], f"unexpected frontmatter: {path}"
+    return parts[2]
+
+
 assert PLUGIN.is_dir(), f"missing Hermes plugin directory: {PLUGIN}"
 assert (PLUGIN / "__init__.py").is_file(), "missing Hermes plugin module"
 manifest = (PLUGIN / "plugin.yaml").read_text(encoding="utf-8")
 package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+mapping_text = MAPPING.read_text(encoding="utf-8").strip()
+using_maxi_lines = [
+    line.strip()
+    for line in body_without_frontmatter(USING_MAXI).splitlines()
+    if line.strip()
+    and line.strip() != "```"
+    and (len(line.strip()) > 12 or line.lstrip().startswith("#") or line.strip().startswith("<"))
+]
+assert using_maxi_lines, "using-maxi has no non-trivial body lines to protect"
 manifest_fields = {
     line.split(":", 1)[0]
     for line in manifest.splitlines()
@@ -88,7 +105,9 @@ with tempfile.TemporaryDirectory() as tmp:
         module = load_plugin(plugin_dir / "__init__.py")
         context = FakeContext()
         module.register(context)
-        assert set(context.skills) == expected_skills(root / "skills")
+        expected = expected_skills(root / "skills")
+        assert Counter(name for name, _ in context.skill_calls) == Counter({name: 1 for name in expected})
+        assert all(isinstance(path, Path) for _, path in context.skill_calls)
         assert set(context.hooks) == {"pre_llm_call"}
 
         project = root / "project"
@@ -104,9 +123,9 @@ with tempfile.TemporaryDirectory() as tmp:
             first = hook(is_first_turn=True, future_hook_keyword=True)
             assert isinstance(first, dict) and set(first) == {"context"}
             bootstrap = first["context"]
-            assert 'skill_view("maxi:using-maxi")' in bootstrap
-            assert MAPPING.read_text(encoding="utf-8").strip() in bootstrap
-            assert "## The Rule" not in bootstrap
+            assert bootstrap.count('skill_view("maxi:using-maxi")') == 1
+            assert bootstrap.count(mapping_text) == 1
+            assert not any(line in bootstrap for line in using_maxi_lines)
             assert len(bootstrap) < 10_000
             assert hook(is_first_turn=False) is None
         finally:
