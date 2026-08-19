@@ -168,7 +168,7 @@ Skills are designed to be cheap when there is nothing to do. `/maxi:clarify` can
 superpowers is vendored as a git subtree at `vendor/superpowers/`:
 
 ```bash
-# Initial add (one-time bootstrap; current pin is v6.3.0 — see VENDORED.md):
+# Initial add (one-time bootstrap; current pin is v6.1.1 — see VENDORED.md):
 git subtree add --prefix=vendor/superpowers https://github.com/obra/superpowers v6.3.0 --squash
 
 # Bump to a new version:
