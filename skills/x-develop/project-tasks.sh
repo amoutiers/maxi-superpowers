@@ -74,6 +74,26 @@ projection_body_sha() {
   ' "$1" | shasum -a 256 | awk '{print $1}'
 }
 
+completion_number() {
+  printf '%s\n' "$1" | sed -E -n 's/^Task ([1-9][0-9]*): complete \(commits [0-9a-f]{7}\.\.[0-9a-f]{7}, (review clean|[1-9][0-9]* parked)\)$/\1/p'
+}
+
+validate_ledger_completions() {
+  local ledger="$1" allowed="$2" output="$3" line number
+  : > "$output"
+  while IFS= read -r line; do
+    case "$line" in
+      Task\ *:\ complete*)
+        number="$(completion_number "$line")"
+        [ -n "$number" ] || return 1
+        grep -Fqx -- "$number" "$allowed" || return 1
+        ! grep -Fqx -- "$number" "$output" || return 1
+        printf '%s\n' "$number" >> "$output"
+        ;;
+    esac
+  done < "$ledger"
+}
+
 canonical_projection() {
   local input="$1" parent physical
   [ ! -L "$input" ] || return 1
@@ -143,7 +163,7 @@ validate_lineage() {
 }
 
 ledger_completes_projection() {
-  local projection="$1" root="$2" ledger expected completed anchored
+  local projection="$1" root="$2" ledger expected anchored
   ledger="$root/.superpowers/sdd/$(basename "$projection" .md)/progress.md"
   [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
   IFS= read -r expected < "$ledger" || return 1
@@ -152,13 +172,12 @@ ledger_completes_projection() {
   validate_selection_anchor "$projection" "$root" "$anchored" || return 1
   while IFS= read -r number; do
     [ -n "$number" ] || continue
-    completed="$(grep -c "^Task $number: complete$" "$ledger" || true)"
-    [ "$completed" -eq 1 ] || return 1
+    grep -Fqx -- "$number" "${anchored}.completions" || return 1
   done < <(sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$projection")
 }
 
 lineage_completed_ids() {
-  local current="$1" root="$2" output="$3" ledger first map number id completed anchor
+  local current="$1" root="$2" output="$3" ledger first map number id anchor
   : > "$output"
   while [ "$current" != null ]; do
     ledger="$root/.superpowers/sdd/$(basename "$current" .md)/progress.md"
@@ -170,9 +189,7 @@ lineage_completed_ids() {
     number=0
     while IFS= read -r id; do
       number=$((number + 1))
-      completed="$(grep -c "^Task $number: complete$" "$ledger" || true)"
-      [ "$completed" -le 1 ] || return 1
-      if [ "$completed" -eq 1 ] && ! grep -Fqx -- "$id" "$output"; then
+      if grep -Fqx -- "$number" "${anchor}.completions" && ! grep -Fqx -- "$id" "$output"; then
         printf '%s\n' "$id" >> "$output"
       fi
     done < "$anchor"
@@ -181,7 +198,7 @@ lineage_completed_ids() {
 }
 
 validate_selection_anchor() {
-  local projection="$1" root="$2" output="$3" ledger line anchor_count anchor_like headings
+  local projection="$1" root="$2" output="$3" ledger line anchor_count anchor_like headings numbers
   ledger="$root/.superpowers/sdd/$(basename "$projection" .md)/progress.md"
   [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
   IFS= read -r line < "$ledger" || return 1
@@ -198,7 +215,10 @@ validate_selection_anchor() {
   fi
   headings="${output}.headings"
   sed -n 's/^### Task [1-9][0-9]*: \(T[0-9][0-9][0-9]\) .*/\1/p' "$projection" > "$headings"
-  cmp -s "$output" "$headings"
+  cmp -s "$output" "$headings" || return 1
+  numbers="${output}.numbers"
+  sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$projection" > "$numbers"
+  validate_ledger_completions "$ledger" "$numbers" "${output}.completions"
 }
 
 write_selection_ledger() {

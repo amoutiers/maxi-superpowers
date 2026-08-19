@@ -93,6 +93,28 @@ verify_package_bytes() {
   cmp -s "$expected" "$package"
 }
 
+completion_number() {
+  printf '%s\n' "$1" | sed -E -n 's/^Task ([1-9][0-9]*): complete \(commits [0-9a-f]{7}\.\.[0-9a-f]{7}, (review clean|[1-9][0-9]* parked)\)$/\1/p'
+}
+
+validate_projection_completions() {
+  local ledger="$1" projection="$2" line number seen='|'
+  while IFS= read -r line; do
+    case "$line" in
+      Task\ *:\ complete*)
+        number="$(completion_number "$line")"
+        [ -n "$number" ] || return 1
+        [ "$(grep -c "^### Task $number: T[0-9][0-9][0-9] " "$projection" || true)" -eq 1 ] || return 1
+        case "$seen" in *"|$number|"*) return 1 ;; esac
+        seen="$seen$number|"
+        ;;
+    esac
+  done < "$ledger"
+  while IFS= read -r number; do
+    case "$seen" in *"|$number|"*) ;; *) return 1 ;; esac
+  done < <(sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$projection")
+}
+
 WORKTREE='' MERGE_BASE='' PROJECTION='' LEDGER='' FINAL_REVIEW='' SPEC='' TASKS='' OUTPUT=''
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -146,9 +168,7 @@ REVIEWER_IDENTITY="$(canonical_file "$(dirname "$LEDGER")/final-reviewer-dispatc
 IFS= read -r identity_line < "$REVIEWER_IDENTITY" || die 'empty reviewer dispatch identity'
 case "$identity_line" in reviewer_context:\ *) DISPATCH_CONTEXT="${identity_line#reviewer_context: }" ;; *) die 'reviewer dispatch identity is malformed' ;; esac
 valid_context "$DISPATCH_CONTEXT" || die 'invalid persisted reviewer dispatch context'
-while IFS= read -r number; do
-  [ "$(grep -c "^Task $number: complete$" "$LEDGER" || true)" -eq 1 ] || die "ledger does not complete Task $number"
-done < <(sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$PROJECTION")
+validate_projection_completions "$LEDGER" "$PROJECTION" || die 'ledger completion records are incomplete, malformed, duplicated, or unknown'
 PLAN="$(field "$PROJECTION" source_plan 2>/dev/null)" || die 'projection source plan is missing'
 PLAN="$(canonical_file "$PLAN")" || die 'projection source plan is missing, symlinked, or noncanonical'
 [ "$(dirname "$PLAN")" = "$(dirname "$SPEC")" ] || die 'projection source plan is outside the spec root'

@@ -45,6 +45,7 @@ require_literal "$DEVELOP" 'Intercept immediately before upstream workspace dele
 require_literal "$DEVELOP" 'Return the projection lineage and aggregated `Ruling:` lines only together with `READY_TO_FINISH`.' 'result evidence contract is missing'
 require_literal "$DEVELOP" 'return without a success token' 'blocked result can look successful'
 require_literal "$DEVELOP" 'A checkbox alone never acquits a lineage task.' 'lineage can trust a checkbox without predecessor completion'
+require_literal "$DEVELOP" 'Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed.' 'x-develop completion grammar does not match upstream'
 require_literal "$DEVELOP" 'Reconstruct the canonical projection bytes from the bound spec, plan, tasks, and validated selection/lineage ledgers' 'projection verification can self-attest from stored bytes'
 require_literal "$DEVELOP" 'Before any task dispatch, persist the exact initial selected-TNNN set in the ordinary SDD ledger' 'initial task selection is not anchored before dispatch'
 require_literal "$DEVELOP" 'A missing, malformed, duplicate, or mismatched selection anchor fails closed.' 'invalid selection anchors can authorize projection reuse'
@@ -64,6 +65,7 @@ for doc in \
   require_literal "$doc" 'READY_TO_FINISH' "$(basename "$doc") omits the terminal receipt gate"
   require_literal "$doc" 'Upstream SDD owns the only whole-branch review' "$(basename "$doc") keeps ambiguous final-review ownership"
   require_literal "$doc" 'immutable initial task-selection anchor' "$(basename "$doc") omits the selection anchor gate"
+  require_literal "$doc" 'Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed.' "$(basename "$doc") omits the upstream completion grammar gate"
 done
 
 if grep -Fq '**Fresh subagent per dispatch:**' "$DEVELOP" || grep -Fq '**Review loop cap:**' "$DEVELOP"; then

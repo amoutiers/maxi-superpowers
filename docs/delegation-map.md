@@ -18,6 +18,8 @@ This table shows which maxi pipeline skill delegates to which sub-skill, what st
 
 Upstream SDD owns the only whole-branch review. Before dispatch, `/maxi:x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It also binds its harness-issued reviewer identity, regenerates each review package from the recorded Git range, and returns `READY_TO_FINISH` only after its hash-bound terminal receipt validates. `/maxi:implement` owns the sole `done` transition and never dispatches a duplicate review.
 
+Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.
+
 ### External Review Handoffs
 
 | Handoff | Successor gate | Record owner | Status effect |

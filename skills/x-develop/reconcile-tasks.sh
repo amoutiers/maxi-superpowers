@@ -36,6 +36,26 @@ tasks_structural_sha() {
   ' "$1" | shasum -a 256 | awk '{print $1}'
 }
 
+completion_number() {
+  printf '%s\n' "$1" | sed -E -n 's/^Task ([1-9][0-9]*): complete \(commits [0-9a-f]{7}\.\.[0-9a-f]{7}, (review clean|[1-9][0-9]* parked)\)$/\1/p'
+}
+
+validate_ledger_completions() {
+  local ledger="$1" allowed="$2" output="$3" line number
+  : > "$output"
+  while IFS= read -r line; do
+    case "$line" in
+      Task\ *:\ complete*)
+        number="$(completion_number "$line")"
+        [ -n "$number" ] || return 1
+        grep -Fqx -- "$number" "$allowed" || return 1
+        ! grep -Fqx -- "$number" "$output" || return 1
+        printf '%s\n' "$number" >> "$output"
+        ;;
+    esac
+  done < "$ledger"
+}
+
 PROJECTION='' LEDGER='' TASKS=''
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -93,17 +113,13 @@ fi
 
 COMPLETED="$TMP/completed"
 : > "$COMPLETED"
-while IFS= read -r line; do
-  case "$line" in
-    Task\ *:\ complete)
-      number="${line#Task }"; number="${number%: complete}"
-      case "$number" in ''|*[!0-9]*|0) die 'malformed completed ledger entry' ;; esac
-      id="$(awk -F'|' -v number="$number" '$1 == number { print $2 }' "$MAP")"
-      [ -n "$id" ] || die "ledger completes unknown Task $number"
-      grep -Fqx "$id" "$COMPLETED" || printf '%s\n' "$id" >> "$COMPLETED"
-      ;;
-  esac
-done < "$LEDGER"
+cut -d'|' -f1 "$MAP" > "$TMP/allowed-numbers"
+validate_ledger_completions "$LEDGER" "$TMP/allowed-numbers" "$TMP/completed-numbers" || die 'ledger completion record is malformed, duplicated, or unknown'
+while IFS= read -r number; do
+  id="$(awk -F'|' -v number="$number" '$1 == number { print $2 }' "$MAP")"
+  [ -n "$id" ] || die "ledger completes unknown Task $number"
+  printf '%s\n' "$id" >> "$COMPLETED"
+done < "$TMP/completed-numbers"
 
 awk -v completed="$COMPLETED" '
   BEGIN { while ((getline id < completed) > 0) done[id] = 1 }

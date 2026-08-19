@@ -30,6 +30,12 @@ assert_has() { grep -Fq -- "$2" "$1" && ok "$3" || fail "$3" "missing '$2'"; }
 assert_not_has() { ! grep -Fq -- "$2" "$1" && ok "$3" || fail "$3" "unexpected '$2'"; }
 sha() { shasum -a 256 "$1" | awk '{print $1}'; }
 
+COMPLETE_1_CLEAN='Task 1: complete (commits 1111111..2222222, review clean)'
+COMPLETE_1_PARKED='Task 1: complete (commits 1111111..2222222, 2 parked)'
+COMPLETE_2_CLEAN='Task 2: complete (commits 2222222..3333333, review clean)'
+COMPLETE_2_PARKED='Task 2: complete (commits 2222222..3333333, 2 parked)'
+COMPLETE_3_CLEAN='Task 3: complete (commits 3333333..4444444, review clean)'
+
 init_repo() {
   local repo="$1"
   mkdir -p "$repo/docs/maxi/specs/adapter-sample" "$repo/.superpowers/sdd/projections"
@@ -200,7 +206,7 @@ OMITTED_PROJECTION="$PROJECT_OUTPUT"
 OMITTED_TASKS="$OMITTED/docs/maxi/specs/adapter-sample/tasks.md"
 OMITTED_LEDGER="$OMITTED/.superpowers/sdd/$(basename "$OMITTED_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$OMITTED_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nTask 1: complete\n' "$OMITTED_PROJECTION" > "$OMITTED_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\n' "$OMITTED_PROJECTION" "$COMPLETE_1_CLEAN" > "$OMITTED_LEDGER"
 bash "$RECONCILE" --projection "$OMITTED_PROJECTION" --ledger "$OMITTED_LEDGER" --tasks "$OMITTED_TASKS" >/dev/null
 awk '
   /^### Task 1: T001 / { skip = 1; next }
@@ -274,6 +280,27 @@ for anchor_case in absent malformed duplicate mismatch; do
   assert_eq "$(sha "$ANCHOR_PROJECTION")" "$anchor_projection_sha" "$anchor_case selection anchor preserves projection"
 done
 
+# Any completion-like current-ledger record must use one exact upstream form.
+for completion_case in bare duplicate wrong-number bad-sha free-annotation zero-parked suffix; do
+  COMPLETION_REPO="$WORK/completion-$completion_case"
+  init_repo "$COMPLETION_REPO"
+  seed_case "$COMPLETION_REPO"
+  run_project "$COMPLETION_REPO"
+  COMPLETION_PROJECTION="$PROJECT_OUTPUT"
+  COMPLETION_LEDGER="$COMPLETION_REPO/.superpowers/sdd/$(basename "$COMPLETION_PROJECTION" .md)/progress.md"
+  case "$completion_case" in
+    bare) printf 'Task 1: complete\n' >> "$COMPLETION_LEDGER" ;;
+    duplicate) printf '%s\n%s\n' "$COMPLETE_1_CLEAN" "$COMPLETE_1_CLEAN" >> "$COMPLETION_LEDGER" ;;
+    wrong-number) printf 'Task 4: complete (commits 1111111..2222222, review clean)\n' >> "$COMPLETION_LEDGER" ;;
+    bad-sha) printf 'Task 1: complete (commits 111111..2222222, review clean)\n' >> "$COMPLETION_LEDGER" ;;
+    free-annotation) printf 'Task 1: complete (commits 1111111..2222222, locally approved)\n' >> "$COMPLETION_LEDGER" ;;
+    zero-parked) printf 'Task 1: complete (commits 1111111..2222222, 0 parked)\n' >> "$COMPLETION_LEDGER" ;;
+    suffix) printf 'Task 1: complete (commits 1111111..2222222, review clean) trailing\n' >> "$COMPLETION_LEDGER" ;;
+  esac
+  run_project "$COMPLETION_REPO"
+  [ "$PROJECT_STATUS" -ne 0 ] && ok "$completion_case completion record rejects at projection boundary" || fail "$completion_case completion record rejects at projection boundary" 'invalid current-ledger completion was accepted'
+done
+
 # A task checked before first projection is not part of the anchor; completing
 # both selected tasks must still resume the ordinary projection unambiguously.
 PRECHECKED="$WORK/prechecked-resume"
@@ -286,7 +313,7 @@ run_project "$PRECHECKED"
 PRECHECKED_PROJECTION="$PROJECT_OUTPUT"
 PRECHECKED_LEDGER="$PRECHECKED/.superpowers/sdd/$(basename "$PRECHECKED_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$PRECHECKED_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T003\nTask 1: complete\nTask 2: complete\n' "$PRECHECKED_PROJECTION" > "$PRECHECKED_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T003\n%s\n%s\n' "$PRECHECKED_PROJECTION" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$PRECHECKED_LEDGER"
 assert_eq "$(bash "$RECONCILE" --projection "$PRECHECKED_PROJECTION" --ledger "$PRECHECKED_LEDGER" --tasks "$PRECHECKED_TASKS")" 0 'prechecked projection reconciles both selected tasks'
 run_project "$PRECHECKED"
 assert_eq "$PROJECT_STATUS" 0 'prechecked completed projection resumes for whole-branch review'
@@ -338,7 +365,7 @@ run_project "$CORRECT"
 OLD_PROJECTION="$PROJECT_OUTPUT"
 OLD_LEDGER="$CORRECT/.superpowers/sdd/$(basename "$OLD_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$OLD_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nTask 1: complete\nRuling: preserve old evidence\n' "$OLD_PROJECTION" > "$OLD_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\nRuling: preserve old evidence\n' "$OLD_PROJECTION" "$COMPLETE_1_PARKED" > "$OLD_LEDGER"
 bash "$RECONCILE" --projection "$OLD_PROJECTION" --ledger "$OLD_LEDGER" --tasks "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 sed 's/- \[ \] T002/- [x] T002/' "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md" > "$CORRECT/change"
 mv "$CORRECT/change" "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md"
@@ -482,7 +509,7 @@ run_project "$INTERRUPTED"
 INT_PROJECTION="$PROJECT_OUTPUT"
 INT_LEDGER="$INTERRUPTED/.superpowers/sdd/$(basename "$INT_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$INT_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nTask 1: complete\nTask 2: complete\nTask 3: complete\n' "$INT_PROJECTION" > "$INT_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\n%s\n%s\n' "$INT_PROJECTION" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" "$COMPLETE_3_CLEAN" > "$INT_LEDGER"
 remaining="$(bash "$RECONCILE" --projection "$INT_PROJECTION" --ledger "$INT_LEDGER" --tasks "$INTERRUPTED/docs/maxi/specs/adapter-sample/tasks.md")"
 assert_eq "$remaining" 0 'last reconciliation reaches zero pending'
 run_project "$INTERRUPTED"
@@ -498,9 +525,9 @@ RESUME_PROJECTION="$PROJECT_OUTPUT"
 RESUME_TASKS="$RESUME/docs/maxi/specs/adapter-sample/tasks.md"
 RESUME_LEDGER="$RESUME/.superpowers/sdd/$(basename "$RESUME_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$RESUME_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nTask 1: complete\nRuling: keep numbering stable\n' "$RESUME_PROJECTION" > "$RESUME_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\nRuling: keep numbering stable\n' "$RESUME_PROJECTION" "$COMPLETE_1_CLEAN" > "$RESUME_LEDGER"
 foreign_ledger="$WORK/foreign-progress.md"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nTask 1: complete\n' "$RESUME_PROJECTION" > "$foreign_ledger"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\n' "$RESUME_PROJECTION" "$COMPLETE_1_CLEAN" > "$foreign_ledger"
 resume_tasks_before="$(sha "$RESUME_TASKS")"
 set +e
 bash "$RECONCILE" --projection "$RESUME_PROJECTION" --ledger "$foreign_ledger" --tasks "$RESUME_TASKS" >/dev/null 2>&1
@@ -515,11 +542,33 @@ assert_has "$RESUME_TASKS" '- [ ] T003 ' 'first reconciliation leaves T003 pendi
 run_project "$RESUME"
 assert_eq "$PROJECT_OUTPUT" "$RESUME_PROJECTION" 'resume keeps immutable projection'
 assert_has "$RESUME_PROJECTION" '### Task 2: T002 ' 'resume keeps T002 as upstream Task 2'
-printf 'Task 2: complete\n' >> "$RESUME_LEDGER"
+printf '%s\n' "$COMPLETE_2_PARKED" >> "$RESUME_LEDGER"
 assert_eq "$(bash "$RECONCILE" --projection "$RESUME_PROJECTION" --ledger "$RESUME_LEDGER" --tasks "$RESUME_TASKS")" 1 'second reconciliation reports one pending'
 assert_has "$RESUME_TASKS" '- [x] T002 ' 'second reconciliation checks T002'
 assert_eq "$(grep -c '^### Task 3: T003 ' "$RESUME_PROJECTION")" 1 'T003 remains pending exactly once in immutable projection'
 assert_has "$RESUME_LEDGER" 'Ruling: keep numbering stable' 'ledger Ruling persists unchanged'
+
+# Reconciliation rejects bare and malformed completion records before writing.
+for completion_case in bare malformed; do
+  RECONCILE_REPO="$WORK/reconcile-$completion_case"
+  init_repo "$RECONCILE_REPO"
+  seed_case "$RECONCILE_REPO"
+  run_project "$RECONCILE_REPO"
+  RECONCILE_PROJECTION="$PROJECT_OUTPUT"
+  RECONCILE_TASKS="$RECONCILE_REPO/docs/maxi/specs/adapter-sample/tasks.md"
+  RECONCILE_LEDGER="$RECONCILE_REPO/.superpowers/sdd/$(basename "$RECONCILE_PROJECTION" .md)/progress.md"
+  case "$completion_case" in
+    bare) printf 'Task 1: complete\n' >> "$RECONCILE_LEDGER" ;;
+    malformed) printf 'Task 1: complete (commits 1111111..2222222, 0 parked)\n' >> "$RECONCILE_LEDGER" ;;
+  esac
+  reconcile_before="$(sha "$RECONCILE_TASKS")"
+  set +e
+  bash "$RECONCILE" --projection "$RECONCILE_PROJECTION" --ledger "$RECONCILE_LEDGER" --tasks "$RECONCILE_TASKS" >/dev/null 2>&1
+  reconcile_status=$?
+  set -e
+  [ "$reconcile_status" -ne 0 ] && ok "$completion_case completion rejects at reconciliation boundary" || fail "$completion_case completion rejects at reconciliation boundary" 'invalid completion was accepted'
+  assert_eq "$(sha "$RECONCILE_TASKS")" "$reconcile_before" "$completion_case reconciliation leaves tasks byte-identical"
+done
 
 # The skill contract must bind upstream helper calls to the selected worktree.
 WORKSPACE_FROM_FOREIGN="$(cd "$RESUME" && bash "$ROOT/skills/subagent-driven-development/scripts/sdd-workspace" "$RESUME_PROJECTION")"
@@ -543,7 +592,7 @@ run_project "$TERM"
 TERM_OLD="$PROJECT_OUTPUT"
 TERM_OLD_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_OLD" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_OLD_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nTask 1: complete\nRuling: first workspace ruling\n' "$TERM_OLD" > "$TERM_OLD_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\nRuling: first workspace ruling\n' "$TERM_OLD" "$COMPLETE_1_CLEAN" > "$TERM_OLD_LEDGER"
 bash "$RECONCILE" --projection "$TERM_OLD" --ledger "$TERM_OLD_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 sed 's/- \[ \] T002/- [x] T002/' "$TERM/docs/maxi/specs/adapter-sample/tasks.md" > "$TERM/change"
 mv "$TERM/change" "$TERM/docs/maxi/specs/adapter-sample/tasks.md"
@@ -555,7 +604,7 @@ assert_has "$TERM_PROJECTION" '### Task 1: T002 ' 'terminal successor retains ch
 assert_has "$TERM_PROJECTION" '### Task 2: T003 ' 'terminal successor retains remaining pending task'
 TERM_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T002 T003\nTask 1: complete\nTask 2: complete\nRuling: successor workspace ruling\n' "$TERM_PROJECTION" > "$TERM_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T002 T003\n%s\n%s\nRuling: successor workspace ruling\n' "$TERM_PROJECTION" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$TERM_LEDGER"
 bash "$RECONCILE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 printf 'reviewed implementation\n' >> "$TERM/app.txt"
 git -C "$TERM" add app.txt
@@ -648,6 +697,33 @@ forged_status=$?
 set -e
 [ "$forged_status" -ne 0 ] && [ ! -e "$FORGED_RECEIPT" ] && ok 'forged reviewer identity creates no receipt' || fail 'forged reviewer identity creates no receipt' 'arbitrary review context was accepted'
 
+# Receipt creation rejects bare and malformed completion evidence.
+cp "$TERM_LEDGER" "$TERM_LEDGER.canonical"
+for completion_case in bare malformed; do
+  case "$completion_case" in
+    bare)
+      awk -v first="$COMPLETE_1_CLEAN" -v second="$COMPLETE_2_PARKED" '
+        $0 == first { print "Task 1: complete"; next }
+        $0 == second { print "Task 2: complete"; next }
+        { print }
+      ' "$TERM_LEDGER.canonical" > "$TERM_LEDGER"
+      ;;
+    malformed)
+      awk -v first="$COMPLETE_1_CLEAN" '
+        $0 == first { print "Task 1: complete (commits 111111..2222222, review clean)"; next }
+        { print }
+      ' "$TERM_LEDGER.canonical" > "$TERM_LEDGER"
+      ;;
+  esac
+  INVALID_COMPLETION_RECEIPT="$(dirname "$TERM_LEDGER")/$completion_case-completion-receipt.md"
+  set +e
+  bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FINAL_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$INVALID_COMPLETION_RECEIPT" >/dev/null 2>&1
+  invalid_completion_status=$?
+  set -e
+  [ "$invalid_completion_status" -ne 0 ] && [ ! -e "$INVALID_COMPLETION_RECEIPT" ] && ok "$completion_case completion rejects at receipt boundary" || fail "$completion_case completion rejects at receipt boundary" 'invalid completion created a terminal receipt'
+done
+mv "$TERM_LEDGER.canonical" "$TERM_LEDGER"
+
 RECEIPT="$(dirname "$TERM_LEDGER")/terminal-receipt.md"
 bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FINAL_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$RECEIPT"
 [ -f "$RECEIPT" ] && ok 'terminal receipt is created at Finish boundary' || fail 'terminal receipt is created at Finish boundary'
@@ -663,30 +739,47 @@ assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'Ruling: successor workspace ruling
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") "LINEAGE: $TERM_OLD" 'result returns predecessor lineage with success'
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") "LINEAGE: $TERM_PROJECTION" 'result returns current lineage with success'
 
-# Rewriting receipt hashes must not bless semantically incomplete evidence.
-cp "$TERM_LEDGER" "$TERM_LEDGER.saved"
-cp "$RECEIPT" "$RECEIPT.saved"
+# Rewriting receipt hashes must not bless bare, malformed, or incomplete evidence.
+cp "$TERM_LEDGER" "$TERM_LEDGER.canonical"
+cp "$RECEIPT" "$RECEIPT.canonical"
 REHASH_DIR="$(dirname "$RECEIPT")/rehash"
 mkdir -p "$REHASH_DIR"
-grep -v '^Task 2: complete$' "$TERM_LEDGER.saved" > "$TERM_LEDGER"
-new_ledger_sha="$(sha "$TERM_LEDGER")"
-awk -v ledger="$TERM_LEDGER" -v digest="$new_ledger_sha" '
-  $0 == "ledger_sha256: " old { print "ledger_sha256: " digest; next }
-  $0 == "LINEAGE_LEDGER: " ledger { terminal = 1; print; next }
-  terminal && /^LINEAGE_LEDGER_SHA256: / { print "LINEAGE_LEDGER_SHA256: " digest; terminal = 0; next }
-  { print }
-' old="$(sha "$TERM_LEDGER.saved")" "$RECEIPT.saved" > "$RECEIPT"
-grep '^LINEAGE: ' "$RECEIPT" | sed 's/^LINEAGE: //' > "$REHASH_DIR/lineage-projections"
-grep '^LINEAGE_PROJECTION_SHA256: ' "$RECEIPT" | sed 's/^LINEAGE_PROJECTION_SHA256: //' > "$REHASH_DIR/lineage-projection-hashes"
-grep '^LINEAGE_LEDGER: ' "$RECEIPT" | sed 's/^LINEAGE_LEDGER: //' > "$REHASH_DIR/lineage-ledgers"
-grep '^LINEAGE_LEDGER_SHA256: ' "$RECEIPT" | sed 's/^LINEAGE_LEDGER_SHA256: //' > "$REHASH_DIR/lineage-ledger-hashes"
-paste -d'|' "$REHASH_DIR/lineage-projections" "$REHASH_DIR/lineage-projection-hashes" "$REHASH_DIR/lineage-ledgers" "$REHASH_DIR/lineage-ledger-hashes" > "$REHASH_DIR/lineage-rehashed"
-lineage_rehash="$(sha "$REHASH_DIR/lineage-rehashed")"
-sed "s/^lineage_sha256: .*/lineage_sha256: $lineage_rehash/" "$RECEIPT" > "$RECEIPT.tmp" && mv "$RECEIPT.tmp" "$RECEIPT"
-incomplete_rehashed="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT" 2>/dev/null || true)"
-assert_not_has <(printf '%s\n' "$incomplete_rehashed") 'READY_TO_FINISH' 'rehashed incomplete ledger cannot emit ready'
-mv "$TERM_LEDGER.saved" "$TERM_LEDGER"
-mv "$RECEIPT.saved" "$RECEIPT"
+for completion_case in bare malformed incomplete; do
+  case "$completion_case" in
+    bare)
+      awk -v first="$COMPLETE_1_CLEAN" -v second="$COMPLETE_2_PARKED" '
+        $0 == first { print "Task 1: complete"; next }
+        $0 == second { print "Task 2: complete"; next }
+        { print }
+      ' "$TERM_LEDGER.canonical" > "$TERM_LEDGER"
+      ;;
+    malformed)
+      awk -v first="$COMPLETE_1_CLEAN" '
+        $0 == first { print "Task 1: complete (commits 1111111..2222222, 0 parked)"; next }
+        { print }
+      ' "$TERM_LEDGER.canonical" > "$TERM_LEDGER"
+      ;;
+    incomplete) grep -Fvx -- "$COMPLETE_2_PARKED" "$TERM_LEDGER.canonical" > "$TERM_LEDGER" ;;
+  esac
+  new_ledger_sha="$(sha "$TERM_LEDGER")"
+  awk -v ledger="$TERM_LEDGER" -v digest="$new_ledger_sha" -v old="$(sha "$TERM_LEDGER.canonical")" '
+    $0 == "ledger_sha256: " old { print "ledger_sha256: " digest; next }
+    $0 == "LINEAGE_LEDGER: " ledger { terminal = 1; print; next }
+    terminal && /^LINEAGE_LEDGER_SHA256: / { print "LINEAGE_LEDGER_SHA256: " digest; terminal = 0; next }
+    { print }
+  ' "$RECEIPT.canonical" > "$RECEIPT"
+  grep '^LINEAGE: ' "$RECEIPT" | sed 's/^LINEAGE: //' > "$REHASH_DIR/lineage-projections"
+  grep '^LINEAGE_PROJECTION_SHA256: ' "$RECEIPT" | sed 's/^LINEAGE_PROJECTION_SHA256: //' > "$REHASH_DIR/lineage-projection-hashes"
+  grep '^LINEAGE_LEDGER: ' "$RECEIPT" | sed 's/^LINEAGE_LEDGER: //' > "$REHASH_DIR/lineage-ledgers"
+  grep '^LINEAGE_LEDGER_SHA256: ' "$RECEIPT" | sed 's/^LINEAGE_LEDGER_SHA256: //' > "$REHASH_DIR/lineage-ledger-hashes"
+  paste -d'|' "$REHASH_DIR/lineage-projections" "$REHASH_DIR/lineage-projection-hashes" "$REHASH_DIR/lineage-ledgers" "$REHASH_DIR/lineage-ledger-hashes" > "$REHASH_DIR/lineage-rehashed"
+  lineage_rehash="$(sha "$REHASH_DIR/lineage-rehashed")"
+  sed "s/^lineage_sha256: .*/lineage_sha256: $lineage_rehash/" "$RECEIPT" > "$RECEIPT.tmp" && mv "$RECEIPT.tmp" "$RECEIPT"
+  invalid_rehashed="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT" 2>/dev/null || true)"
+  assert_not_has <(printf '%s\n' "$invalid_rehashed") 'READY_TO_FINISH' "rehashed $completion_case ledger cannot emit ready"
+done
+mv "$TERM_LEDGER.canonical" "$TERM_LEDGER"
+mv "$RECEIPT.canonical" "$RECEIPT"
 
 cp "$FINAL_REVIEW" "$FINAL_REVIEW.saved"
 cp "$RECEIPT" "$RECEIPT.saved"

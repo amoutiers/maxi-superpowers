@@ -33,7 +33,9 @@ Before any task dispatch, persist the exact initial selected-TNNN set in the ord
 
 Reconstruct the canonical projection bytes from the bound spec, plan, tasks, and validated selection/lineage ledgers whenever an existing projection is reused. Compare those reconstructed bytes exactly; the projection's stored body hash can detect damage but can never attest its own rewritten content. While projecting task bodies, normalize every accepted backtick fence delimiter to column zero so upstream `task-brief` retains the complete body.
 
-For a successor, only one exact `Task N: complete` line in the validated predecessor ledger acquits the corresponding `TNNN`. A checkbox alone never acquits a lineage task. Project every other `TNNN`, including an item whose Maxi checkbox is already checked.
+Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The two accepted forms are exactly `Task N: complete (commits <7hex>..<7hex>, review clean)` and `Task N: complete (commits <7hex>..<7hex>, <positive K> parked)`. Reject duplicate records, unknown or non-positive task numbers, non-lowercase or non-seven-hex commit IDs, zero parked findings, free-form annotations, and suffixes.
+
+For a successor, only one such record in the validated predecessor ledger acquits the corresponding `TNNN`. A checkbox alone never acquits a lineage task. Project every other `TNNN`, including an item whose Maxi checkbox is already checked.
 
 Never infer a predecessor from chat, directory order, a historical annotation,
 or an arbitrary ledger.
@@ -45,7 +47,7 @@ Change directory to the bound physical Git worktree before every upstream SDD he
 - Reconcile the existing ledger before any resumed dispatch.
 - Invoke and follow `superpowers:subagent-driven-development` with the
   projection as its plan. Use upstream SDD without fix-loop overrides.
-- After upstream records each `Task N: complete`, run `reconcile-tasks.sh`.
+- After upstream records each canonical annotated task completion, run `reconcile-tasks.sh`.
   It checks only the `TNNN` retained in that projected heading. This skill is
   the sole incremental Maxi checkbox owner.
 - If the projection has `execution_mode: final-review-only`, skip task

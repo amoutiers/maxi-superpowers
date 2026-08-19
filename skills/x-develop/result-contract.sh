@@ -109,6 +109,28 @@ verify_package_bytes() {
   cmp -s "$expected" "$package"
 }
 
+completion_number() {
+  printf '%s\n' "$1" | sed -E -n 's/^Task ([1-9][0-9]*): complete \(commits [0-9a-f]{7}\.\.[0-9a-f]{7}, (review clean|[1-9][0-9]* parked)\)$/\1/p'
+}
+
+validate_projection_completions() {
+  local ledger="$1" projection="$2" line number seen='|'
+  while IFS= read -r line; do
+    case "$line" in
+      Task\ *:\ complete*)
+        number="$(completion_number "$line")"
+        [ -n "$number" ] || return 1
+        [ "$(grep -c "^### Task $number: T[0-9][0-9][0-9] " "$projection" || true)" -eq 1 ] || return 1
+        case "$seen" in *"|$number|"*) return 1 ;; esac
+        seen="$seen$number|"
+        ;;
+    esac
+  done < "$ledger"
+  while IFS= read -r number; do
+    case "$seen" in *"|$number|"*) ;; *) return 1 ;; esac
+  done < <(sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$projection")
+}
+
 TASKS_ARG='' RECEIPT=''
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -231,9 +253,7 @@ done < "$TMP/lineage"
 [ "$previous" = "$PROJECTION" ] || quiet_fail 'current projection is not lineage terminal'
 [ "$(tail -1 "$TMP/ledgers")" = "$LEDGER" ] || quiet_fail 'current ledger is not lineage terminal'
 cmp -s "$TMP/rulings.current" "$TMP/rulings.receipt" || quiet_fail 'ruling set changed'
-while IFS= read -r number; do
-  [ "$(grep -c "^Task $number: complete$" "$LEDGER" || true)" -eq 1 ] || quiet_fail "current ledger does not complete Task $number"
-done < <(sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$PROJECTION")
+validate_projection_completions "$LEDGER" "$PROJECTION" || quiet_fail 'current ledger completion records are incomplete, malformed, duplicated, or unknown'
 
 exact_final_review_fields "$FINAL_REVIEW" || quiet_fail 'final review envelope is invalid'
 MERGE_BASE="$(field "$RECEIPT" merge_base)"

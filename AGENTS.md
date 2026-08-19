@@ -58,6 +58,8 @@ Only new specs created through the normal forward pipeline receive this revision
 
 Upstream SDD owns the only whole-branch review. Before dispatch, internal `x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It also owns immutable task projection, ledger reconciliation, persisted harness reviewer identity, byte-exact Git review packages, and the hash-bound terminal receipt. It returns `READY_TO_FINISH` only when all evidence validates. `implement` owns the sole `implementing → done` transition and never dispatches a duplicate final review.
 
+Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.
+
 Skills read this to enforce phase gating. Never bypass it.
 
 ## Pipeline Documentation — Mandatory Sync

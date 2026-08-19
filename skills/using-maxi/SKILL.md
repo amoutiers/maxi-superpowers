@@ -75,6 +75,8 @@ Lifecycle skills act on a spec's status outside the forward flow:
 
 Upstream SDD owns the only whole-branch review. Before dispatch, internal `/maxi:x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It also persists the harness-issued final-reviewer identity before dispatch, regenerates the recorded Git review packages byte-for-byte, and returns `READY_TO_FINISH` only with a valid hash-bound terminal receipt. `/maxi:implement` never dispatches another final review and alone persists `done` after that token.
 
+Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.
+
 - Internal `/maxi:x-review` is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`. It delegates a fresh independent review through `superpowers:requesting-code-review`; approved records are persisted and versioned.
 - For a marker-bound root, `reviews/spec-review.md` must approve the current `spec.md` revision before `/maxi:plan` writes or changes status. Its `reviews/plan-review.md` must approve the current `plan.md` revision before `/maxi:tasks` writes or changes status.
 - A missing, stale, malformed, rejected, or non-independent record blocks only its successor before any write or status transition.
