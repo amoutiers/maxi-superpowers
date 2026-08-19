@@ -1,5 +1,4 @@
-import { readFileSync } from "node:fs";
-import { existsSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -35,7 +34,7 @@ export default function maxiPiExtension(pi: ExtensionAPI) {
 
 	pi.on("context", async (event) => {
 		if (!injectBootstrap) return;
-		if (!existsSync(resolve(process.cwd(), "docs", "maxi"))) return;
+		if (!statSync(resolve(process.cwd(), "docs", "maxi"), { throwIfNoEntry: false })?.isDirectory()) return;
 		if (event.messages.some(messageContainsBootstrap)) return;
 
 		const bootstrap = getBootstrapContent();

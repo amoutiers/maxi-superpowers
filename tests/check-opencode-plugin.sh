@@ -94,9 +94,10 @@ fi
 # Behavior: cache must not let a non-maxi project suppress a later maxi project.
 if command -v node >/dev/null 2>&1; then
   TMP_OC="$(mktemp -d)"
-  mkdir -p "$TMP_OC/maxi/docs/maxi" "$TMP_OC/plain"
-  if node --input-type=module - "$PLUGIN" "$TMP_OC/plain" "$TMP_OC/maxi" <<'NODE'
-const [pluginPath, plainDir, maxiDir] = process.argv.slice(2);
+  mkdir -p "$TMP_OC/maxi/docs/maxi" "$TMP_OC/file/docs" "$TMP_OC/plain"
+  printf '%s\n' 'not a directory' > "$TMP_OC/file/docs/maxi"
+  if node --input-type=module - "$PLUGIN" "$TMP_OC/plain" "$TMP_OC/file" "$TMP_OC/maxi" <<'NODE'
+const [pluginPath, plainDir, fileDir, maxiDir] = process.argv.slice(2);
 const mod = await import(`file://${pluginPath}`);
 
 function output(text) {
@@ -108,6 +109,13 @@ const plainOutput = output('plain');
 await plainPlugin['experimental.chat.messages.transform']({}, plainOutput);
 if (plainOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
   throw new Error('bootstrap injected into non-maxi project');
+}
+
+const filePlugin = await mod.MaxiPlugin({ directory: fileDir });
+const fileOutput = output('file');
+await filePlugin['experimental.chat.messages.transform']({}, fileOutput);
+if (fileOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
+  throw new Error('bootstrap injected when docs/maxi is a file');
 }
 
 const maxiPlugin = await mod.MaxiPlugin({ directory: maxiDir });

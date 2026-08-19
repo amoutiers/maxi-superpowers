@@ -295,8 +295,17 @@ else
 fi
 
 [ ! -L "$OUTPUT" ] || die 'output final component is a symlink'
+OUTPUT_PARENT_INPUT="$(dirname "$OUTPUT")"
+if [ ! -e "$OUTPUT_PARENT_INPUT" ] && [ ! -L "$OUTPUT_PARENT_INPUT" ]; then
+  SDD_PARENT="$(cd -P "$ROOT/.superpowers/sdd" 2>/dev/null && pwd)" || die 'output parent is missing'
+  [ "$SDD_PARENT" = "$ROOT/.superpowers/sdd" ] || die 'output parent escapes the physical SDD root'
+  [ "$OUTPUT_PARENT_INPUT" = "$SDD_PARENT/projections" ] || die 'output parent is missing'
+  mkdir "$OUTPUT_PARENT_INPUT" || die 'cannot create canonical projections directory'
+fi
 OUT_PARENT="$(cd -P "$(dirname "$OUTPUT")" 2>/dev/null && pwd)" || die 'output parent is missing'
 under "$OUT_PARENT" "$ROOT/.superpowers/sdd" || die 'output must stay below .superpowers/sdd'
+PROJECTIONS_PARENT="$(cd -P "$ROOT/.superpowers/sdd/projections" 2>/dev/null && pwd)" || die 'canonical projections directory is missing'
+[ "$PROJECTIONS_PARENT" = "$ROOT/.superpowers/sdd/projections" ] || die 'canonical projections directory escapes the physical SDD root'
 FINAL="$OUT_PARENT/$BASENAME"
 [ ! -L "$FINAL" ] || die 'projection final component is a symlink'
 
@@ -306,8 +315,27 @@ STATE="$STATE_PARENT/$(basename "$STATE")"
 under "$STATE" "$ROOT/.superpowers/sdd" || die 'state file must stay below .superpowers/sdd'
 
 WORKSPACE="$ROOT/.superpowers/sdd/$(basename "$FINAL" .md)"
-if [ ! -e "$STATE" ] && { [ -e "$FINAL" ] || [ -e "$WORKSPACE" ] || [ -L "$WORKSPACE" ]; }; then
-  die 'orphan projection or workspace exists without active pointer'
+if [ ! -e "$STATE" ]; then
+  for orphan in "$PROJECTIONS_PARENT"/*; do
+    [ -e "$orphan" ] || [ -L "$orphan" ] || continue
+    orphan_name="$(basename "$orphan")"
+    case "$orphan_name" in
+      "$SLUG"-p-*)
+        orphan_identity="${orphan_name#"$SLUG-p-"}"
+        printf '%s\n' "$orphan_identity" | grep -Eq '^(r[1-9][0-9]*-[0-9a-f]{12}-t-r[1-9][0-9]*-[0-9a-f]{12}|legacy-[0-9a-f]{12}-t-legacy-[0-9a-f]{12})-sdd\.md$' && die 'orphan projection or workspace exists without active pointer'
+        ;;
+    esac
+  done
+  for orphan in "$ROOT/.superpowers/sdd"/*; do
+    [ -e "$orphan" ] || [ -L "$orphan" ] || continue
+    orphan_name="$(basename "$orphan")"
+    case "$orphan_name" in
+      "$SLUG"-p-*)
+        orphan_identity="${orphan_name#"$SLUG-p-"}"
+        printf '%s\n' "$orphan_identity" | grep -Eq '^(r[1-9][0-9]*-[0-9a-f]{12}-t-r[1-9][0-9]*-[0-9a-f]{12}|legacy-[0-9a-f]{12}-t-legacy-[0-9a-f]{12})-sdd$' && die 'orphan projection or workspace exists without active pointer'
+        ;;
+    esac
+  done
 fi
 
 PREDECESSOR=null

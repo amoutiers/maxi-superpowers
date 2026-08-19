@@ -97,6 +97,22 @@ assert_rejected_without_projection() {
   fi
 }
 
+# The documented first invocation creates its canonical projections parent.
+FIRST_RUN="$WORK/first-run"
+init_repo "$FIRST_RUN"
+seed_case "$FIRST_RUN"
+rmdir "$FIRST_RUN/.superpowers/sdd/projections"
+run_project "$FIRST_RUN"
+if [ "$PROJECT_STATUS" -eq 0 ]; then
+  ok 'first run creates the canonical projections directory'
+  [ -d "$FIRST_RUN/.superpowers/sdd/projections" ] && ok 'first run creates projections parent as a directory' || fail 'first run creates projections parent as a directory'
+  [ -f "$PROJECT_OUTPUT" ] && ok 'first run creates its projection' || fail 'first run creates its projection'
+  [ -f "$FIRST_RUN/.superpowers/sdd/$(basename "$PROJECT_OUTPUT" .md)/progress.md" ] && ok 'first run creates its ledger and workspace' || fail 'first run creates its ledger and workspace'
+  [ -f "$FIRST_RUN/.superpowers/sdd/active-adapter-sample" ] && ok 'first run creates its active pointer' || fail 'first run creates its active pointer'
+else
+  fail 'first run creates the canonical projections directory' "$PROJECT_OUTPUT"
+fi
+
 REPO="$WORK/projection-repo"
 init_repo "$REPO"
 seed_case "$REPO"
@@ -172,6 +188,43 @@ run_project "$ORPHAN"
 assert_eq "$(sha "$ORPHAN_PROJECTION")" "$orphan_projection_before" 'orphan projection bytes stay immutable'
 assert_eq "$(sha "$ORPHAN_LEDGER")" "$orphan_ledger_before" 'orphan ledger bytes stay immutable'
 
+# An older same-slug identity remains an orphan after a structural source
+# change computes a different deterministic projection and workspace.
+ORPHAN_OTHER_IDENTITY="$WORK/orphan-other-identity"
+init_repo "$ORPHAN_OTHER_IDENTITY"
+seed_case "$ORPHAN_OTHER_IDENTITY"
+run_project "$ORPHAN_OTHER_IDENTITY"
+ORPHAN_OLD_PROJECTION="$PROJECT_OUTPUT"
+ORPHAN_OLD_LEDGER="$ORPHAN_OTHER_IDENTITY/.superpowers/sdd/$(basename "$ORPHAN_OLD_PROJECTION" .md)/progress.md"
+ORPHAN_OTHER_STATE="$ORPHAN_OTHER_IDENTITY/.superpowers/sdd/active-adapter-sample"
+orphan_old_projection_before="$(sha "$ORPHAN_OLD_PROJECTION")"
+orphan_old_ledger_before="$(sha "$ORPHAN_OLD_LEDGER")"
+orphan_projection_count_before="$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd/projections" -mindepth 1 -maxdepth 1 -name 'adapter-sample-p-*-sdd.md' | wc -l | tr -d ' ')"
+orphan_workspace_count_before="$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd" -mindepth 1 -maxdepth 1 -name 'adapter-sample-p-*-sdd' | wc -l | tr -d ' ')"
+mv "$ORPHAN_OTHER_STATE" "$ORPHAN_OTHER_IDENTITY/pointer.saved"
+sed 's/Write the second file/Write the structurally changed second file/' "$ORPHAN_OTHER_IDENTITY/docs/maxi/specs/adapter-sample/tasks.md" > "$ORPHAN_OTHER_IDENTITY/change"
+mv "$ORPHAN_OTHER_IDENTITY/change" "$ORPHAN_OTHER_IDENTITY/docs/maxi/specs/adapter-sample/tasks.md"
+run_project "$ORPHAN_OTHER_IDENTITY"
+[ "$PROJECT_STATUS" -ne 0 ] && ok 'different-digest same-slug orphan rejects without active pointer' || fail 'different-digest same-slug orphan rejects without active pointer' 'a successor identity and pointer were created'
+[ ! -e "$ORPHAN_OTHER_STATE" ] && ok 'different-digest orphan leaves pointer absent' || fail 'different-digest orphan leaves pointer absent' 'pointer was recreated'
+assert_eq "$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd/projections" -mindepth 1 -maxdepth 1 -name 'adapter-sample-p-*-sdd.md' | wc -l | tr -d ' ')" "$orphan_projection_count_before" 'different-digest orphan creates no projection'
+assert_eq "$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd" -mindepth 1 -maxdepth 1 -name 'adapter-sample-p-*-sdd' | wc -l | tr -d ' ')" "$orphan_workspace_count_before" 'different-digest orphan creates no workspace'
+assert_eq "$(sha "$ORPHAN_OLD_PROJECTION")" "$orphan_old_projection_before" 'different-digest orphan preserves old projection bytes'
+assert_eq "$(sha "$ORPHAN_OLD_LEDGER")" "$orphan_old_ledger_before" 'different-digest orphan preserves old ledger bytes'
+
+# A dangling projection symlink with a valid same-slug identity is also orphan
+# state and must not be hidden by -e returning false.
+ORPHAN_SYMLINK="$WORK/orphan-symlink"
+init_repo "$ORPHAN_SYMLINK"
+seed_case "$ORPHAN_SYMLINK"
+ORPHAN_LINK="$ORPHAN_SYMLINK/.superpowers/sdd/projections/adapter-sample-p-legacy-aaaaaaaaaaaa-t-legacy-bbbbbbbbbbbb-sdd.md"
+ln -s "$ORPHAN_SYMLINK/missing" "$ORPHAN_LINK"
+run_project "$ORPHAN_SYMLINK"
+[ "$PROJECT_STATUS" -ne 0 ] && ok 'same-slug orphan symlink rejects without active pointer' || fail 'same-slug orphan symlink rejects without active pointer' 'a fresh projection and pointer were created'
+[ -L "$ORPHAN_LINK" ] && ok 'same-slug orphan symlink stays unchanged' || fail 'same-slug orphan symlink stays unchanged'
+[ ! -e "$ORPHAN_SYMLINK/.superpowers/sdd/active-adapter-sample" ] && ok 'same-slug orphan symlink leaves pointer absent' || fail 'same-slug orphan symlink leaves pointer absent'
+assert_eq "$(find "$ORPHAN_SYMLINK/.superpowers/sdd/projections" -mindepth 1 -maxdepth 1 -type f -name 'adapter-sample-p-*-sdd.md' | wc -l | tr -d ' ')" 0 'same-slug orphan symlink creates no regular projection'
+
 ORPHAN_WORKSPACE="$WORK/orphan-workspace"
 init_repo "$ORPHAN_WORKSPACE"
 seed_case "$ORPHAN_WORKSPACE"
@@ -185,6 +238,17 @@ mv "$ORPHAN_WORKSPACE_DIR/progress.md" "$ORPHAN_WORKSPACE_DIR/progress.md.saved"
 run_project "$ORPHAN_WORKSPACE"
 [ "$PROJECT_STATUS" -ne 0 ] && ok 'orphan workspace rejects without active pointer' || fail 'orphan workspace rejects without active pointer' 'existing workspace was reused as fresh state'
 [ ! -e "$ORPHAN_WORKSPACE_STATE" ] && [ ! -e "$ORPHAN_WORKSPACE_PROJECTION" ] && ok 'orphan workspace creates no projection or pointer' || fail 'orphan workspace creates no projection or pointer'
+
+# Exact slug matching must not treat an adapter-sample orphan as adapter state.
+PREFIX_SLUG="$WORK/prefix-slug"
+init_repo "$PREFIX_SLUG"
+seed_case "$PREFIX_SLUG" marker adapter-sample
+run_project "$PREFIX_SLUG" adapter-sample
+mv "$PREFIX_SLUG/.superpowers/sdd/active-adapter-sample" "$PREFIX_SLUG/pointer.saved"
+seed_case "$PREFIX_SLUG" marker adapter
+run_project "$PREFIX_SLUG" adapter
+assert_eq "$PROJECT_STATUS" 0 'another slug with a shared prefix remains fresh'
+[ -f "$PREFIX_SLUG/.superpowers/sdd/active-adapter" ] && ok 'shared-prefix slug gets its own active pointer' || fail 'shared-prefix slug gets its own active pointer'
 
 # The real upstream extractor must retain every complete projected body.
 for task_number in 1 2 3; do
