@@ -148,6 +148,7 @@ validate_lineage() {
   while [ "$current" != null ]; do
     verify_projection "$current" "$expected_slug" || return 1
     under "$current" "$expected_root/.superpowers/sdd" || return 1
+    validate_projection_anchor "$current" "$expected_root" || return 1
     [ "$(projection_field "$current" source_spec 2>/dev/null)" = "$expected_spec" ] || return 1
     source_plan="$(projection_field "$current" source_plan 2>/dev/null)" || return 1
     [ "$(resolve_file "$source_plan" 2>/dev/null)" = "$source_plan" ] || return 1
@@ -160,6 +161,18 @@ validate_lineage() {
     fi
     current="$predecessor"
   done
+}
+
+validate_projection_anchor() {
+  local projection="$1" root="$2" ledger count like line
+  ledger="$root/.superpowers/sdd/$(basename "$projection" .md)/progress.md"
+  [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
+  count="$(grep -c '^Maxi projection SHA256:' "$ledger" || true)"
+  like="$(grep -c '^Maxi projection SHA256' "$ledger" || true)"
+  [ "$count" -eq 1 ] && [ "$like" -eq 1 ] || return 1
+  line="$(grep '^Maxi projection SHA256:' "$ledger")"
+  printf '%s\n' "$line" | grep -Eq '^Maxi projection SHA256: [0-9a-f]{64}$' || return 1
+  [ "$line" = "Maxi projection SHA256: $(sha "$projection")" ]
 }
 
 ledger_completes_projection() {
@@ -201,6 +214,7 @@ validate_selection_anchor() {
   local projection="$1" root="$2" output="$3" ledger line anchor_count anchor_like headings numbers
   ledger="$root/.superpowers/sdd/$(basename "$projection" .md)/progress.md"
   [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
+  validate_projection_anchor "$projection" "$root" || return 1
   IFS= read -r line < "$ledger" || return 1
   [ "$line" = "# SDD ledger — plan: $projection" ] || return 1
   anchor_count="$(grep -c '^Maxi selection:' "$ledger" || true)"
@@ -222,7 +236,7 @@ validate_selection_anchor() {
 }
 
 write_selection_ledger() {
-  local projection="$1" selected="$2" output="$3" anchor
+  local projection="$1" selected="$2" output="$3" projection_bytes="$4" anchor
   if [ -s "$selected" ]; then
     anchor="$(awk 'BEGIN { printf "Maxi selection:" } { printf " %s", $0 } END { print "" }' "$selected")"
   else
@@ -231,6 +245,7 @@ write_selection_ledger() {
   {
     printf '# SDD ledger — plan: %s\n' "$projection"
     printf '%s\n' "$anchor"
+    printf 'Maxi projection SHA256: %s\n' "$(sha "$projection_bytes")"
   } > "$output"
 }
 
@@ -548,7 +563,7 @@ else
   LEDGER="$WORKSPACE/progress.md"
   [ ! -e "$LEDGER" ] && [ ! -L "$LEDGER" ] || die 'fresh projection workspace already has a ledger'
   TEMP_LEDGER="$(mktemp "$WORKSPACE/.progress.XXXXXX")"
-  write_selection_ledger "$FINAL" "$SELECTED_IDS" "$TEMP_LEDGER"
+  write_selection_ledger "$FINAL" "$SELECTED_IDS" "$TEMP_LEDGER" "$EXPECTED_PROJECTION"
   TEMP_PROJECTION="$(mktemp "$OUT_PARENT/.projection.XXXXXX")"
   cp "$EXPECTED_PROJECTION" "$TEMP_PROJECTION"
   mv "$TEMP_PROJECTION" "$FINAL"

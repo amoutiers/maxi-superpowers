@@ -6,6 +6,7 @@ LC_ALL=C
 export LC_ALL
 
 die() { echo "ERROR: $*" >&2; exit 2; }
+sha() { shasum -a 256 "$1" | awk '{print $1}'; }
 under() { case "$1" in "$2"|"$2"/*) return 0 ;; *) return 1 ;; esac; }
 
 canonical_file() {
@@ -81,6 +82,10 @@ under "$PROJECTION" "$ROOT/.superpowers/sdd" || die 'projection escapes the boun
 under "$TASKS" "$ROOT" || die 'tasks escape the bound worktree'
 expected_ledger="$ROOT/.superpowers/sdd/$(basename "$PROJECTION" .md)/progress.md"
 [ "$LEDGER" = "$expected_ledger" ] || die 'ledger is outside the projection workspace'
+projection_anchor_count="$(grep -c '^Maxi projection SHA256:' "$LEDGER" || true)"
+projection_anchor_like="$(grep -c '^Maxi projection SHA256' "$LEDGER" || true)"
+[ "$projection_anchor_count" -eq 1 ] && [ "$projection_anchor_like" -eq 1 ] || die 'ledger projection-byte anchor is missing or duplicated'
+[ "$(grep '^Maxi projection SHA256:' "$LEDGER")" = "Maxi projection SHA256: $(sha "$PROJECTION")" ] || die 'ledger projection-byte anchor is malformed or mismatched'
 [ "$(dirname "$SPEC")" = "$(dirname "$TASKS")" ] || die 'tasks do not belong to projection spec root'
 [ "$(field "$PROJECTION" tasks_structural_sha256 2>/dev/null)" = "$(tasks_structural_sha "$TASKS")" ] || die 'tasks structural identity mismatch'
 stored_body="$(field "$PROJECTION" projection_body_sha256 2>/dev/null)" || die 'projection body hash missing'

@@ -49,11 +49,14 @@ require_literal "$DEVELOP" 'Only canonical annotated upstream completion records
 require_literal "$DEVELOP" 'Reconstruct the canonical projection bytes from the bound spec, plan, tasks, and validated selection/lineage ledgers' 'projection verification can self-attest from stored bytes'
 require_literal "$DEVELOP" 'Before any task dispatch, persist the exact initial selected-TNNN set in the ordinary SDD ledger' 'initial task selection is not anchored before dispatch'
 require_literal "$DEVELOP" 'A missing, malformed, duplicate, or mismatched selection anchor fails closed.' 'invalid selection anchors can authorize projection reuse'
+require_literal "$DEVELOP" "Every projection's exact distributed bytes are SHA-256-bound by its ordinary SDD ledger" 'projection bytes are not anchored outside the projection'
+require_literal "$DEVELOP" 'Removing an anchored incomplete `TNNN` during structural correction fails before successor creation and leaves the active-projection pointer unchanged.' 'structural correction can erase an incomplete anchored task'
+require_literal "$DEVELOP" 'Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.' 'ruling evidence is not preserved and hash-bound'
 require_literal "$DEVELOP" 'normalize every accepted backtick fence delimiter to column zero' 'projection does not preserve upstream task-brief extraction'
 require_literal "$DEVELOP" "Regenerate each review package with upstream's \`review-package\` helper" 'review packages are not compared with their Git ranges'
 require_literal "$DEVELOP" 'Before dispatching the final reviewer, persist the harness-issued reviewer context' 'reviewer dispatch identity is not persisted before dispatch'
 require_literal "$DEVELOP" 'If the harness exposes no verifiable reviewer context, stop without a success token.' 'missing harness reviewer identity is not fail closed'
-require_literal "$DEVELOP" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.`' 'final verdict paths do not match upstream review grammar'
+require_literal "$DEVELOP" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage`.' 'final verdict paths do not match upstream review grammar'
 
 # The changed implementation/review boundary must be visible in every Mandatory Sync 5 surface.
 for doc in \
@@ -66,7 +69,10 @@ for doc in \
   require_literal "$doc" 'Upstream SDD owns the only whole-branch review' "$(basename "$doc") keeps ambiguous final-review ownership"
   require_literal "$doc" 'immutable initial task-selection anchor' "$(basename "$doc") omits the selection anchor gate"
   require_literal "$doc" 'Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed.' "$(basename "$doc") omits the upstream completion grammar gate"
-  require_literal "$doc" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.`' "$(basename "$doc") omits the conditional final-review gate"
+  require_literal "$doc" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage`.' "$(basename "$doc") omits the conditional final-review gate"
+  require_literal "$doc" "Every projection's exact distributed bytes are SHA-256-bound by its ordinary SDD ledger; missing, duplicate, malformed, or mismatched projection-byte anchors fail closed across the current and predecessor lineage." "$(basename "$doc") omits the projection-byte anchor gate"
+  require_literal "$doc" 'Removing an anchored incomplete `TNNN` during structural correction fails before successor creation and leaves the active-projection pointer unchanged.' "$(basename "$doc") omits the anchored-task removal gate"
+  require_literal "$doc" 'Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.' "$(basename "$doc") omits the ruling evidence contract"
 done
 
 if grep -Fq '**Fresh subagent per dispatch:**' "$DEVELOP" || grep -Fq '**Review loop cap:**' "$DEVELOP"; then

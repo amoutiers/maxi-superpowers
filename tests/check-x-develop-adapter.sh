@@ -147,6 +147,8 @@ PROJECTION_LEDGER="$REPO/.superpowers/sdd/$(basename "$PROJECTION" .md)/progress
 assert_eq "$(sed -n '1p' "$PROJECTION_LEDGER")" "# SDD ledger — plan: $PROJECTION" 'selection ledger keeps upstream plan identity'
 assert_eq "$(grep -c '^Maxi selection:' "$PROJECTION_LEDGER")" 1 'selection ledger has one canonical anchor'
 assert_eq "$(sed -n '2p' "$PROJECTION_LEDGER")" 'Maxi selection: T001 T002 T003' 'selection ledger anchors the exact initial set'
+assert_eq "$(grep -c '^Maxi projection SHA256:' "$PROJECTION_LEDGER")" 1 'selection ledger has one projection-byte anchor'
+assert_eq "$(sed -n '3p' "$PROJECTION_LEDGER")" "Maxi projection SHA256: $(sha "$PROJECTION")" 'ledger anchors the exact distributed projection bytes'
 selection_ledger_hash="$(sha "$PROJECTION_LEDGER")"
 UPSTREAM_WORKSPACE="$(cd "$REPO" && bash "$ROOT/skills/subagent-driven-development/scripts/sdd-workspace" "$PROJECTION")"
 assert_eq "$UPSTREAM_WORKSPACE" "$(dirname "$PROJECTION_LEDGER")" 'upstream workspace accepts anchored ordinary ledger'
@@ -197,6 +199,30 @@ run_project "$TAMPERED"
 [ "$PROJECT_STATUS" -ne 0 ] && ok 'rewritten projection with recomputed self-hash is rejected' || fail 'rewritten projection with recomputed self-hash is rejected' 'command accepted forged canonical bytes'
 assert_eq "$(sha "$TAMPERED_PROJECTION")" "$tampered_projection_sha" 'forged existing projection is never regenerated'
 
+# A predecessor cannot attest forged bytes by updating only its internal body
+# hash before a structural correction creates a successor.
+FORGED_PREDECESSOR="$WORK/forged-predecessor"
+init_repo "$FORGED_PREDECESSOR"
+seed_case "$FORGED_PREDECESSOR"
+run_project "$FORGED_PREDECESSOR"
+FORGED_PREDECESSOR_PROJECTION="$PROJECT_OUTPUT"
+FORGED_PREDECESSOR_STATE="$FORGED_PREDECESSOR/.superpowers/sdd/active-adapter-sample"
+sed 's/Write the complete first task body\./Write a forged predecessor task body./' "$FORGED_PREDECESSOR_PROJECTION" > "$FORGED_PREDECESSOR/change"
+mv "$FORGED_PREDECESSOR/change" "$FORGED_PREDECESSOR_PROJECTION"
+forged_predecessor_body_sha="$(awk '
+  NR == 1 && $0 == "---" { fm = 1; next }
+  fm && $0 == "---" { fm = 0; next }
+  !fm { print }
+' "$FORGED_PREDECESSOR_PROJECTION" | shasum -a 256 | awk '{print $1}')"
+sed "s/^projection_body_sha256: .*/projection_body_sha256: $forged_predecessor_body_sha/" "$FORGED_PREDECESSOR_PROJECTION" > "$FORGED_PREDECESSOR/change"
+mv "$FORGED_PREDECESSOR/change" "$FORGED_PREDECESSOR_PROJECTION"
+sed 's/Write the second file/Write the structurally corrected second file/' "$FORGED_PREDECESSOR/docs/maxi/specs/adapter-sample/tasks.md" > "$FORGED_PREDECESSOR/change"
+mv "$FORGED_PREDECESSOR/change" "$FORGED_PREDECESSOR/docs/maxi/specs/adapter-sample/tasks.md"
+run_project "$FORGED_PREDECESSOR"
+[ "$PROJECT_STATUS" -ne 0 ] && ok 'rehashed forged predecessor rejects before successor creation' || fail 'rehashed forged predecessor rejects before successor creation' 'forged predecessor authorized a successor'
+assert_eq "$(cat "$FORGED_PREDECESSOR_STATE")" "$FORGED_PREDECESSOR_PROJECTION" 'forged predecessor keeps the active pointer unchanged'
+assert_eq "$(find "$FORGED_PREDECESSOR/.superpowers/sdd/projections" -type f -name '*-sdd.md' | wc -l | tr -d ' ')" 1 'forged predecessor creates no successor projection'
+
 # The projection cannot define its own selected-task set after reconciliation.
 OMITTED="$WORK/omitted-selected-task"
 init_repo "$OMITTED"
@@ -206,7 +232,7 @@ OMITTED_PROJECTION="$PROJECT_OUTPUT"
 OMITTED_TASKS="$OMITTED/docs/maxi/specs/adapter-sample/tasks.md"
 OMITTED_LEDGER="$OMITTED/.superpowers/sdd/$(basename "$OMITTED_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$OMITTED_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\n' "$OMITTED_PROJECTION" "$COMPLETE_1_CLEAN" > "$OMITTED_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\n' "$OMITTED_PROJECTION" "$(sha "$OMITTED_PROJECTION")" "$COMPLETE_1_CLEAN" > "$OMITTED_LEDGER"
 bash "$RECONCILE" --projection "$OMITTED_PROJECTION" --ledger "$OMITTED_LEDGER" --tasks "$OMITTED_TASKS" >/dev/null
 awk '
   /^### Task 1: T001 / { skip = 1; next }
@@ -267,7 +293,7 @@ for anchor_case in absent malformed duplicate mismatch; do
   ANCHOR_PROJECTION="$PROJECT_OUTPUT"
   ANCHOR_LEDGER="$ANCHOR_REPO/.superpowers/sdd/$(basename "$ANCHOR_PROJECTION" .md)/progress.md"
   mkdir -p "$(dirname "$ANCHOR_LEDGER")"
-  printf '# SDD ledger — plan: %s\n' "$ANCHOR_PROJECTION" > "$ANCHOR_LEDGER"
+  printf '# SDD ledger — plan: %s\nMaxi projection SHA256: %s\n' "$ANCHOR_PROJECTION" "$(sha "$ANCHOR_PROJECTION")" > "$ANCHOR_LEDGER"
   case "$anchor_case" in
     absent) ;;
     malformed) printf 'Maxi selection: T001,T002,T003\n' >> "$ANCHOR_LEDGER" ;;
@@ -278,6 +304,28 @@ for anchor_case in absent malformed duplicate mismatch; do
   run_project "$ANCHOR_REPO"
   [ "$PROJECT_STATUS" -ne 0 ] && ok "$anchor_case selection anchor rejects" || fail "$anchor_case selection anchor rejects" 'invalid selection anchor was accepted'
   assert_eq "$(sha "$ANCHOR_PROJECTION")" "$anchor_projection_sha" "$anchor_case selection anchor preserves projection"
+done
+
+# Every reused projection requires one exact byte anchor in its ordinary
+# ledger, independent from the projection's self-reported body hash.
+for projection_anchor_case in absent malformed duplicate mismatch; do
+  PROJECTION_ANCHOR_REPO="$WORK/projection-anchor-$projection_anchor_case"
+  init_repo "$PROJECTION_ANCHOR_REPO"
+  seed_case "$PROJECTION_ANCHOR_REPO"
+  run_project "$PROJECTION_ANCHOR_REPO"
+  PROJECTION_ANCHOR_PROJECTION="$PROJECT_OUTPUT"
+  PROJECTION_ANCHOR_STATE="$PROJECTION_ANCHOR_REPO/.superpowers/sdd/active-adapter-sample"
+  PROJECTION_ANCHOR_LEDGER="$PROJECTION_ANCHOR_REPO/.superpowers/sdd/$(basename "$PROJECTION_ANCHOR_PROJECTION" .md)/progress.md"
+  case "$projection_anchor_case" in
+    absent) grep -Fv 'Maxi projection SHA256:' "$PROJECTION_ANCHOR_LEDGER" > "$PROJECTION_ANCHOR_REPO/change" ;;
+    malformed) sed 's/^Maxi projection SHA256: .*/Maxi projection SHA256: malformed/' "$PROJECTION_ANCHOR_LEDGER" > "$PROJECTION_ANCHOR_REPO/change" ;;
+    duplicate) { cat "$PROJECTION_ANCHOR_LEDGER"; printf 'Maxi projection SHA256: %s\n' "$(sha "$PROJECTION_ANCHOR_PROJECTION")"; } > "$PROJECTION_ANCHOR_REPO/change" ;;
+    mismatch) sed 's/^Maxi projection SHA256: .*/Maxi projection SHA256: 0000000000000000000000000000000000000000000000000000000000000000/' "$PROJECTION_ANCHOR_LEDGER" > "$PROJECTION_ANCHOR_REPO/change" ;;
+  esac
+  mv "$PROJECTION_ANCHOR_REPO/change" "$PROJECTION_ANCHOR_LEDGER"
+  run_project "$PROJECTION_ANCHOR_REPO"
+  [ "$PROJECT_STATUS" -ne 0 ] && ok "$projection_anchor_case projection-byte anchor rejects" || fail "$projection_anchor_case projection-byte anchor rejects" 'invalid projection-byte anchor was accepted'
+  assert_eq "$(cat "$PROJECTION_ANCHOR_STATE")" "$PROJECTION_ANCHOR_PROJECTION" "$projection_anchor_case projection-byte anchor keeps active pointer"
 done
 
 # Any completion-like current-ledger record must use one exact upstream form.
@@ -313,7 +361,7 @@ run_project "$PRECHECKED"
 PRECHECKED_PROJECTION="$PROJECT_OUTPUT"
 PRECHECKED_LEDGER="$PRECHECKED/.superpowers/sdd/$(basename "$PRECHECKED_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$PRECHECKED_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T003\n%s\n%s\n' "$PRECHECKED_PROJECTION" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$PRECHECKED_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T003\nMaxi projection SHA256: %s\n%s\n%s\n' "$PRECHECKED_PROJECTION" "$(sha "$PRECHECKED_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$PRECHECKED_LEDGER"
 assert_eq "$(bash "$RECONCILE" --projection "$PRECHECKED_PROJECTION" --ledger "$PRECHECKED_LEDGER" --tasks "$PRECHECKED_TASKS")" 0 'prechecked projection reconciles both selected tasks'
 run_project "$PRECHECKED"
 assert_eq "$PROJECT_STATUS" 0 'prechecked completed projection resumes for whole-branch review'
@@ -365,7 +413,7 @@ run_project "$CORRECT"
 OLD_PROJECTION="$PROJECT_OUTPUT"
 OLD_LEDGER="$CORRECT/.superpowers/sdd/$(basename "$OLD_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$OLD_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\nRuling: preserve old evidence\n' "$OLD_PROJECTION" "$COMPLETE_1_PARKED" > "$OLD_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\nRuling: preserve old evidence\n' "$OLD_PROJECTION" "$(sha "$OLD_PROJECTION")" "$COMPLETE_1_PARKED" > "$OLD_LEDGER"
 bash "$RECONCILE" --projection "$OLD_PROJECTION" --ledger "$OLD_LEDGER" --tasks "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 sed 's/- \[ \] T002/- [x] T002/' "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md" > "$CORRECT/change"
 mv "$CORRECT/change" "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md"
@@ -530,7 +578,7 @@ run_project "$INTERRUPTED"
 INT_PROJECTION="$PROJECT_OUTPUT"
 INT_LEDGER="$INTERRUPTED/.superpowers/sdd/$(basename "$INT_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$INT_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\n%s\n%s\n' "$INT_PROJECTION" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" "$COMPLETE_3_CLEAN" > "$INT_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\n%s\n%s\n' "$INT_PROJECTION" "$(sha "$INT_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" "$COMPLETE_3_CLEAN" > "$INT_LEDGER"
 remaining="$(bash "$RECONCILE" --projection "$INT_PROJECTION" --ledger "$INT_LEDGER" --tasks "$INTERRUPTED/docs/maxi/specs/adapter-sample/tasks.md")"
 assert_eq "$remaining" 0 'last reconciliation reaches zero pending'
 run_project "$INTERRUPTED"
@@ -546,9 +594,9 @@ RESUME_PROJECTION="$PROJECT_OUTPUT"
 RESUME_TASKS="$RESUME/docs/maxi/specs/adapter-sample/tasks.md"
 RESUME_LEDGER="$RESUME/.superpowers/sdd/$(basename "$RESUME_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$RESUME_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\nRuling: keep numbering stable\n' "$RESUME_PROJECTION" "$COMPLETE_1_CLEAN" > "$RESUME_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\nRuling: keep numbering stable\n' "$RESUME_PROJECTION" "$(sha "$RESUME_PROJECTION")" "$COMPLETE_1_CLEAN" > "$RESUME_LEDGER"
 foreign_ledger="$WORK/foreign-progress.md"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\n' "$RESUME_PROJECTION" "$COMPLETE_1_CLEAN" > "$foreign_ledger"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\n' "$RESUME_PROJECTION" "$(sha "$RESUME_PROJECTION")" "$COMPLETE_1_CLEAN" > "$foreign_ledger"
 resume_tasks_before="$(sha "$RESUME_TASKS")"
 set +e
 bash "$RECONCILE" --projection "$RESUME_PROJECTION" --ledger "$foreign_ledger" --tasks "$RESUME_TASKS" >/dev/null 2>&1
@@ -613,7 +661,7 @@ run_project "$TERM"
 TERM_OLD="$PROJECT_OUTPUT"
 TERM_OLD_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_OLD" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_OLD_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\n%s\nTask 1: parked — deferred option — Ruling: first workspace ruling\n' "$TERM_OLD" "$COMPLETE_1_CLEAN" > "$TERM_OLD_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\nTask 1: parked — deferred option — Ruling: first workspace ruling\n' "$TERM_OLD" "$(sha "$TERM_OLD")" "$COMPLETE_1_CLEAN" > "$TERM_OLD_LEDGER"
 bash "$RECONCILE" --projection "$TERM_OLD" --ledger "$TERM_OLD_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 sed 's/- \[ \] T002/- [x] T002/' "$TERM/docs/maxi/specs/adapter-sample/tasks.md" > "$TERM/change"
 mv "$TERM/change" "$TERM/docs/maxi/specs/adapter-sample/tasks.md"
@@ -625,7 +673,7 @@ assert_has "$TERM_PROJECTION" '### Task 1: T002 ' 'terminal successor retains ch
 assert_has "$TERM_PROJECTION" '### Task 2: T003 ' 'terminal successor retains remaining pending task'
 TERM_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T002 T003\n%s\n%s\nTask 2: Ruling: successor workspace ruling\n' "$TERM_PROJECTION" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$TERM_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T002 T003\nMaxi projection SHA256: %s\n%s\n%s\nTask 2: Ruling: successor workspace ruling\n' "$TERM_PROJECTION" "$(sha "$TERM_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$TERM_LEDGER"
 bash "$RECONCILE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 printf 'reviewed implementation\n' >> "$TERM/app.txt"
 git -C "$TERM" add app.txt
@@ -925,24 +973,38 @@ awk -v head="$FIXED_HEAD" -v tree="$FIXED_TREE" -v package="$FIX_PACKAGE" -v dig
   /^fix_review_package_sha256: / { print "fix_review_package_sha256: " digest; next }
   /^\*\*Ready to merge\?\*\* Yes$/ {
     print "**Ready to merge?** With fixes"
-    print "**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation."
+    print "**Fix round:** All findings addressed, no new Critical/Important breakage"
     next
   }
   { print }
 ' "$FINAL_REVIEW" > "$FIX_REVIEW"
 FIX_RECEIPT="$(dirname "$TERM_LEDGER")/terminal-fix-receipt.md"
-bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FIX_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$FIX_RECEIPT"
-FIX_RESULT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$FIX_RECEIPT")"
-assert_has <(printf '%s\n' "$FIX_RESULT") 'READY_TO_FINISH' 'byte-exact fix package and canonical re-review conclusion emit ready'
+set +e
+bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FIX_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$FIX_RECEIPT" >/dev/null 2>&1
+fix_receipt_status=$?
+set -e
+if [ "$fix_receipt_status" -eq 0 ] && [ -f "$FIX_RECEIPT" ]; then
+  ok 'exact upstream fix-round conclusion creates receipt'
+  FIX_RESULT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$FIX_RECEIPT")"
+  assert_has <(printf '%s\n' "$FIX_RESULT") 'READY_TO_FINISH' 'byte-exact fix package and exact upstream re-review conclusion emit ready'
+else
+  fail 'exact upstream fix-round conclusion creates receipt' 'valid upstream evidence was rejected'
+fi
 
-for fix_verdict_case in missing-conclusion malformed-conclusion mixed-ready no-initial-with-fixes; do
+for fix_verdict_case in missing-conclusion local-suffix duplicate-conclusion mixed-ready no-initial-with-fixes reordered-conclusion; do
   BAD_FIX_REVIEW="$FIX_REVIEW.$fix_verdict_case"
   case "$fix_verdict_case" in
-    missing-conclusion) grep -Fvx -- '**Fix round:** All findings addressed, no new Critical/Important breakage, no out-of-scope observation.' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
-    malformed-conclusion) sed 's/no out-of-scope observation\./no new observation./' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
+    missing-conclusion) grep -Fvx -- '**Fix round:** All findings addressed, no new Critical/Important breakage' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
+    local-suffix) sed 's/no new Critical\/Important breakage$/no new Critical\/Important breakage, no out-of-scope observation./' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
+    duplicate-conclusion) { cat "$FIX_REVIEW"; printf '%s\n' '**Fix round:** All findings addressed, no new Critical/Important breakage'; } > "$BAD_FIX_REVIEW" ;;
     mixed-ready) sed '/^\*\*Ready to merge?\*\* With fixes$/a\
 **Ready to merge?** Yes' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
     no-initial-with-fixes) sed 's/^\*\*Ready to merge?\*\* With fixes$/\*\*Ready to merge?\*\* No/' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
+    reordered-conclusion) awk '
+      /^\*\*Ready to merge\?\*\* With fixes$/ { ready = $0; next }
+      /^\*\*Fix round:\*\* All findings addressed, no new Critical\/Important breakage$/ { print; print ready; next }
+      { print }
+    ' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
   esac
   BAD_FIX_RECEIPT="$(dirname "$TERM_LEDGER")/$fix_verdict_case-receipt.md"
   set +e
@@ -952,15 +1014,17 @@ for fix_verdict_case in missing-conclusion malformed-conclusion mixed-ready no-i
   [ "$bad_fix_status" -ne 0 ] && [ ! -e "$BAD_FIX_RECEIPT" ] && ok "$fix_verdict_case fix-review evidence rejects" || fail "$fix_verdict_case fix-review evidence rejects" 'invalid fix-review evidence created a receipt'
 done
 
-cp "$FIX_REVIEW" "$FIX_REVIEW.saved"
-cp "$FIX_RECEIPT" "$FIX_RECEIPT.saved"
-sed 's/no out-of-scope observation\./no new observation./' "$FIX_REVIEW.saved" > "$FIX_REVIEW"
-fix_review_rehash="$(sha "$FIX_REVIEW")"
-sed "s/^final_review_sha256: .*/final_review_sha256: $fix_review_rehash/" "$FIX_RECEIPT.saved" > "$FIX_RECEIPT"
-malformed_fix_result="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$FIX_RECEIPT" 2>/dev/null || true)"
-assert_not_has <(printf '%s\n' "$malformed_fix_result") 'READY_TO_FINISH' 'rehashed malformed fix conclusion cannot emit ready'
-mv "$FIX_REVIEW.saved" "$FIX_REVIEW"
-mv "$FIX_RECEIPT.saved" "$FIX_RECEIPT"
+if [ -f "$FIX_RECEIPT" ]; then
+  cp "$FIX_REVIEW" "$FIX_REVIEW.saved"
+  cp "$FIX_RECEIPT" "$FIX_RECEIPT.saved"
+  sed 's/no new Critical\/Important breakage$/no new Critical\/Important breakage, no out-of-scope observation./' "$FIX_REVIEW.saved" > "$FIX_REVIEW"
+  fix_review_rehash="$(sha "$FIX_REVIEW")"
+  sed "s/^final_review_sha256: .*/final_review_sha256: $fix_review_rehash/" "$FIX_RECEIPT.saved" > "$FIX_RECEIPT"
+  malformed_fix_result="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$FIX_RECEIPT" 2>/dev/null || true)"
+  assert_not_has <(printf '%s\n' "$malformed_fix_result") 'READY_TO_FINISH' 'rehashed local-suffix conclusion cannot emit ready'
+  mv "$FIX_REVIEW.saved" "$FIX_REVIEW"
+  mv "$FIX_RECEIPT.saved" "$FIX_RECEIPT"
+fi
 
 if [ "$failures" -gt 0 ]; then
   echo "FAILED: $failures x-develop adapter checks failed" >&2
