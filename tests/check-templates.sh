@@ -108,6 +108,14 @@ check_template \
   "--" \
   "## Format:" "## Path Conventions"
 assert_grep "$ROOT/skills/tasks/tasks-template.md" '^  - <direct-input-path>@<exact-revision>$' "tasks-template.md: direct input revisions"
+if grep '^- \[[ xX]\] T\(XXX\|[0-9][0-9][0-9]\) ' "$ROOT/skills/tasks/tasks-template.md" | grep -Ev '\(plan Task [1-9][0-9]*\)$' >/dev/null; then
+  echo "FAIL [tasks-template.md: terminal plan mapping]: every sample task needs one terminal plan Task N mapping" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [tasks-template.md: terminal plan mapping]"
+fi
+assert_grep "$ROOT/skills/tasks/SKILL.md" 'exactly one terminal `(plan Task <positive integer>)` mapping' "tasks: exact terminal plan mapping contract"
+assert_grep "$ROOT/skills/tasks/SKILL.md" 'bijection.*`plan.md`.*`Task N`' "tasks: plan mapping is bijective"
 
 # review-template
 check_template \

@@ -25,11 +25,12 @@ derived_from:
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-## Format: `[ID] [P?] [Story] Description`
+## Format: `[ID] [P?] [Story] Description (plan Task N)`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
+- End every task with its unique source-plan mapping: `(plan Task N)`
 
 ## Path Conventions
 
@@ -58,9 +59,9 @@ derived_from:
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project structure per implementation plan
-- [ ] T002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [P] Configure linting and formatting tools
+- [ ] T001 Create project structure per implementation plan (plan Task 1)
+- [ ] T002 Initialize [language] project with [framework] dependencies (plan Task 2)
+- [ ] T003 [P] Configure linting and formatting tools (plan Task 3)
 
 ---
 
@@ -72,12 +73,12 @@ derived_from:
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T004 Setup database schema and migrations framework (plan Task 4)
+- [ ] T005 [P] Implement authentication/authorization framework (plan Task 5)
+- [ ] T006 [P] Setup API routing and middleware structure (plan Task 6)
+- [ ] T007 Create base models/entities that all stories depend on (plan Task 7)
+- [ ] T008 Configure error handling and logging infrastructure (plan Task 8)
+- [ ] T009 Setup environment configuration management (plan Task 9)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -93,17 +94,17 @@ Examples of foundational tasks (adjust based on your project):
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].<ext>
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].<ext>
+- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].<ext> (plan Task 10)
+- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].<ext> (plan Task 11)
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create [Entity1] model in <src>/models/[entity1].<ext>
-- [ ] T013 [P] [US1] Create [Entity2] model in <src>/models/[entity2].<ext>
-- [ ] T014 [US1] Implement [Service] in <src>/services/[service].<ext> (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in <src>/[location]/[file].<ext>
-- [ ] T016 [US1] Add validation and error handling
-- [ ] T017 [US1] Add logging for user story 1 operations
+- [ ] T012 [P] [US1] Create [Entity1] model in <src>/models/[entity1].<ext> (plan Task 12)
+- [ ] T013 [P] [US1] Create [Entity2] model in <src>/models/[entity2].<ext> (plan Task 13)
+- [ ] T014 [US1] Implement [Service] in <src>/services/[service].<ext> (depends on T012, T013) (plan Task 14)
+- [ ] T015 [US1] Implement [endpoint/feature] in <src>/[location]/[file].<ext> (plan Task 15)
+- [ ] T016 [US1] Add validation and error handling (plan Task 16)
+- [ ] T017 [US1] Add logging for user story 1 operations (plan Task 17)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -117,15 +118,15 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Tests for User Story 2
 
-- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].<ext>
-- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].<ext>
+- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].<ext> (plan Task 18)
+- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].<ext> (plan Task 19)
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Create [Entity] model in <src>/models/[entity].<ext>
-- [ ] T021 [US2] Implement [Service] in <src>/services/[service].<ext>
-- [ ] T022 [US2] Implement [endpoint/feature] in <src>/[location]/[file].<ext>
-- [ ] T023 [US2] Integrate with User Story 1 components (if needed)
+- [ ] T020 [P] [US2] Create [Entity] model in <src>/models/[entity].<ext> (plan Task 20)
+- [ ] T021 [US2] Implement [Service] in <src>/services/[service].<ext> (plan Task 21)
+- [ ] T022 [US2] Implement [endpoint/feature] in <src>/[location]/[file].<ext> (plan Task 22)
+- [ ] T023 [US2] Integrate with User Story 1 components (if needed) (plan Task 23)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -139,14 +140,14 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].<ext>
-- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].<ext>
+- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].<ext> (plan Task 24)
+- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].<ext> (plan Task 25)
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create [Entity] model in <src>/models/[entity].<ext>
-- [ ] T027 [US3] Implement [Service] in <src>/services/[service].<ext>
-- [ ] T028 [US3] Implement [endpoint/feature] in <src>/[location]/[file].<ext>
+- [ ] T026 [P] [US3] Create [Entity] model in <src>/models/[entity].<ext> (plan Task 26)
+- [ ] T027 [US3] Implement [Service] in <src>/services/[service].<ext> (plan Task 27)
+- [ ] T028 [US3] Implement [endpoint/feature] in <src>/[location]/[file].<ext> (plan Task 28)
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -160,12 +161,12 @@ Examples of foundational tasks (adjust based on your project):
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] TXXX [P] Documentation updates in docs/
-- [ ] TXXX Code cleanup and refactoring
-- [ ] TXXX Performance optimization across all stories
-- [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
-- [ ] TXXX Security hardening
-- [ ] TXXX Run quickstart.md validation
+- [ ] TXXX [P] Documentation updates in docs/ (plan Task 29)
+- [ ] TXXX Code cleanup and refactoring (plan Task 30)
+- [ ] TXXX Performance optimization across all stories (plan Task 31)
+- [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/ (plan Task 32)
+- [ ] TXXX Security hardening (plan Task 33)
+- [ ] TXXX Run quickstart.md validation (plan Task 34)
 
 ---
 

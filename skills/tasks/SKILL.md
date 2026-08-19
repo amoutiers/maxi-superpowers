@@ -23,7 +23,7 @@ Extract or explicitly correct a structured `tasks.md` from an existing `plan.md`
 2. **Validate the plan review** — only when the root carries the exact `replay_contract: bounded-v1` marker, apply the complete independent-review gate below before extracting any task.
 3. **Map tasks to user stories** — for each user story in `spec.md`, collect the tasks from `plan.md` that implement it. Tag each task with `[US1]`, `[US2]`, etc.
 4. **Identify parallel tasks** — mark with `[P]` any task that touches different files from all other tasks in the same phase (no shared-file writes, no dependency on concurrent tasks)
-5. **Assign sequential IDs** — number all tasks `T001`, `T002`, ... in phase order. No letters, no "Task N", no "Step N".
+5. **Assign sequential IDs and source mappings** — number all tasks `T001`, `T002`, ... in phase order. Preserve exactly one terminal `(plan Task <positive integer>)` mapping on every extracted item, naming the source `plan.md` `Task N` heading. Require a bijection between `plan.md` executable `Task N` headings and those mappings. No letters, no "Task N" IDs, and no "Step N" IDs.
 6. **Structure into phases** — verify `tasks-template.md` exists (Read tool) before proceeding; if missing, stop: *"Cannot proceed — `tasks-template.md` is missing. Please reinstall the maxi plugin."* Then follow the template:
    - Phase 1: Setup (project init, no deps)
    - Phase 2: Foundational (blocks all user stories — CRITICAL warning)
@@ -92,9 +92,9 @@ On a later structural owner write, increment only `tasks.md`, replace its `write
 ## Task Format
 
 ```
-- [ ] T001 [P] [US1] Create [Entity] model in src/models/entity.py
-- [ ] T002 [US1] Implement [Service] in src/services/service.py (depends on T001)
-- [ ] T003 [P] [US2] Create [OtherEntity] model in src/models/other.py
+- [ ] T001 [P] [US1] Create [Entity] model in src/models/entity.py (plan Task 1)
+- [ ] T002 [US1] Implement [Service] in src/services/service.py (depends on T001) (plan Task 2)
+- [ ] T003 [P] [US2] Create [OtherEntity] model in src/models/other.py (plan Task 3)
 ```
 
 Rules:
@@ -149,6 +149,7 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 - **Apply [P] and [USN] markers even if plan.md already has checkboxes.** If plan.md has flat task items, you MUST restructure them: add phase grouping, add `[USN]` labels, identify `[P]` markers. Copying plan.md verbatim is NOT acceptable — it will be missing structure.
 - **Every task needs a story label.** If a task doesn't belong to a user story (Setup/Foundational/Polish), omit `[USN]` label. All implementation tasks for a user story MUST have one.
 - **IDs are sequential and numeric.** T001–T999. Never T1, Task 1, Step A.
+- **Source mappings are terminal and bijective.** Every task ends with exactly one `(plan Task N)` mapping, and every executable `plan.md` `Task N` heading is mapped exactly once.
 - **Parallel markers require no shared files.** If two tasks touch the same file, neither gets `[P]`.
 - **MVP Checkpoint after Phase 3 (US1).** Always mark the P1 user story checkpoint as the MVP.
 - **Phase structure is required even for single-story features.** One user story = at minimum: Setup → Foundational → Phase 3 (US1) → Polish. A flat list with no phases is never acceptable.

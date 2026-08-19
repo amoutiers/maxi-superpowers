@@ -19,14 +19,14 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 ## Process
 
 1. **Validate independent analysis** — activate this future-only contract only when the root `spec.md` carries exactly one exact `replay_contract: bounded-v1` root marker. Revision metadata alone never activates it. An unmarked existing, migrated, reverse-engineered, or pre-mechanism spec keeps the prior implementation behavior; a duplicate or non-exact marker is malformed and stops before any write. For an eligible root, apply the complete gate below on every invocation, including a resume from `implementing`.
-2. **Read tasks.md** — load all tasks from `docs/maxi/specs/NNNN-slug/tasks.md`. Identify which are `- [ ]` (pending) vs `- [x]` (complete). If resuming, start from first pending task.
+2. **Bind artifacts** — load the selected root's canonical `spec.md`, `plan.md`, and `tasks.md`. Identify `- [ ]` (pending) and `- [x]` (complete) tasks. Pass the exact canonical `spec.md`, `plan.md`, and `tasks.md` paths to `/maxi:x-develop`.
 3. **Transition to implementing** — update spec.md frontmatter `status: → implementing`; also set `updated: [today's ISO date]` on spec.md. Do this before first task begins.
-4. **Delegate to /maxi:x-develop** — **REQUIRED SUB-SKILL.** Pass the full tasks.md content and the spec context (feature slug, plan.md overview). Do NOT implement tasks directly in this session.
-5. **Track task completion** — as each task completes, tick it in tasks.md: `- [ ] T001` → `- [x] T001`.
-6. **ADR nudge on unplanned forks** — if `/maxi:x-develop` (via subagents) surfaces a decision that wasn't in plan.md — the subagent reports "had to choose between X and Y" or "plan didn't specify Z so I chose W" — invoke `/maxi:x-adr` with the choice details. The ADR skill will draft, show, and wait for user consent. Implementation continues regardless of whether the user accepts or declines the ADR. Do not block task completion on ADR capture.
-7. **Run code review** — after all tasks complete, invoke `/maxi:requesting-code-review`. **This step is mandatory and cannot be skipped.**
-8. **Transition to done** — verify ALL tasks in tasks.md are ticked (`- [x]`). Count remaining `- [ ]` items. If count > 0, do not transition — report which tasks remain. Only when count is 0: update spec.md frontmatter `status: implementing → done` and set `updated: [today's ISO date]`.
-9. **Report** — *"Implementation complete. All tasks done. Status: `done`."*
+4. **Delegate to /maxi:x-develop** — **REQUIRED SUB-SKILL.** Pass those three paths. Do NOT implement tasks directly in this session. `x-develop` owns projection, incremental reconciliation, upstream SDD, and the whole-branch review.
+5. **Consume the result** — Do not tick task checkboxes in this skill; `x-develop` is the one incremental checkbox owner. Do not dispatch another code review; upstream SDD already owns the final review. Accept only the exact `READY_TO_FINISH` token together with its projection lineage and aggregated `Ruling:` lines. Any other result leaves the spec at `implementing` and stops without branch finishing.
+6. **ADR nudge on rulings** — for a returned `Ruling:` that records an architectural choice absent from `plan.md`, invoke `/maxi:x-adr`. The ADR skill drafts and requests its own consent. Do not rewrite the ruling or its SDD evidence.
+7. **Transition to done** — after `READY_TO_FINISH`, reread `tasks.md` and require every canonical task to be checked. Count remaining `- [ ]` items. If any remain, stop. Otherwise persist `status: implementing → done` and today's `updated:` value.
+8. **Finish the branch** — retain the returned projection lineage and aggregated `Ruling:` lines until branch/worktree completion, and invoke `superpowers:finishing-a-development-branch` only after the `done` write is persisted.
+9. **Report** — *"Implementation complete. All tasks done. Status: `done`."* Include the retained lineage and rulings in the finishing handoff.
 
 ## Independent Analysis Gate
 
@@ -41,10 +41,12 @@ An absent, malformed, stale, failed, or non-independent analysis fails closed. S
 ## Critical Rules
 
 - **x-develop delegation is mandatory.** Do NOT implement tasks inline. Implementing tasks directly in this session is a violation — the full x-develop workflow (TDD, subagents, verification) is required. There is no "faster path".
-- **Update tasks.md incrementally.** Tick each task as it completes — not in a batch at the end.
+- **One checkbox owner.** `x-develop` reconciles tasks.md incrementally from the upstream ledger. Do not tick task checkboxes in this skill.
 - **Both statuses required.** `implementing` during work; `done` only when ALL `- [ ]` items become `- [x]`.
 - **Verify all tasks before done.** Count remaining `- [ ]` items before transitioning to `done`. If any remain, do not set done.
-- **Code review is not optional.** The user cannot waive `/maxi:requesting-code-review`. If they say "skip the review", explain it is required and run it anyway.
+- **One final review owner.** Upstream SDD runs the mandatory whole-branch review. Never dispatch a duplicate review from `implement`.
+- **Receipt result is mandatory.** Only exact `READY_TO_FINISH` authorizes `implementing → done`.
+- **Finish after done.** Branch/worktree finishing is unreachable until `done` is persisted.
 - **Independent analysis is a pre-write gate.** Status alone is not evidence. Validate the persisted current passing analysis before every new or resumed implementation.
 
 ## Resuming Interrupted Implementation
@@ -53,7 +55,7 @@ If status is already `implementing`:
 - Re-run the independent analysis gate against the current artifacts; stop if it no longer passes
 - Read tasks.md to find the first `- [ ]` (unchecked) task
 - Resume from there — skip all `- [x]` tasks
-- Complete the process through step 8 normally
+- Pass the exact artifact paths to `x-develop`, then complete the receipt-gated process normally
 
 ## Artifact reference links
 
@@ -68,17 +70,17 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 - Starting implementation without checking for `- [ ]` vs `- [x]` → read tasks.md first
 - Implementing tasks directly instead of invoking `/maxi:x-develop` → delegate; never inline
 - Setting `status: done` before counting `- [ ]` items → count first, transition only if count is 0
-- Skipping `requesting-code-review` → always run it; user cannot waive it
+- Dispatching another review after x-develop returns → do not duplicate upstream's final review
 - Not transitioning to `implementing` before first task → set it immediately before any code is written
 
 ## Rationalization Counters
 
 | Rationalization | Counter |
 |---|---|
-| "I know this code works, we can skip the review" | Code review is mandatory. User assertion of working code does not waive it. Run `/maxi:requesting-code-review` regardless. |
+| "I know this code works, we can skip the review" | Upstream SDD's whole-branch review and hash-bound receipt are mandatory. No chat assertion replaces them. |
 | "x-develop is too slow / heavyweight for this task" | There is no lightweight path. x-develop is the only acceptable delegation. Inline implementation is a violation. |
 | "The user told me all tasks are done, I'll just set status to done" | You must count `- [ ]` items in tasks.md yourself. User assertion is not sufficient. If count > 0, do not transition. |
-| "I'll tick all tasks at the end for efficiency" | Tasks must be ticked incrementally as each one completes. Batch-ticking at the end is not acceptable. |
+| "I'll tick tasks here too for safety" | Two checkbox owners race. Only x-develop reconciles upstream ledger completion into tasks.md. |
 | "Status is already implementing, I'll restart from T001 to be safe" | Resuming means starting from the first `- [ ]` task. Do NOT redo completed (`- [x]`) tasks. |
 | "The user says analyze would find nothing, so I can skip it" | User predictions don't replace the analysis phase. `/maxi:analyze` is fast and non-destructive — run it. The pipeline is strict precisely to prevent this class of shortcut. |
 | "The plan looks solid, analyze is just ceremony here" | If a phase has its own skill, it has its own responsibility. The plan looking solid is not a substitute for the audit. |
