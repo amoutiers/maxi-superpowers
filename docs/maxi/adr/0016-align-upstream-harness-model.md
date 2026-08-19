@@ -1,12 +1,12 @@
 ---
 adr: 0016
 slug: 0016-align-upstream-harness-model
-status: accepted
+status: superseded
 created: 2026-07-04
 updated: 2026-07-04
 decider: "Antoine Moutiers"
 supersedes: 0015
-superseded_by: null
+superseded_by: 0021
 ---
 
 # ADR-0016: Align Upstream Harness Model 1:1 with superpowers v6.1.1
