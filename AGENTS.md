@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.3.0 harness model (Claude Code · Codex · OpenCode · Antigravity · Cursor · Pi; plus Kimi Code, Factory Droid, and GitHub Copilot CLI via marketplace docs). It vendors superpowers' skills via git subtree and adds 19 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 3 internal pipeline skills (`x-adr`, `x-develop`, `x-review`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
+maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.3.0 harness model: Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. It vendors superpowers' skills via git subtree and adds 19 maxi-native skills: 12 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 3 internal pipeline skills (`x-adr`, `x-develop`, `x-review`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
 
 ## Git
 
@@ -58,6 +58,8 @@ Only new specs created through the normal forward pipeline receive this revision
 
 Upstream SDD owns the only whole-branch review. Before dispatch, internal `x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It also owns immutable task projection, ledger reconciliation, persisted harness reviewer identity, byte-exact Git review packages, and the hash-bound terminal receipt. It returns `READY_TO_FINISH` only when all evidence validates. `implement` owns the sole `implementing → done` transition and never dispatches a duplicate final review.
 
+The 19 Maxi-native skills remain in place; the 10-state FSM remains unchanged. `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
+
 Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.
 
 Skills read this to enforce phase gating. Never bypass it.
@@ -90,23 +92,25 @@ Run `bash tests/run-all.sh` after changes.
 - `check-implement-handoff.sh` — `implement`/`x-develop` ownership and Mandatory Sync 5 terminal-gate contracts remain aligned
 - `check-x-review.sh` — `x-review` preserves the independent review envelope, provenance validation, and versioned record contract
 - `check-skills-present.sh` — all 19 maxi-native skills and targeted support files exist
+- `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
+- `check-declarative-harnesses.sh` — Cursor, Kimi, Devin, and Gemini manifests match `package.json`, Kimi/Gemini bootstrap wiring is complete, and Pi remains project-gated
+- `check-hermes-plugin.sh` — Hermes registers every skill, injects the short first-turn bootstrap only in Maxi projects, and stays below the 10,000-character limit
 - `check-codex-plugin.sh` — `.codex-plugin/plugin.json` (`hooks: {}`), `.agents/plugins/marketplace.json`, and `plugins/maxi` are valid for Codex plugin installation
 - `check-hooks.sh` — `hooks/hooks.json` (Claude Code + Antigravity) and `hooks/hooks-cursor.json` manifests are valid; the unified `hooks/session-start` exists, is executable, and emits the right JSON shape per harness; stale per-harness wrappers and the `.antigravity-plugin/` directory are gone
 - `check-cursor-hooks.sh` — `hooks/hooks-cursor.json` is a valid Cursor `sessionStart` manifest invoking `hooks/session-start`
 - `check-vendored-doc.sh` — `VENDORED.md` has required version/date lines (regression guard for `bump-superpowers.sh`)
 - `check-sync-script.sh` — `sync-superpowers.sh` copies vendor skills and leaves maxi-native skills untouched
 - `check-bump-script.sh` — `_update-vendored-md.sh` correctly updates version and date lines
-- `check-opencode-plugin.sh` — `.opencode/plugins/maxi.js` exports required hooks, has bootstrap caching and conditional injection
-- `check-pi-extension.sh` — `.pi/extensions/maxi.ts` and `package.json` `pi` section are valid (Pi harness packaging)
-- `check-bootstrap-parity.sh` — the `<EXTREMELY_IMPORTANT>` bootstrap preamble is identical across `hooks/session-start`, `.opencode/plugins/maxi.js`, and `.pi/extensions/maxi.ts`
-- `check-integration-harness.sh` — optional Codex integration harness stays runnable on macOS without GNU `timeout`, keeps prompt discovery guarded, and verifies one completed JSONL command result read the byte-checked installed skill snapshot
-- `test-codex-timeout.sh` — macOS Perl deadline-supervisor regression runs in the fast tier, including material plugin staging and timeout status 124
-- `check-doc-consistency-skill.sh` — local doc-consistency skills stay aligned with the Mandatory Sync 5 rule
-- `check-release-skill.sh` — local release skill keeps the fast-tier and doc-consistency pre-flight gates
-- `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly
 - `check-migrate-from-speckit.sh` — `migrate-from-speckit` detects `.specify/` and migrates non-destructively
 - `check-migrate-from-brownfield.sh` — `migrate-from-brownfield`'s `brownfield.sh` (guard / write-spec / exclude) behaves correctly
+- `check-opencode-plugin.sh` — `.opencode/plugins/maxi.js` exports required hooks, has bootstrap caching and conditional injection
+- `check-bootstrap-parity.sh` — the `<EXTREMELY_IMPORTANT>` bootstrap preamble is identical across `hooks/session-start`, `.opencode/plugins/maxi.js`, and `.pi/extensions/maxi.ts`
+- `check-pi-extension.sh` — `.pi/extensions/maxi.ts` and `package.json` `pi` section are valid (Pi harness packaging)
+- `check-integration-harness.sh` — optional Codex integration harness stays runnable on macOS without GNU `timeout`, keeps prompt discovery guarded, and verifies one completed JSONL command result read the byte-checked installed skill snapshot
+- `integration/test-codex-timeout.sh` — macOS Perl deadline-supervisor regression runs in the fast tier, including material plugin staging and timeout status 124
+- `check-doc-consistency-skill.sh` — local doc-consistency skills stay aligned with the Mandatory Sync 5 rule
+- `check-release-skill.sh` — release instructions keep the fast-tier/doc-consistency gates, bump and stage all eight manifests, derive the plugin name from `.claude-plugin/plugin.json`, and leave marketplace pinning in commit 2
 - `check-skill-count.sh` — maxi-native skill count and documented review/replay contracts match the filesystem and Mandatory Sync 5
 - `check-status-consistency.sh` — the 10 FSM statuses are consistent across spec-template, board, and AGENTS.md
 - `check-artifact-link-convention.sh` — the duplicated artifact-link block is byte-identical to the canonical fixture

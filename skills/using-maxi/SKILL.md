@@ -59,7 +59,7 @@ Each skill enforces the required status strictly:
 | `/maxi:plan` | `clarified`; for marker-bound roots, current approved `reviews/spec-review.md` | none | `planned` |
 | `/maxi:tasks` | `planned`; for marker-bound roots, current approved `reviews/plan-review.md` | none | `tasked` |
 | `/maxi:analyze` | `tasked`+ | re-run ok on `analyzed`/`implementing`/`done` | `analyzed` |
-| `/maxi:implement` | `analyzed` | none | `implementing`; `READY_TO_FINISH` receipt gate; then `done` |
+| `/maxi:implement` | `analyzed` or `implementing` (resume) | resume revalidates the analysis and continues the existing SDD projection | `analyzed → implementing`; `READY_TO_FINISH` receipt gate; then `implementing → done` |
 
 Lifecycle skills act on a spec's status outside the forward flow:
 
@@ -72,6 +72,8 @@ Lifecycle skills act on a spec's status outside the forward flow:
 | `/maxi:revise` | `clarified` through `implementing` | rolls back to `clarified`/`planned`/`tasked`/`analyzed`; exceptional `specified` rollback for a source-spec gap |
 
 ## External Review Handoffs and Replay
+
+The 19 Maxi-native skills remain in place; the 10-state FSM remains unchanged. `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 
 Upstream SDD owns the only whole-branch review. Before dispatch, internal `/maxi:x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It also persists the harness-issued final-reviewer identity before dispatch, regenerates the recorded Git review packages byte-for-byte, and returns `READY_TO_FINISH` only with a valid hash-bound terminal receipt. `/maxi:implement` never dispatches another final review and alone persists `done` after that token.
 
@@ -124,5 +126,7 @@ Adopting maxi on an existing project (github-spec-kit, a brownfield codebase, or
 If your harness appears here, read its reference file for special instructions (they live with the vendored `using-superpowers` skill at `skills/using-superpowers/references/`):
 
 - Codex: `skills/using-superpowers/references/codex-tools.md`
+- Gemini CLI: `skills/using-superpowers/references/gemini-tools.md`
+- Hermes Agent: `skills/using-superpowers/references/hermes-tools.md`
 - Pi: `skills/using-superpowers/references/pi-tools.md`
 - Antigravity: `skills/using-superpowers/references/antigravity-tools.md`

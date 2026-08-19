@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Validates hooks manifests and the unified session-start hook.
-# Model aligned 1:1 with superpowers v6.1.1:
+# Model aligned 1:1 with superpowers v6.3.0:
 #   - hooks/hooks.json: root manifest for Claude Code + Antigravity
 #   - hooks/hooks-cursor.json: Cursor manifest (sessionStart + additional_context)
 #   - hooks/session-start: single env-aware hook, gated on docs/maxi/

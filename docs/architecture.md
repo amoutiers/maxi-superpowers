@@ -2,7 +2,7 @@
 
 ## Plugin Overview
 
-maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.3.0 harness model (Claude Code · Codex · OpenCode · Antigravity · Cursor · Pi; plus Kimi Code, Factory Droid, and GitHub Copilot CLI via marketplace docs; see Harness Strategy below) with two layers:
+maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.3.0 harness model: Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. It has two layers:
 
 1. **spec-kit pipeline** — 19 maxi-native skills: 12 user-facing commands, 3 internal pipeline skills (`x-adr`, `x-develop`, `x-review`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
 
@@ -17,6 +17,10 @@ maxi-superpowers/
 ├── .claude-plugin/          # Claude Code plugin manifest (+ marketplace)
 ├── .codex-plugin/           # Codex plugin manifest (hooks: {}, native skill discovery)
 ├── .agents/plugins/         # Codex marketplace manifest
+├── .cursor-plugin/          # Cursor manifest (skills + hooks path)
+├── .devin-plugin/           # Devin CLI metadata-only manifest
+├── .kimi-plugin/            # Kimi Code declarative skill/bootstrap manifest
+├── .hermes-plugin/          # Hermes manifest + gated Python adapter
 ├── .opencode/               # OpenCode plugin (maxi.js) + INSTALL.md
 ├── .pi/                     # Pi extension (maxi.ts)
 ├── hooks/                   # Session-start hooks
@@ -39,7 +43,11 @@ maxi-superpowers/
 │   ├── revise/
 │   │   └── replay-plan.sh    # read-only bounded replay planner
 │   ├── x-adr/                # internal ADR capture skill (invoked by plan + implement)
-│   ├── x-develop/            # internal SDD wrapper skill (invoked by implement)
+│   ├── x-develop/            # internal SDD adapter (invoked by implement)
+│   │   ├── project-tasks.sh  # immutable TNNN → Task N projection
+│   │   ├── reconcile-tasks.sh # upstream ledger → Maxi checkbox reconciliation
+│   │   ├── record-terminal.sh # hash-bound terminal receipt writer
+│   │   └── result-contract.sh # READY_TO_FINISH validation gate
 │   ├── x-review/             # internal independent handoff-review owner
 │   │   └── review-template.md # persisted versioned review-record template
 │   ├── using-maxi/          # maxi-native session skill
@@ -64,6 +72,7 @@ maxi-superpowers/
 │   #   constitution/constitution-template.md, specify/spec-template.md,
 │   #   plan/plan-template.md, tasks/tasks-template.md, x-adr/adr-template.md
 ├── scripts/
+│   ├── _update-vendored-md.sh # VENDORED.md pin updater
 │   ├── sync-superpowers.sh  # re-sync vendored skills from vendor/superpowers/
 │   └── bump-superpowers.sh  # pull new superpowers tag into vendor/
 ├── plugins/
@@ -83,6 +92,8 @@ maxi-superpowers/
 │   └── maxi/                # per-project artifacts (constitution, adr/, specs/)
 ├── AGENTS.md                # shared contributor guidelines
 ├── CLAUDE.md                # Claude Code adapter that imports AGENTS.md
+├── GEMINI.md                # Gemini declarative context imports
+├── gemini-extension.json    # Gemini CLI extension manifest
 ├── VENDORED.md              # vendored dependency record
 └── package.json
 ```
@@ -105,6 +116,8 @@ See [delegation-map.md](delegation-map.md) for the full table, and [pipeline-flo
 | `x-develop` | `superpowers:subagent-driven-development`, whose final review uses `/maxi:requesting-code-review`; returns a validated terminal receipt before branch finishing |
 | `x-adr` | (internal — invoked by plan + implement; never invoked by user directly) |
 | `x-review` | `/maxi:requesting-code-review`; persists the approved handoff record and never changes status |
+
+The 19 Maxi-native skills remain in place; the 10-state FSM remains unchanged. `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 
 Upstream SDD owns the only whole-branch review. Before dispatch, `x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It adapts canonical Maxi tasks into an immutable SDD projection, reconciles exact ledger completions, persists and binds the harness-issued final-reviewer identity, regenerates review packages from their Git ranges, and returns `READY_TO_FINISH` only after the hash-bound receipt validates. `implement` is the sole owner of the later `done` write and does not dispatch a second final review.
 
@@ -187,26 +200,37 @@ bash scripts/sync-superpowers.sh
 
 ## Harness Strategy
 
-maxi adopts the superpowers v6.3.0 harness model 1:1 (ADR-0016). Ten harnesses are addressed, six with in-repo packaging and four via marketplace docs only:
+maxi adopts the superpowers v6.3.0 harness model 1:1 (ADR-0021). Fourteen harnesses are addressed through executable adapters, declarative manifests, native discovery, or marketplace-only distribution:
 
 | Harness | Mechanism |
 |---|---|
-| Claude Code | `.claude-plugin/plugin.json` + marketplace; `hooks/hooks.json` (root) is the SessionStart manifest using `${CLAUDE_PLUGIN_ROOT}` and runs the unified `hooks/session-start` |
-| Antigravity | `agy plugin install <repo>`; reads the root `hooks/hooks.json` and runs `hooks/session-start` (no dedicated package directory) |
-| Cursor | `hooks/hooks-cursor.json` (Cursor `sessionStart` event, `additional_context` shape) running `hooks/session-start` |
-| Codex | `.codex-plugin/plugin.json` declares `"hooks": {}` so Codex relies on native skill discovery (no SessionStart hook); `.agents/plugins/marketplace.json` + `plugins/maxi` |
-| OpenCode | `.opencode/plugins/maxi.js` transforms the first user message and registers the skills directory via the `config` hook |
-| Pi | `package.json` `pi` section + `.pi/extensions/maxi.ts` injects the bootstrap via the Pi extension API |
-| Kimi Code, Factory Droid, GitHub Copilot CLI | Marketplace install only (no in-repo packaging); documented in README |
+| Claude Code | `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`; root `hooks/hooks.json` runs the gated unified `hooks/session-start` |
+| Antigravity | Repository-root install reads `.claude-plugin/plugin.json` and root `hooks/hooks.json`; no `.antigravity-plugin/` directory |
+| Codex App | `.agents/plugins/marketplace.json` resolves `plugins/maxi` to `.codex-plugin/plugin.json`; native skill discovery with `hooks: {}` |
+| Codex CLI | Same `.agents/plugins/marketplace.json` → `plugins/maxi` → `.codex-plugin/plugin.json` path as Codex App; native skill discovery, no SessionStart hook |
+| Cursor | `.cursor-plugin/plugin.json` points to `skills/` and `hooks/hooks-cursor.json`, which runs the gated `hooks/session-start` |
+| Devin CLI | `.devin-plugin/plugin.json` is metadata-only; it declares no skills, hooks, commands, or bootstrap field |
+| Factory Droid | Marketplace-only distribution path; no dedicated Maxi root manifest or runtime adapter in this repository |
+| Gemini CLI | `gemini-extension.json` loads `GEMINI.md`, which imports `using-maxi` and the Gemini tool mapping declaratively |
+| GitHub Copilot CLI | Marketplace-only distribution path; the installed root uses `hooks/hooks.json` and the `COPILOT_CLI` branch of `hooks/session-start` |
+| Grok Build CLI | Marketplace-only distribution path; no dedicated Maxi root manifest or runtime adapter in this repository |
+| Kimi Code | `.kimi-plugin/plugin.json` exposes `skills/`, loads `using-maxi` through `sessionStart.skill`, and carries the Kimi tool mapping inline |
+| OpenCode | `package.json` points to `.opencode/plugins/maxi.js`, which registers `skills/` and injects only when `docs/maxi/` exists |
+| Pi | `package.json` `pi` section loads `.pi/extensions/maxi.ts`, which gates first-session and post-compaction injection on `docs/maxi/` |
+| Hermes Agent | `.hermes-plugin/plugin.yaml` loads `.hermes-plugin/__init__.py`; the adapter registers every skill and injects a short first-turn bootstrap only when `docs/maxi/` exists |
+
+Gemini and Kimi are declarative bootstrap surfaces: their manifests cannot inspect the current working directory before loading `GEMINI.md` or `using-maxi`, so installation may expose that bootstrap outside Maxi projects. All executable adapters retain the `docs/maxi/` gate.
+
+Hermes keeps the injected context below its 10,000-character limit by directing its native loader to `skill_view("maxi:using-maxi")` and adding only the Hermes tool mapping. Hermes has no post-compaction hook; after a sufficiently long session compacts away the first-turn bootstrap, start a fresh session to restore it.
 
 Hook ownership:
 
-- `hooks/hooks.json`: root manifest for Claude Code and Antigravity. Runs the unified `hooks/session-start`.
+- `hooks/hooks.json`: root manifest for Claude Code and Antigravity, and the shared marketplace hook path used by GitHub Copilot CLI. Runs the unified `hooks/session-start`.
 - `hooks/hooks-cursor.json`: Cursor manifest (Cursor `sessionStart` event, `additional_context` snake_case). Runs the unified `hooks/session-start`.
 - `hooks/session-start`: the single env-aware hook. Detects `CURSOR_PLUGIN_ROOT` (`additional_context`), `CLAUDE_PLUGIN_ROOT` without `COPILOT_CLI` (`hookSpecificOutput.additionalContext`), and falls back to the SDK-standard top-level `additionalContext`. Gated on `docs/maxi/` (silent outside a maxi project).
 - `hooks/run-hook.cmd`: cross-platform polyglot wrapper for the hook scripts.
 
-The package is validated by the fast tier (`check-hooks.sh`, `check-plugin-manifest.sh`, `check-codex-plugin.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`, `check-cursor-hooks.sh`, `check-pi-extension.sh`). The bootstrap preamble is identical across the bash hook, the OpenCode plugin, and the Pi extension (parity-guarded).
+The package is validated by the fast tier (`check-plugin-manifest.sh`, `check-declarative-harnesses.sh`, `check-hermes-plugin.sh`, `check-codex-plugin.sh`, `check-hooks.sh`, `check-cursor-hooks.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`, `check-pi-extension.sh`). The bootstrap preamble is identical across the bash hook, the OpenCode plugin, and the Pi extension (parity-guarded).
 
 ## Design Decisions
 

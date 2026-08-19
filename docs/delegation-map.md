@@ -14,7 +14,9 @@ This table shows which maxi pipeline skill delegates to which sub-skill, what st
 | `plan` | `clarified`; for marker-bound roots, current approved `reviews/spec-review.md` | `/maxi:writing-plans` | `clarified → planned` |
 | `tasks` | `planned`; for marker-bound roots, current approved `reviews/plan-review.md` | (none — extraction from plan.md) | `planned → tasked` |
 | `analyze` | `tasked`, `analyzed`, `implementing`, or `done` | (none — reads artifacts, writes analysis.md) | `tasked → analyzed` (once; reruns don't change status) |
-| `implement` | `analyzed` | `/maxi:x-develop` | `analyzed → implementing`; `READY_TO_FINISH` receipt gate; then `implementing → done` |
+| `implement` | `analyzed` or `implementing` (resume) | `/maxi:x-develop` | `analyzed → implementing`; `READY_TO_FINISH` receipt gate; then `implementing → done` |
+
+The 19 Maxi-native skills remain in place; the 10-state FSM remains unchanged. `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 
 Upstream SDD owns the only whole-branch review. Before dispatch, `/maxi:x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It also binds its harness-issued reviewer identity, regenerates each review package from the recorded Git range, and returns `READY_TO_FINISH` only after its hash-bound terminal receipt validates. `/maxi:implement` owns the sole `done` transition and never dispatches a duplicate review.
 

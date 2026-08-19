@@ -42,7 +42,12 @@ SYNC_DOCS=(
 
 for doc in "${SYNC_DOCS[@]}"; do
   label="$(basename "$doc")"
+  assert_grep "$doc" "$maxi_count Maxi-native skills remain in place" "$label states the unchanged Maxi-native skill inventory"
   assert_grep "$doc" '10-state FSM remains unchanged' "$label states the unchanged FSM"
+  assert_grep "$doc" 'maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection' "$label documents the canonical Maxi-to-SDD projection"
+  assert_grep "$doc" 'Upstream SDD owns task review, fix rounds, and the final implementation review' "$label assigns review and fix ownership to upstream SDD"
+  assert_grep "$doc" 'x-develop.*sole incremental Maxi checkbox owner.*implement.*validates that every task is checked.*implementing.*done' "$label separates checkbox reconciliation from final validation and status ownership"
+  assert_grep "$doc" 'Branch finishing starts only after Maxi has recorded `done`' "$label places branch finishing after done"
   assert_grep "$doc" 'reviews/spec-review.md' "$label documents the specification review handoff"
   assert_grep "$doc" 'reviews/plan-review.md' "$label documents the plan review handoff"
   assert_grep "$doc" 'gates, not statuses or automatic replay phases' "$label distinguishes handoff gates from pipeline state"

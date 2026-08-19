@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Asserts the bootstrap preamble is identical across all three harness
-# injectors, mirroring superpowers v6.1.1:
+# injectors, mirroring superpowers v6.3.0:
 #   - hooks/session-start (Claude Code, Antigravity, Cursor, Copilot CLI)
 #   - .opencode/plugins/maxi.js (OpenCode)
 #   - .pi/extensions/maxi.ts (Pi)

@@ -42,6 +42,7 @@ flowchart TD
         BRAINSTORMING["/maxi:brainstorming"]
         WRITING_PLANS["/maxi:writing-plans"]
         CODE_REVIEW["/maxi:requesting-code-review"]
+        BRANCH_FINISH["/maxi:finishing-a-development-branch"]
     end
 
     %% Main pipeline transitions (thick arrows)
@@ -56,6 +57,7 @@ flowchart TD
     IMPLEMENT ==>|"delegates execution"| DEVELOP
     DEVELOP ==>|"hash-bound terminal evidence"| READY
     READY ==>|"implement persists done"| DONE
+    DONE -.->|"after done only"| BRANCH_FINISH
 
     %% Analyze re-run loop
     ANALYZE -->|"Pass G CRITICAL →\nre-run after fix"| ANALYZE
@@ -108,6 +110,7 @@ flowchart TD
 - `/maxi:analyze` is non-destructive and can be re-run at any status from `tasked` onward; status does not change after the first run.
 - `/maxi:x-adr` is internal and is never invoked directly by the user.
 - `/maxi:x-review` is internal. It is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`; each approved review record is persisted and versioned.
+- The 19 Maxi-native skills remain in place; the 10-state FSM remains unchanged. `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 - Upstream SDD owns the only whole-branch review. Before dispatch, `/maxi:x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It also persists the harness-issued final-reviewer identity, regenerates the Git review package byte-for-byte, and returns `READY_TO_FINISH` only with a valid hash-bound terminal receipt. `/maxi:implement` alone then persists `done`; it never dispatches a duplicate final review.
 - Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.
 - The two external review handoffs are gates, not statuses or automatic replay phases. For a marker-bound root, `/maxi:plan` requires the current approved specification review, and `/maxi:tasks` requires the current approved plan review.
