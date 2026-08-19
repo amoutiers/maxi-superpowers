@@ -2,11 +2,11 @@
 
 ## Plugin Overview
 
-maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.1.1 harness model (Claude Code · Codex · OpenCode · Antigravity · Cursor · Pi; plus Kimi Code, Factory Droid, and GitHub Copilot CLI via marketplace docs; see Harness Strategy below) with two layers:
+maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.3.0 harness model (Claude Code · Codex · OpenCode · Antigravity · Cursor · Pi; plus Kimi Code, Factory Droid, and GitHub Copilot CLI via marketplace docs; see Harness Strategy below) with two layers:
 
 1. **spec-kit pipeline** — 19 maxi-native skills: 12 user-facing commands, 3 internal pipeline skills (`x-adr`, `x-develop`, `x-review`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
 
-2. **superpowers implementation engine** — vendored superpowers v6.1.1 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
+2. **superpowers implementation engine** — vendored superpowers v6.3.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
 
 The result: a project goes from blank slate to shipped code through a reproducible, auditable sequence. Nothing skips the queue.
 
@@ -168,8 +168,8 @@ Skills are designed to be cheap when there is nothing to do. `/maxi:clarify` can
 superpowers is vendored as a git subtree at `vendor/superpowers/`:
 
 ```bash
-# Initial add (one-time bootstrap; current pin is v6.1.1 — see VENDORED.md):
-git subtree add --prefix=vendor/superpowers https://github.com/obra/superpowers v6.1.1 --squash
+# Initial add (one-time bootstrap; current pin is v6.3.0 — see VENDORED.md):
+git subtree add --prefix=vendor/superpowers https://github.com/obra/superpowers v6.3.0 --squash
 
 # Bump to a new version:
 bash scripts/bump-superpowers.sh <new-tag>
@@ -182,7 +182,7 @@ bash scripts/sync-superpowers.sh
 
 ## Harness Strategy
 
-maxi adopts the superpowers v6.1.1 harness model 1:1 (ADR-0016). Ten harnesses are addressed, six with in-repo packaging and four via marketplace docs only:
+maxi adopts the superpowers v6.3.0 harness model 1:1 (ADR-0016). Ten harnesses are addressed, six with in-repo packaging and four via marketplace docs only:
 
 | Harness | Mechanism |
 |---|---|
