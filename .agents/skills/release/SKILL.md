@@ -134,14 +134,11 @@ Commit-pinned marketplace entries now point to commit 1 (version bump + CHANGELO
 ### 8. Tag and push
 
 ```bash
-PLUGIN_NAME=$(jq -r .name .claude-plugin/plugin.json)
 git tag "vX.Y.Z"
-git tag "${PLUGIN_NAME}--vX.Y.Z"
 git push origin master
-# Push ONLY this release's two tags — never `git push origin --tags`, which would
-# also push any foreign tags in the local namespace (e.g. superpowers tags that a
-# `subtree pull` may have imported) to the plugin's public repo.
-git push origin "vX.Y.Z" "${PLUGIN_NAME}--vX.Y.Z"
+# Push only the canonical release tag. Never use `git push origin --tags`, which
+# could also publish unrelated local tags (for example imported superpowers tags).
+git push origin "vX.Y.Z"
 ```
 
 ### 9. Report
@@ -166,4 +163,4 @@ echo "Action running at: https://github.com/${REMOTE}/actions"
 | One commit for everything | Two commits: (1) version+CHANGELOG, (2) marketplace.json pin — tag on commit 2 |
 | `git status` without `--porcelain` | `--porcelain` catches untracked files that plain `git status` calls "clean" |
 | Only bumping a subset of manifests | Bump and stage all eight manifests listed in step 5 |
-| Only creating `vX.Y.Z` tag | Always create BOTH `vX.Y.Z` AND `{name}--vX.Y.Z` |
+| Creating a plugin-prefixed tag | Create and push only the canonical `vX.Y.Z` tag |

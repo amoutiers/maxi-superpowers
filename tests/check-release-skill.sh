@@ -59,8 +59,9 @@ if [ -f "$SKILL" ]; then
   assert_grep "$SKILL" ".agents/skills/doc-consistency" "release skill: documents .agents doc-consistency path"
   assert_grep "$SKILL" "bash tests/run-all.sh" "release skill: still runs fast tier"
   assert_grep "$SKILL" "Abort if tests fail" "release skill: keeps test failure abort"
-  assert_grep "$SKILL" 'PLUGIN_NAME=$(jq -r .name .claude-plugin/plugin.json)' "release skill: resolves plugin name from Claude manifest"
-  assert_grep "$SKILL" 'git tag "${PLUGIN_NAME}--vX.Y.Z"' "release skill: tags with resolved plugin name"
+  assert_grep "$SKILL" 'git tag "vX.Y.Z"' "release skill: creates the canonical version tag"
+  assert_not_grep "$SKILL" 'git tag.*--vX.Y.Z' "release skill: never creates a plugin-prefixed tag"
+  assert_grep "$SKILL" 'git push origin "vX.Y.Z"' "release skill: pushes only the canonical version tag"
 
   if grep -Fq 'git add .claude-plugin/marketplace.json .agents/plugins/marketplace.json' <<<"$MARKETPLACE_SECTION"; then
     echo "OK  [release skill: stages marketplaces in commit 2]"
