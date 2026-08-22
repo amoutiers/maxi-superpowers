@@ -110,6 +110,7 @@ if [ -f "$SKILL" ]; then
   assert_literal "$SKILL" 'bash skills/revise/replay-plan.sh --spec-dir <spec-dir> --changed reviews/plan-review.md --previous-revision <0-or-n> --start-phase tasks' "x-review uses exact post-write planner command"
   assert_grep "$SKILL" '[Dd]isplay.*`CONTINUATION|tasks@<current-plan-revision>`.*`REPLAY|tasks`.*`REPLAY|analyze`' "x-review displays the bounded continuation"
   assert_grep "$SKILL" 'fresh literal `yes`.*later owner.*never execute' "x-review cannot consume continuation consent"
+  assert_grep "$SKILL" '[Ii]nternal.*public owner.*automatically.*never.*user.*invoke.*yes' "x-review is invoked internally without user consent"
   assert_grep "$SKILL" 'spec.md.*replay_continuation: plan@<current-spec-revision>' "x-review recognizes the spec continuation marker"
   assert_grep "$SKILL" 'no prior `reviews/spec-review.md`.*revision: 1.*--previous-revision 0' "x-review first spec review uses predecessor zero"
   assert_grep "$SKILL" 'existing.*spec review.*revision `n`.*revision `n + 1`.*--previous-revision n' "x-review replacement spec review uses exact predecessor"

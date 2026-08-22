@@ -31,8 +31,8 @@ flowchart TD
             IMPLEMENT["/maxi:implement\n─────────────\nanalyzed → implementing → done"]
             DEVELOP["/maxi:x-develop\n─────────────\nprojection + upstream SDD\n+ terminal receipt"]
             READY{{"READY_TO_FINISH\nvalidated receipt gate"}}
-            ADR["/maxi:x-adr\n─────────────\n(internal — never\ninvoked by user)"]
-            REVIEW["/maxi:x-review\n─────────────\n(internal review-record owner;\nno status change)"]
+            ADR["x-adr\n─────────────\n(internal — never\ninvoked by user)"]
+            REVIEW["x-review\n─────────────\n(internal review-record owner;\nno status change)"]
             REPLAY["skills/revise/replay-plan.sh\n─────────────\nread-only bounded\nreplay planner"]
             DONE(["✓ done"])
         end
@@ -108,8 +108,8 @@ flowchart TD
 - `/maxi:constitution` has no status prerequisite — it can run at any time.
 - Every forward phase is mandatory and must run in order — no phase may be skipped.
 - `/maxi:analyze` is non-destructive and can be re-run at any status from `tasked` onward; status does not change after the first run.
-- `/maxi:x-adr` is internal and is never invoked directly by the user.
-- `/maxi:x-review` is internal. It is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`; each approved review record is persisted and versioned.
+- `x-adr` is internal and is never invoked directly by the user.
+- `x-review` is internal. Its public owner invokes it automatically at each review handoff; users never invoke it or provide `yes` for it. It is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`; each approved review record is persisted and versioned.
 - The 19 Maxi-native skills remain in place; the 10-state FSM remains unchanged. `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 - Upstream SDD owns the only whole-branch review. Before dispatch, `/maxi:x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It also persists the harness-issued final-reviewer identity, regenerates the Git review package byte-for-byte, and returns `READY_TO_FINISH` only with a valid hash-bound terminal receipt. `/maxi:implement` alone then persists `done`; it never dispatches a duplicate final review.
 - Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.

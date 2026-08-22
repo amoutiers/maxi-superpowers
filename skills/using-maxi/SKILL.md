@@ -19,9 +19,9 @@ maxi bundles superpowers skills, available as `maxi:<skill>` (e.g. `/maxi:brains
 /maxi:constitution  →  establish project principles (REQUIRED FIRST)
 /maxi:specify       →  brainstorm & write spec.md (status: specified)
 /maxi:clarify       →  answer open questions in spec.md (status: clarified)
-/maxi:x-review      →  persist a fresh external reviews/spec-review.md handoff (bounded-v1 roots only; internal; no status change)
+                    ↳  x-review persists the fresh spec-review handoff internally (bounded-v1 roots only; no status change)
 /maxi:plan          →  write plan.md + design docs (status: planned)
-/maxi:x-review      →  persist a fresh external reviews/plan-review.md handoff (bounded-v1 roots only; internal; no status change)
+                    ↳  x-review persists the fresh plan-review handoff internally (bounded-v1 roots only; no status change)
 /maxi:tasks         →  extract tasks.md from plan (status: tasked)
 /maxi:analyze       →  7-pass cross-artifact audit → analysis.md (status: analyzed)
 /maxi:implement     →  delegate to x-develop; persist done only after READY_TO_FINISH
@@ -43,7 +43,7 @@ drafting → specified → clarified → planned → tasked → analyzed → imp
 
 Skills read and enforce this. Running a skill out of order gives a friendly message — not a crash.
 
-The 10-state FSM remains unchanged. The two external review handoffs are gates, not statuses or automatic replay phases.
+The 10-state FSM remains unchanged. The two external review handoffs are gates, not statuses or automatic replay phases. Internal skills are named `x-*`: their public owner invokes them automatically, never asks the user to invoke them, and never consumes a phase-continuation `yes`. `x-adr` still asks for explicit approval before it writes an ADR.
 
 ## Phase Gating
 
@@ -87,7 +87,7 @@ Removing an anchored incomplete `TNNN` during structural correction fails before
 
 Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.
 
-- Internal `/maxi:x-review` is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`. It delegates a fresh independent review through `superpowers:requesting-code-review`; approved records are persisted and versioned.
+- Internal `/maxi:x-review` is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`. Its public owner invokes it automatically at a review handoff; it delegates a fresh independent review through `superpowers:requesting-code-review`, and approved records are persisted and versioned.
 - For a marker-bound root, `reviews/spec-review.md` must approve the current `spec.md` revision before `/maxi:plan` writes or changes status. Its `reviews/plan-review.md` must approve the current `plan.md` revision before `/maxi:tasks` writes or changes status.
 - A missing, stale, malformed, rejected, or non-independent record blocks only its successor before any write or status transition.
 - `skills/revise/replay-plan.sh` is a read-only bounded replay planner. It calculates stale descendants and the shortest executable continuation, stops at the first required review handoff, and never writes artifacts, creates or approves review records, or executes phases.

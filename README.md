@@ -156,7 +156,7 @@ Full reference for the forward pipeline:
 
 `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 
-For marker-bound newly versioned forward artifacts, a current approved `reviews/spec-review.md` gates `/maxi:plan`, and a current approved `reviews/plan-review.md` gates `/maxi:tasks`. The internal `x-review` skill delegates each fresh external review, verifies reviewer independence, then makes the approved record persisted and versioned.
+For marker-bound newly versioned forward artifacts, a current approved `reviews/spec-review.md` gates `/maxi:plan`, and a current approved `reviews/plan-review.md` gates `/maxi:tasks`. The public owner invokes internal `x-review` automatically; the user never invokes it or provides `yes` for it. It delegates each fresh external review, verifies reviewer independence, then makes the approved record persisted and versioned.
 
 These review handoffs are gates, not statuses or automatic replay phases. The 10-state FSM remains unchanged. When an owner changes a versioned artifact, the read-only `skills/revise/replay-plan.sh` planner can calculate the shortest stale-descendant continuation and stop it at the next review handoff; it never writes artifacts, creates or approves reviews, or executes phases.
 

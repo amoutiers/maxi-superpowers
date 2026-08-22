@@ -7,7 +7,7 @@ description: Use when a current forward-pipeline specification or plan needs a f
 
 ## Overview
 
-This internal skill is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`. It consumes one current subject path, its claimed revision, and one fresh reviewer context issued by the harness.
+This internal skill is the sole writer of `reviews/spec-review.md` and `reviews/plan-review.md`. Its public owner invokes it automatically at a review handoff; never ask the user to invoke it or provide `yes`. It consumes one current subject path, its claimed revision, and one fresh reviewer context issued by the harness.
 
 **REQUIRED SUB-SKILL:** Use `superpowers:requesting-code-review` for the review delegation.
 

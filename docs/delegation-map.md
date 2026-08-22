@@ -34,10 +34,10 @@ Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineag
 
 | Handoff | Successor gate | Record owner | Status effect |
 |---|---|---|---|
-| Review current `spec.md` (marker-bound root) | Before `plan` | `/maxi:x-review` writes `reviews/spec-review.md` after a fresh independent review | none |
-| Review current `plan.md` (marker-bound root) | Before `tasks` | `/maxi:x-review` writes `reviews/plan-review.md` after a fresh independent review | none |
+| Review current `spec.md` (marker-bound root) | Before `plan` | Internal `x-review`, invoked automatically by its public owner, writes `reviews/spec-review.md` after a fresh independent review | none |
+| Review current `plan.md` (marker-bound root) | Before `tasks` | Internal `x-review`, invoked automatically by its public owner, writes `reviews/plan-review.md` after a fresh independent review | none |
 
-The review records are persisted and versioned. These handoffs are gates, not statuses or automatic replay phases. The 10-state FSM remains unchanged.
+The review records are persisted and versioned. These handoffs are gates, not statuses or automatic replay phases. An internal `x-*` skill is invoked automatically by its public owner, never manually by the user, and never consumes a phase-continuation `yes` (`x-adr` still requests approval before it writes an ADR). The 10-state FSM remains unchanged.
 
 `skills/revise/replay-plan.sh` is the read-only bounded replay planner used by artifact owners. It calculates the shortest stale-descendant continuation, stops before the first required external review handoff, and never writes artifacts, creates or approves review records, or executes phases.
 

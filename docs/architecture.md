@@ -131,7 +131,7 @@ Removing an anchored incomplete `TNNN` during structural correction fails before
 
 Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.
 
-For a marker-bound root, `reviews/spec-review.md` gates `plan`; `reviews/plan-review.md` gates `tasks`. The records are persisted and versioned by `x-review`. These external review handoffs are gates, not statuses or automatic replay phases. `skills/revise/replay-plan.sh` is a read-only planner that calculates a bounded stale-descendant continuation, stops at the first required review, and never writes artifacts or executes phases.
+For a marker-bound root, `reviews/spec-review.md` gates `plan`; `reviews/plan-review.md` gates `tasks`. The records are persisted and versioned by `x-review`. An internal `x-*` skill is invoked automatically by its public owner, never manually by the user, and never consumes a phase-continuation `yes` (`x-adr` still requests approval before it writes an ADR). These external review handoffs are gates, not statuses or automatic replay phases. `skills/revise/replay-plan.sh` is a read-only planner that calculates a bounded stale-descendant continuation, stops at the first required review, and never writes artifacts or executes phases.
 
 Bounded replay is future-only. Eligible roots carry exactly one `replay_contract: bounded-v1`; only `/maxi:specify` writes this marker, during normal forward-spec creation. An unmarked existing, migrated, or reverse-engineered spec returns `UNSUPPORTED_LEGACY`; revision metadata alone never opts it in.
 
