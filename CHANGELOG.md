@@ -1,4 +1,12 @@
 
+## [2.4.2] - 2026-08-22
+
+### Bug Fixes
+
+- Publish only canonical version tag
+- Invoke internal review handoffs from owners
+
+
 ## [2.4.1] - 2026-08-22
 
 ### Bug Fixes

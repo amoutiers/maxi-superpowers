@@ -1,6 +1,6 @@
 {
   "name": "maxi",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Spec-driven development pipeline for Claude Code: constitution → specify → clarify → plan → tasks → analyze → implement",
   "author": {
     "name": "maxi-superpowers contributors"
