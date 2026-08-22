@@ -369,6 +369,37 @@ contracts/api.md@1
 plan.md@1
 tasks.md@1' "current analysis exact direct inputs"
 
+# Analysis metadata is parsed by the replay planner as an owned analysis result,
+# not as review-envelope metadata or ordinary document content.
+copy_fixture "$CURRENT" "valid-analysis-metadata"
+run_planner "$CURRENT" tasks.md 0 analyze "valid analysis metadata"
+assert_success "$LAST_STATUS" "valid analysis metadata accepted"
+assert_equal "$LAST_OUTPUT" 'CHANGED|tasks.md|0|1
+STALE|analysis.md
+REPLAY|analyze' "valid analysis metadata preserves replay proposal"
+
+copy_fixture "$CURRENT" "ordinary-analysis-metadata"
+awk '
+  /^derived_from:$/ {
+    print "reviewer_context: fixture-spec-writer"
+    print "reviewer_context_matches_harness: true"
+    print "independence_verified: true"
+    print "analysis_result: passed"
+  }
+  { print }
+' "$CASE_DIR/spec.md" > "$CASE_DIR/spec.md.tmp"
+mv "$CASE_DIR/spec.md.tmp" "$CASE_DIR/spec.md"
+run_planner "$CURRENT" spec.md 0 clarify "ordinary analysis metadata"
+assert_exit "$LAST_STATUS" 2 "ordinary document analysis metadata rejected"
+assert_no_proposal_output "$LAST_OUTPUT" "ordinary document metadata emits no proposal"
+
+copy_fixture "$CURRENT" "malformed-analysis-metadata"
+sed '/^independence_verified: true$/d' "$CASE_DIR/analysis.md" > "$CASE_DIR/analysis.md.tmp"
+mv "$CASE_DIR/analysis.md.tmp" "$CASE_DIR/analysis.md"
+run_planner "$CURRENT" analysis.md 0 analyze "missing analysis independence evidence"
+assert_exit "$LAST_STATUS" 2 "malformed analysis metadata rejected"
+assert_no_proposal_output "$LAST_OUTPUT" "malformed analysis emits no proposal"
+
 for review in spec plan; do
   review_file="$CURRENT/reviews/$review-review.md"
   subject="$CURRENT/$review.md"
@@ -699,10 +730,8 @@ fi
 # branch after an approved replay. A passing control proves the probe is branch-sensitive.
 copy_fixture "$CURRENT" "failed-analysis-after-approved-replay"
 awk '
-  $0 == "---" {
-    if (frontmatter == 1) print "analysis_result: failed"
-    frontmatter++
-    print
+  /^analysis_result: / {
+    print "analysis_result: failed"
     next
   }
   { print }
@@ -728,10 +757,8 @@ assert_equal "$(analysis_owner_action "$CASE_DIR/analysis.md")" 'stop-for-new-de
 
 copy_fixture "$CURRENT" "passed-analysis-after-approved-replay"
 awk '
-  $0 == "---" {
-    if (frontmatter == 1) print "analysis_result: passed"
-    frontmatter++
-    print
+  /^analysis_result: / {
+    print "analysis_result: passed"
     next
   }
   { print }
@@ -1202,7 +1229,18 @@ assert_equal "$LAST_OUTPUT" "$expected_support_review_output" "support stops at 
 assert_no_replay_after_review "$LAST_OUTPUT" "support stops later replay after missing spec review"
 
 copy_fixture "$CURRENT" "analysis-revision"
-bump_revision "$CASE_DIR/analysis.md" "fixture-analysis-revision-writer"
+awk '
+  /^revision: / { print "revision: 2"; next }
+  /^writer_context: / { print "writer_context: fixture-analysis-revision-writer"; next }
+  /^structural_contributors:$/ {
+    print
+    print "  - fixture-analysis-revision-writer"
+    next
+  }
+  /^reviewer_context: / { print "reviewer_context: fixture-analysis-revision-writer"; next }
+  { print }
+' "$CASE_DIR/analysis.md" > "$CASE_DIR/analysis.md.tmp"
+mv "$CASE_DIR/analysis.md.tmp" "$CASE_DIR/analysis.md"
 run_planner "$CURRENT" "analysis.md" 1 analyze "analysis revision"
 assert_success "$LAST_STATUS" "analysis revision planner exit"
 assert_equal "$LAST_OUTPUT" 'CHANGED|analysis.md|1|2' "analysis revision has no replay"

@@ -101,6 +101,22 @@ review_has_exact_fields() {
   [ "$actual" = "$expected" ]
 }
 
+analysis_has_exact_fields() {
+  local file="$1" actual expected
+
+  actual="$(awk '
+    NR == 1 && $0 == "---" { frontmatter = 1; next }
+    frontmatter && $0 == "---" { exit }
+    frontmatter && /^[[:space:]]*#/ { next }
+    frontmatter && /^[^[:space:]][^:]*:/ { sub(/:.*/, ""); print }
+  ' "$file" | sort)"
+  expected="$(printf '%s\n' \
+    analysis_result derived_from independence_verified reviewer_context \
+    reviewer_context_matches_harness revision structural_contributors \
+    writer_context | sort)"
+  [ "$actual" = "$expected" ]
+}
+
 supported_path() {
   local path="$1" name
 
@@ -225,6 +241,16 @@ parse_document() {
       if ($0 ~ /^reviewer_context_matches_harness:/) {
         if (seen_harness_match++ || $0 !~ /^reviewer_context_matches_harness: (true|false)$/) invalid()
         else { sub(/^reviewer_context_matches_harness: /, ""); print "harness_match|" $0 }
+        next
+      }
+      if ($0 ~ /^independence_verified:/) {
+        if (seen_independence_verified++ || $0 !~ /^independence_verified: true$/) invalid()
+        else { sub(/^independence_verified: /, ""); print "independence_verified|" $0 }
+        next
+      }
+      if ($0 ~ /^analysis_result:/) {
+        if (seen_analysis_result++ || $0 !~ /^analysis_result: (passed|failed)$/) invalid()
+        else { sub(/^analysis_result: /, ""); print "analysis_result|" $0 }
         next
       }
       if ($0 ~ /^verdict:/) {
@@ -466,6 +492,8 @@ for path in $DOCUMENTS; do
   harness_match=''
   verdict=''
   continuation=''
+  independence_verified=''
+  analysis_result=''
   for record in $metadata; do
     kind="${record%%|*}"
     data="${record#*|}"
@@ -483,6 +511,8 @@ $data" ;;
       harness_match) harness_match="$data" ;;
       verdict) verdict="$data" ;;
       continuation) continuation="$data" ;;
+      independence_verified) independence_verified="$data" ;;
+      analysis_result) analysis_result="$data" ;;
     esac
   done
 
@@ -547,8 +577,22 @@ $contributor"
       REVIEWS="$REVIEWS
 $path|$reviewed_document|$reviewed_revision|$writer|$reviewed_sha256|$reviewer|$harness_match|$verdict"
       ;;
+    analysis.md)
+      analysis_has_exact_fields "$physical" || fail 2 "analysis field set is not exact in $path"
+      [ -n "$reviewer" ] && [ -n "$harness_match" ] && \
+        [ -n "$independence_verified" ] && [ -n "$analysis_result" ] || \
+        fail 2 "incomplete analysis metadata in $path"
+      valid_context "$writer" || fail 2 "malformed analysis writer context in $path"
+      valid_context "$reviewer" || fail 2 "malformed analysis reviewer context in $path"
+      [ "$writer" = "$reviewer" ] || fail 2 "analysis writer does not equal reviewer context in $path"
+      [ "$harness_match" = true ] || fail 2 "analysis reviewer context harness equality is not true in $path"
+      [ "$independence_verified" = true ] || fail 2 "analysis independence is not verified in $path"
+      case "$analysis_result" in passed|failed) ;; *) fail 2 "invalid analysis result in $path" ;; esac
+      [ -z "$reviewed_document$reviewed_revision$reviewed_sha256$verdict" ] || \
+        fail 2 "review-only metadata appears in $path"
+      ;;
     *)
-      [ -z "$reviewed_document$reviewed_revision$reviewed_sha256$reviewer$harness_match$verdict" ] || fail 2 "review-only metadata appears in $path"
+      [ -z "$reviewed_document$reviewed_revision$reviewed_sha256$reviewer$harness_match$verdict$independence_verified$analysis_result" ] || fail 2 "review-only metadata appears in $path"
       ;;
   esac
 done
