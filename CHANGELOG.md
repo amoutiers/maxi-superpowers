@@ -1,4 +1,11 @@
 
+## [2.4.1] - 2026-08-22
+
+### Bug Fixes
+
+- Accept analysis metadata in bounded replay
+
+
 ## [2.4.0] - 2026-08-19
 
 ### Features
