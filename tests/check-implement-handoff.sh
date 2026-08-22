@@ -33,8 +33,7 @@ require_literal "$DEVELOP" '`project-tasks.sh`' 'x-develop does not create or ve
 require_literal "$DEVELOP" '`reconcile-tasks.sh`' 'x-develop does not reconcile checkboxes'
 require_literal "$DEVELOP" '`record-terminal.sh`' 'x-develop does not persist the terminal receipt'
 require_literal "$DEVELOP" '`result-contract.sh`' 'x-develop does not validate the terminal result'
-require_literal "$DEVELOP" 'Strict plan-task bijection applies only when the physically bound `spec.md` carries exactly one `replay_contract: bounded-v1` marker.' 'marker-bound mapping mode is missing'
-require_literal "$DEVELOP" 'For every unmarked root, ignore historical plan annotations and project each canonical `TNNN` task line once in tasks-file order.' 'legacy compatibility mode is missing'
+require_literal "$DEVELOP" 'Project each canonical `TNNN` once in tasks-file order for every root, ignoring replay metadata and historical plan annotations.' 'ordinary task projection is not universal'
 require_literal "$DEVELOP" 'Recover a predecessor only from the validated active-projection pointer.' 'predecessor recovery is not fail closed'
 require_literal "$DEVELOP" 'Reconcile the existing ledger before any resumed dispatch.' 'resume reconciliation is missing'
 require_literal "$DEVELOP" 'Pass the printed canonical absolute projection path verbatim to every upstream SDD helper.' 'canonical projection identity is not preserved'
@@ -57,6 +56,11 @@ require_literal "$DEVELOP" "Regenerate each review package with upstream's \`rev
 require_literal "$DEVELOP" 'Before dispatching the final reviewer, persist the harness-issued reviewer context' 'reviewer dispatch identity is not persisted before dispatch'
 require_literal "$DEVELOP" 'If the harness exposes no verifiable reviewer context, stop without a success token.' 'missing harness reviewer identity is not fail closed'
 require_literal "$DEVELOP" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage`.' 'final verdict paths do not match upstream review grammar'
+require_literal "$IMPLEMENT" '`analysis.md` is the required readiness review of the current design and tasks before code begins.' 'implement does not name the readiness boundary'
+
+if grep -Eq 'replay_contract|marker-bound|legacy compatibility' "$DEVELOP"; then
+  fail_contract 'x-develop retains marker-specific projection branching'
+fi
 
 # The changed implementation/review boundary must be visible in every Mandatory Sync 5 surface.
 for doc in \

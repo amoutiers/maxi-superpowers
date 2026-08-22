@@ -100,18 +100,12 @@ slug: NNNN-slug
 created: [today's ISO date, e.g. 2026-05-08]
 updated: [today's ISO date, e.g. 2026-05-08]
 status: drafting
-replay_contract: bounded-v1
-revision: 1
-writer_context: [new non-empty context unique across this spec's pipeline-owned documents]
-structural_contributors:
-  - [the exact writer_context above]
-derived_from: []
 related_adrs: []
 # related_adrs: full ADR slugs (NNNN-slug) appended by x-adr when an ADR is accepted; initialize empty
 ---
 ```
 
-This metadata applies only to a spec created now through the normal forward pipeline. `specify` is the only producer of the exact `replay_contract: bounded-v1` root marker. Write it during creation, never infer or retrofit it later, and never place it in `spec-template.md`, migration output, or reverse-engineered output. The complete `/maxi:specify` creation is one structural creation at `revision: 1`; replacing template placeholders with the brainstormed content does not create a second revision. A forward-created source spec has no document inputs, so `derived_from` is empty.
+Use the ordinary template frontmatter only. Do not add pipeline revision, contributor, provenance, or replay metadata when creating a spec.
 
 **Step 6 — Invoke /maxi:brainstorming**
 
@@ -149,7 +143,6 @@ updated: [today's ISO date]
 
 `status: specified` is only set **after** spec.md is fully written and verified. Never set it before.
 
-The status and timestamp update is non-structural: keep `revision`, `writer_context`, and `structural_contributors` unchanged. On a later structural owner write, increment only `spec.md`'s revision, replace its `writer_context` with the new unique context, and append that same context to `structural_contributors`. Status, timestamps, task-completion checkboxes, and `related_adrs` never increment a revision or append a structural contributor.
 
 **Step 9 — Report to user**
 
@@ -173,9 +166,6 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 - **brainstorming before content.** Do NOT write FR-### or user stories until `/maxi:brainstorming` completes. This applies even if the feature is simple or the user wants a quick spec.
 - **Schema compliance is not optional.** Every user story gets a priority (P1/P2/P3), an `Independent Test`, and `Acceptance Scenarios`. Every requirement is `FR-NNN`. Every success criterion is `SC-NNN`. "Feature is too simple" is not an exemption.
 - **Status transition is atomic.** Set `status: drafting` on creation. Set `status: specified` only after spec.md is fully written and verified.
-- **Forward provenance starts at creation.** A newly created normal forward spec has `revision: 1`, one unique `writer_context`, that context as its sole initial `structural_contributors` entry, and `derived_from: []`.
-- **Forward replay eligibility starts at creation.** Only `specify` writes `replay_contract: bounded-v1`, and only on a newly created normal forward spec. The reusable template and every existing, migrated, or reverse-engineered spec remain unmarked.
-- **No retrofit.** Do not add or infer revision, writer-context, contributor, or derived-input metadata on an existing, migrated, or reverse-engineered spec.
 - **Path is fixed.** Specs live in `docs/maxi/specs/NNNN-slug/spec.md` — not `docs/specs/`, not `.specify/`, not the project root.
 - **Never copy a previous spec as the template.** Even if the feature is similar to an existing spec, always copy `spec-template.md`. Previous specs may have customizations that corrupt the schema.
 

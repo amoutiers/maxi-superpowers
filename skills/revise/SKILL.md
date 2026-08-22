@@ -36,28 +36,12 @@ Roll back a spec to an earlier pipeline phase when requirements or design change
 4. **Confirm**:
    > *"About to roll back `<slug>` from `<current>` to `<target>`. Downstream artefacts (plan.md, tasks.md, analysis.md as applicable) will stay on disk but are stale — the next pipeline skill will regenerate them. Proceed? (yes/no)"*
 
-5. **On explicit `yes` only**: capture the current `spec.md` revision, then write `spec.md` —
+5. **On explicit `yes` only**: write `spec.md` —
    - `status: <target>`
    - `updated: <today's ISO date>`
    - Append to `## Clarifications`:
      `**Revised (YYYY-MM-DD):** Rolled back from \`<current>\` to \`<target>\`. Change: <description>. Note: artefacts from phases after \`<target>\` (if any) are stale.`
-   - Only the exact `replay_contract: bounded-v1` root marker activates revision, provenance, replay_continuation, and planner behavior. For that marked spec, increment only `spec.md`, replace `writer_context` with this write's new unique context, and append that context to `structural_contributors`. The status and timestamp are non-structural; the persisted revision note is the structural owner change. An unmarked revision-bearing spec, including pre-mechanism 0019, follows legacy revise: no provenance, no replay continuation, and no planner.
-   - For a marked exceptional `specified` target, persist `replay_continuation: clarify@<new-spec-revision>` in the same structural `spec.md` write. The marker binds only the newly written spec revision and survives a rejected, ambiguous, or interrupted replay proposal.
-
-6. **Calculate and display replay**: only for a marked spec, call the read-only `skills/revise/replay-plan.sh` with `--changed spec.md`, the captured previous revision, and the next valid producer as `--start-phase`. A `specified` rollback starts at `clarify`; never rerun or replay `specify`. Follow the bounded replay contract below.
-
-7. **Report**: *"Spec `<slug>` is now at `<target>`. The displayed replay remains pending its own consent or external review handoff."*
-
-## Bounded Replay Contract
-
-This contract applies only to the exact `replay_contract: bounded-v1` root marker; revision metadata alone never activates it. `revise` owns only the `spec.md` write above. `x-review` is the sole writer of review records, and the replay planner is read-only: it never writes an artifact and never invokes a phase.
-
-1. Parse only the planner's `CHANGED`, `STALE`, `CONTINUATION`, `REPLAY`, and `REVIEW_REQUIRED` records. Before any phase invocation, display the previous revision, current revision, persisted continuation, stale paths, executable sequence, and review handoff. Preserve the emitted phase order and explicitly say when the executable sequence is empty.
-2. One displayed executable segment ends at its first review boundary. Stop every public phase at `REVIEW_REQUIRED`, automatically invoke internal `x-review` for the current subject, and never ask the user to invoke it or provide `yes`. Invoke no public phase after that review handoff; `x-review` alone writes its review record.
-3. Ask separately whether to run exactly the displayed executable segment. Approval exists only when the entire response is exactly the lowercase literal `yes`; do not trim whitespace or reuse the rollback answer. Silence, `ok`, prior consent, and every other response authorize no phase invocation. A rollback `yes` authorizes only Step 5, never replay.
-4. On approval, invoke only the displayed phases, once each, in order, and stop when that segment completes. After a matching external review exists, display the remaining executable segment and obtain a new literal `yes` before invoking any of it. The review itself is never consent for the continuation.
-5. A failed analysis requires a new explicit user decision; start no correction and no replay. Never infer another correction from the earlier rollback or replay consent.
-6. Never create or write `workflow.md` or `.maxi-ops`; neither is part of this contract.
+6. **Report**: *"Spec `<slug>` is now at `<target>`. Correction recorded. No review or successor phase was started. Request `/maxi:review` when you want a new design review."*
 
 ## Artifact reference links
 
@@ -73,8 +57,8 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 - **Never roll back below `clarified` by default.** The sole exception is `specified` for a real missing or ambiguous requirement in the source spec; that path replays `clarify` and must never replay `specify`.
 - **Never delete, rename, or modify** `plan.md`, `tasks.md`, `analysis.md` — they stay on disk, flagged stale in `## Clarifications`.
 - **Never modify** `constitution.md` or any ADR file.
-- **Only `spec.md`** is written: owner provenance, `status:`, `updated:`, and the `## Clarifications` revision note. Successor phases keep ownership of their own artifacts.
-- **Two separate consent boundaries.** The rollback write and each displayed replay segment require their own exact `yes`; ambiguous responses and prior consent authorize no replay.
+- **Only `spec.md`** is written: `status:`, `updated:`, and the `## Clarifications` revision note. Successor phases keep ownership of their own artifacts.
+- **One consent boundary.** The rollback write requires its own exact `yes`; it authorizes no successor phase.
 
 ## Rationalization Counters
 

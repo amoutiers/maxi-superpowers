@@ -4,11 +4,10 @@
 
 maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.3.0 harness model: Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. It has two layers:
 
-1. **spec-kit pipeline** — 19 maxi-native skills: 12 user-facing commands, 3 internal pipeline skills (`x-adr`, `x-develop`, `x-review`), 1 session skill (`using-maxi`), and 3 migration utilities (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run if prerequisites are missing.
+1. **Spec-driven pipeline**: 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run when prerequisites are missing.
+2. **Superpowers implementation engine**: vendored superpowers v6.3.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, and others) perform the delegated implementation work.
 
-2. **superpowers implementation engine** — vendored superpowers v6.3.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, etc.) that do the heavy lifting. Pipeline skills delegate to them at the right moments.
-
-The result: a project goes from blank slate to shipped code through a reproducible, auditable sequence. Nothing skips the queue.
+The result is a reproducible, auditable route from a feature request to shipped code.
 
 ## Repo Layout
 
@@ -26,13 +25,14 @@ maxi-superpowers/
 ├── hooks/                   # Session-start hooks
 │   ├── hooks.json           # Claude Code + Antigravity root manifest (session-start)
 │   ├── hooks-cursor.json    # Cursor manifest (sessionStart + additional_context)
-│   ├── run-hook.cmd          # Cross-platform polyglot wrapper
-│   └── session-start         # Unified hook (env-aware JSON output, gated on docs/maxi/)
+│   ├── run-hook.cmd         # Cross-platform polyglot wrapper
+│   └── session-start        # Unified hook (env-aware JSON output, gated on docs/maxi/)
 ├── skills/
 │   ├── constitution/        # maxi-native pipeline commands
 │   ├── specify/
 │   ├── clarify/
 │   ├── plan/
+│   ├── review/              # explicit design-review owner
 │   ├── tasks/
 │   ├── analyze/
 │   ├── implement/
@@ -41,17 +41,14 @@ maxi-superpowers/
 │   ├── resume/
 │   ├── cancel/
 │   ├── revise/
-│   │   └── replay-plan.sh    # read-only bounded replay planner
-│   ├── x-adr/                # internal ADR capture skill (invoked by plan + implement)
-│   ├── x-develop/            # internal SDD adapter (invoked by implement)
-│   │   ├── project-tasks.sh  # immutable TNNN → Task N projection
+│   ├── x-adr/               # internal ADR capture skill (invoked by plan + implement)
+│   ├── x-develop/           # internal SDD adapter (invoked by implement)
+│   │   ├── project-tasks.sh # immutable TNNN → Task N projection
 │   │   ├── reconcile-tasks.sh # upstream ledger → Maxi checkbox reconciliation
 │   │   ├── record-terminal.sh # hash-bound terminal receipt writer
 │   │   └── result-contract.sh # READY_TO_FINISH validation gate
-│   ├── x-review/             # internal independent handoff-review owner
-│   │   └── review-template.md # persisted versioned review-record template
-│   ├── using-maxi/          # maxi-native session skill
-│   ├── migrate-from-speckit/ # maxi-native migration utilities
+│   ├── using-maxi/          # session skill
+│   ├── migrate-from-speckit/
 │   ├── migrate-from-brownfield/
 │   ├── migrate-adr/
 │   ├── brainstorming/       # vendored from superpowers (do not hand-edit)
@@ -82,7 +79,7 @@ maxi-superpowers/
 ├── tests/
 │   ├── run-all.sh
 │   ├── check-*.sh           # fast-tier checks (see AGENTS.md for the authoritative list)
-│   ├── check-x-review.sh     # independent review-record contract
+│   ├── check-review-boundaries.sh # fixed review-boundary contract
 │   ├── integration/         # opt-in integration tier
 │   └── fixtures/
 ├── docs/
@@ -98,26 +95,30 @@ maxi-superpowers/
 └── package.json
 ```
 
-Skills under `skills/` that originate from superpowers are kept in sync with `vendor/superpowers/skills/` by `scripts/sync-superpowers.sh`. Do not hand-edit them.
+Skills that originate from Superpowers are synchronized from `vendor/superpowers/skills/` by `scripts/sync-superpowers.sh`; do not hand-edit them.
 
-## The Delegation Map
+## Delegation and Review Boundaries
 
-See [delegation-map.md](delegation-map.md) for the full table, and [pipeline-flow.md](pipeline-flow.md) for a visual Mermaid diagram of the complete pipeline including status transitions, bypass branches, and delegations. Summary:
+See [delegation-map.md](delegation-map.md) for the complete mapping and [pipeline-flow.md](pipeline-flow.md) for the status diagram. Summary:
 
 | maxi skill | Delegates to |
 |---|---|
-| `constitution` | (none — writes directly) |
+| `constitution` | writes directly |
 | `specify` | `/maxi:brainstorming` |
-| `clarify` | (none — interactive dialogue) |
-| `plan` | `/maxi:writing-plans`, then `/maxi:x-adr` per detected architectural choice |
-| `tasks` | (none — extraction only) |
-| `analyze` | (none — reads artifacts + ADRs, writes analysis.md with 7-pass audit) |
-| `implement` | `/maxi:x-develop`, then `/maxi:x-adr` on returned unplanned rulings; persists `done` only after `READY_TO_FINISH` |
-| `x-develop` | `superpowers:subagent-driven-development`, whose final review uses `/maxi:requesting-code-review`; returns a validated terminal receipt before branch finishing |
-| `x-adr` | (internal — invoked by plan + implement; never invoked by user directly) |
-| `x-review` | `/maxi:requesting-code-review`; persists the approved handoff record and never changes status |
+| `clarify` | interactive dialogue |
+| `plan` | `/maxi:writing-plans`, then `/maxi:x-adr` for detected architectural choices |
+| `review` | `/maxi:requesting-code-review`; writes the design-review record |
+| `tasks` | extraction from `plan.md` |
+| `analyze` | reads artifacts and ADRs, writes `analysis.md` |
+| `implement` | `/maxi:x-develop`, then `/maxi:x-adr` for returned unplanned rulings |
+| `x-develop` | `superpowers:subagent-driven-development` |
+| `x-adr` | internal, invoked by plan and implement |
 
-The 19 Maxi-native skills remain in place; the 10-state FSM remains unchanged. `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
+The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
+
+The public `/maxi:review` command writes `reviews/design-review.md`, bound to the exact current `spec.md` and `plan.md`. `/maxi:tasks` stops before any write if that approval is missing or stale. A correction stops after its owner write and never starts a review or successor phase; request `/maxi:review` explicitly when a new design review is wanted.
+
+`/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 
 Upstream SDD owns the only whole-branch review. Before dispatch, `x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It adapts canonical Maxi tasks into an immutable SDD projection, reconciles exact ledger completions, persists and binds the harness-issued final-reviewer identity, regenerates review packages from their Git ranges, and returns `READY_TO_FINISH` only after the hash-bound receipt validates. `implement` is the sole owner of the later `done` write and does not dispatch a second final review.
 
@@ -125,86 +126,38 @@ Only canonical annotated upstream completion records acquit tasks; bare or malfo
 
 A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage`.
 
-Every projection's exact distributed bytes are SHA-256-bound by its ordinary SDD ledger; missing, duplicate, malformed, or mismatched projection-byte anchors fail closed across the current and predecessor lineage.
-
-Removing an anchored incomplete `TNNN` during structural correction fails before successor creation and leaves the active-projection pointer unchanged.
-
-Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.
-
-For a marker-bound root, `reviews/spec-review.md` gates `plan`; `reviews/plan-review.md` gates `tasks`. The records are persisted and versioned by `x-review`. An internal `x-*` skill is invoked automatically by its public owner, never manually by the user, and never consumes a phase-continuation `yes` (`x-adr` still requests approval before it writes an ADR). These external review handoffs are gates, not statuses or automatic replay phases. `skills/revise/replay-plan.sh` is a read-only planner that calculates a bounded stale-descendant continuation, stops at the first required review, and never writes artifacts or executes phases.
-
-Bounded replay is future-only. Eligible roots carry exactly one `replay_contract: bounded-v1`; only `/maxi:specify` writes this marker, during normal forward-spec creation. An unmarked existing, migrated, or reverse-engineered spec returns `UNSUPPORTED_LEGACY`; revision metadata alone never opts it in.
-
-For a marker-bound root, `reviewed_sha256` hashes the canonical structural projection, which omits only root-frontmatter `status:` and `updated:`, preserves every other line in order, and hashes one LF after each retained line. The exact ten-field review envelope is `revision`, `writer_context`, `structural_contributors`, `derived_from`, `reviewed_document`, `reviewed_revision`, `reviewed_sha256`, `reviewer_context`, `reviewer_context_matches_harness`, and `verdict`. Before delegation, artifact write, or status/timestamp change, `plan` and `tasks` require positive record and reviewed revisions, exactly one mapped direct input, the exact current subject/revision/digest, canonical unique contributors and contexts, writer equals reviewer and appears in contributors, harness equality exactly `true`, verdict exactly `approved`, and reviewer independence from the subject contributors.
-
-The persisted continuation is `replay_continuation: clarify@<current-spec-revision>` after the exceptional source rollback; `/maxi:clarify` can re-present it with `--resume-current-source` after rejection, ambiguity, or interruption. `--resume-current-source` is legal only for `spec.md`, start phase `clarify`, and that matching current marker. Clarification replaces it with `replay_continuation: plan@<current-spec-revision>`. After `x-review` writes the matching spec review, `/maxi:plan` can re-present the spec review continuation with `--resume-current-review`; a consented plan write persists `replay_continuation: tasks@<current-plan-revision>`. After the matching plan review, `/maxi:tasks` can re-present the plan review continuation with `--resume-current-review`. `--resume-current-review` accepts exactly two combinations: `reviews/spec-review.md` with `plan`, or `reviews/plan-review.md` with `tasks`; both require the current subject and review plus every transitive `derived_from` ancestor. Each displayed executable segment requires its own fresh literal `yes`.
-
-Before plan resume, a stale `spec.md`, support artifact, or specification review is rejected before any continuation output or write, even when `plan.md` and its plan review still match.
-
-An explicit owner-managed plan correction is available only when explicitly requested at `planned`, `tasked`, `analyzed`, or `implementing`; it preserves the current spec-review gate, writes `replay_continuation: tasks@<current-plan-revision>` with the corrected plan, and returns only to `planned`. An explicit owner-managed tasks correction is available only when explicitly requested at `tasked`, `analyzed`, or `implementing`; it preserves the current plan-review gate and returns only to `tasked`. After `x-review` writes a marker-bound approved plan review, it immediately invokes the read-only planner with the predecessor review revision and displays the current approved `tasks -> analyze` continuation. `x-review` never executes a phase or obtains consent. For that marker-bearing corrected plan, `/maxi:tasks` is only the later no-write resume presenter: it invokes the read-only planner with `--resume-current-review`, redisplays that continuation, and requires a fresh literal `yes` before extraction. Rejection, ambiguity, or session interruption changes nothing and the same current review can be presented again.
-
-Only new specs created through the normal forward pipeline receive this revision and replay behavior; existing, migrated, and reverse-engineered specs remain untouched. For an unmarked root, plan and tasks use the ordinary pipeline: no review record, x-review handoff, review provenance, review reporting, or replay planner is required. This mechanism never creates or writes `workflow.md` or `.maxi-ops`.
+Every projection's exact distributed bytes are SHA-256-bound by its ordinary SDD ledger; missing, duplicate, malformed, or mismatched projection-byte anchors fail closed across the current and predecessor lineage. Removing an anchored incomplete `TNNN` during structural correction fails before successor creation and leaves the active-projection pointer unchanged. Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.
 
 ## Architecture Decision Records
 
-ADRs live in the **user's project**, not in this plugin repo. The layout in a user project:
-
-```
-docs/
-└── maxi/
-    ├── constitution.md      # mandatory, checked by every pipeline skill
-    ├── adr/
-    │   ├── README.md        # auto-maintained index (all ADRs, sorted by number)
-    │   └── NNNN-slug.md     # 0001–9999, zero-padded
-    └── specs/
-        └── NNNN-feature-slug/
-```
-
-**Trigger points:** `/maxi:plan` scans the produced plan for tech-stack and architecture choices; `/maxi:implement` watches for unplanned forks reported by subagents. Both invoke `/maxi:x-adr`, which drafts the ADR, shows it to the user, and writes only on explicit consent.
-
-**Append-only:** ADR body is immutable after creation. Only `status`, `supersedes`, and `superseded_by` frontmatter fields may change. To revise a decision, create a new ADR that supersedes the old one. ADRs no longer carry cross-reference fields (`related_specs`/`related_principles`/`related_requirements`); spec→ADR traceability is recorded spec-side via the spec's `related_adrs` frontmatter (ADR-0012).
-
-**Pass G (analyze):** `/maxi:analyze` runs a 7th detection pass — ADR Alignment — that flags missing ADRs for consequential tech choices (G1, MEDIUM), ADRs contradicting constitution MUST rules (G2, CRITICAL), stale ADR references (G3, HIGH), and cyclic supersede chains (G4, HIGH). It reads the spec-side `related_adrs` link to associate a spec with its ADRs. If `docs/maxi/adr/` is empty or absent, Pass G is skipped and the metrics note "no ADRs recorded."
+ADRs live in each user's project under `docs/maxi/adr/`. `/maxi:plan` and `/maxi:implement` may propose an ADR, but `/maxi:x-adr` writes one only after explicit approval. ADR bodies are append-only; a changed decision uses a superseding ADR. `/maxi:analyze` includes the ADR-alignment pass for missing decisions, constitution conflicts, stale links, and cyclic supersession chains.
 
 ## Phase Gating
 
-The 10-state FSM remains unchanged. Review handoffs and replay proposals are external control gates around existing phases, not additional phases or status transitions. `revise` reserves the exceptional `specified` rollback for a demonstrated source-spec gap; its replay starts at `clarify` and never invokes `specify`.
-
-Every `spec.md` carries a `status:` field in its YAML frontmatter:
+Every `spec.md` carries this status progression:
 
 ```
 drafting → specified → clarified → planned → tasked → analyzed → implementing → done
 ```
 
-Each skill checks this field at startup:
+Skills stop when a spec is behind their prerequisite, and avoid accidental ordinary re-runs when it is ahead. `plan` and `tasks` accept explicit correction requests only in their documented correction modes. The frontmatter is the single source of truth for pipeline position; `related_adrs` records accepted spec-to-ADR links.
 
-- If the spec is **behind** the required status, the skill stops with a message directing the user to the missing step.
-- If the spec is **ahead** of the normal creation status, the skill stops to prevent accidental re-runs. `plan` and `tasks` enter their separate correction modes only after an explicit structural correction request at one of the statuses documented above.
+### Strict Pipeline Philosophy
 
-Skills update `status:` in-place at the end of their process. The frontmatter is the single source of truth for pipeline position. The spec frontmatter also carries `related_adrs` — a list of full ADR slugs — recording the spec→ADR link (written by `x-adr` when an ADR is accepted).
-
-### Phase Gating Philosophy
-
-Each pipeline phase has its own responsibility — that is why it exists as a separate skill. Allowing a phase to be bypassed contradicts the premise that each phase deserves a dedicated step. The pipeline is therefore strict: every feature passes through every phase, in order.
-
-Skills are designed to be cheap when there is nothing to do. `/maxi:clarify` can resolve to "no ambiguities found" in a single step. `/maxi:analyze` produces a clean `analysis.md` with zero findings instantly. The ceremony cost is real but bounded; the value of the discipline is not.
+Each phase has one responsibility and remains mandatory in order. There is no skip path for forward development. Migration and reverse-engineering ingress can create artifacts at an appropriate later status because they document pre-existing work; from that point, the ordinary forward pipeline is strict.
 
 ## Vendoring Mechanics
 
 superpowers is vendored as a git subtree at `vendor/superpowers/`:
 
 ```bash
-# Initial add (one-time bootstrap; current pin is v6.3.0 — see VENDORED.md):
+# Current pin: v6.3.0 (see VENDORED.md)
 git subtree add --prefix=vendor/superpowers https://github.com/obra/superpowers v6.3.0 --squash
-
-# Bump to a new version:
 bash scripts/bump-superpowers.sh <new-tag>
-
-# Re-sync skills/ from vendor/:
 bash scripts/sync-superpowers.sh
 ```
 
-`sync-superpowers.sh` copies skills from `vendor/superpowers/skills/` into `skills/` and updates `VENDORED.md`. The `check-sync-invariant.sh` test verifies that `skills/` and `vendor/superpowers/skills/` are in sync — it fails if they diverge.
+`sync-superpowers.sh` copies the upstream skills and updates `VENDORED.md`. `check-sync-invariant.sh` rejects a divergence between the vendored tree and copied skills.
 
 ## Harness Strategy
 

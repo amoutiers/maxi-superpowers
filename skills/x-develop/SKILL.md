@@ -22,9 +22,8 @@ Receive the exact canonical `spec.md`, `plan.md`, and `tasks.md` paths from
    `.superpowers/sdd/projections/`, and the selected spec's one
    `.superpowers/sdd/active-<slug>` pointer. Use only the canonical absolute
    projection path printed by the command.
-2. Strict plan-task bijection applies only when the physically bound `spec.md` carries exactly one `replay_contract: bounded-v1` marker.
-3. For every unmarked root, ignore historical plan annotations and project each canonical `TNNN` task line once in tasks-file order.
-4. Create an immutable projection once, or verify and reuse it when its plan
+2. Project each canonical `TNNN` once in tasks-file order for every root, ignoring replay metadata and historical plan annotations.
+3. Create an immutable projection once, or verify and reuse it when its plan
    and tasks structural identity is unchanged. An owner-managed structural
    correction starts a successor projection and workspace. Link that
    successor to the prior projection. Recover a predecessor only from the validated active-projection pointer.

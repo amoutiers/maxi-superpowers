@@ -18,7 +18,7 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 
 ## Process
 
-1. **Validate independent analysis** — activate this future-only contract only when the root `spec.md` carries exactly one exact `replay_contract: bounded-v1` root marker. Revision metadata alone never activates it. An unmarked existing, migrated, reverse-engineered, or pre-mechanism spec keeps the prior implementation behavior; a duplicate or non-exact marker is malformed and stops before any write. For an eligible root, apply the complete gate below on every invocation, including a resume from `implementing`.
+1. **Validate readiness review** — `analysis.md` is the required readiness review of the current design and tasks before code begins. Stop before any write or `/maxi:x-develop` dispatch if it is missing or reports CRITICAL findings.
 2. **Bind artifacts** — load the selected root's canonical `spec.md`, `plan.md`, and `tasks.md`. Identify `- [ ]` (pending) and `- [x]` (complete) tasks. Pass the exact canonical `spec.md`, `plan.md`, and `tasks.md` paths to `/maxi:x-develop`.
 3. **Transition to implementing** — update spec.md frontmatter `status: → implementing`; also set `updated: [today's ISO date]` on spec.md. Do this before first task begins.
 4. **Delegate to /maxi:x-develop** — **REQUIRED SUB-SKILL.** Pass those three paths. Do NOT implement tasks directly in this session. `x-develop` owns projection, incremental reconciliation, upstream SDD, and the whole-branch review.
@@ -27,16 +27,6 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 7. **Transition to done** — after `READY_TO_FINISH`, reread `tasks.md` and require every canonical task to be checked. Count remaining `- [ ]` items. If any remain, stop. Otherwise persist `status: implementing → done` and today's `updated:` value.
 8. **Finish the branch** — retain the returned projection lineage and aggregated `Ruling:` lines until branch/worktree completion, and invoke `superpowers:finishing-a-development-branch` only after the `done` write is persisted.
 9. **Report** — *"Implementation complete. All tasks done. Status: `done`."* Include the retained lineage and rulings in the finishing handoff.
-
-## Independent Analysis Gate
-
-For an eligible marker-bound root, read the complete current `analysis.md`, `spec.md`, `plan.md`, `tasks.md`, and present support artifacts. Accept the analysis only when all of these are true:
-
-- `analysis.md` metadata is well formed, has a positive revision, and its `derived_from` entries name the exact current revisions of `spec.md`, `plan.md`, `tasks.md`, and every support artifact it reviewed;
-- `reviewer_context_matches_harness: true`, `independence_verified: true`, and `analysis_result: passed` are present exactly;
-- `writer_context` equals `reviewer_context`, that context is a contributor to `analysis.md`, and the reviewer_context remains absent from the current `spec.md`, `plan.md`, and `tasks.md` `structural_contributors` lists.
-
-An absent, malformed, stale, failed, or non-independent analysis fails closed. Stop before any status or timestamp change, before any task checkbox write, and before any `x-develop` dispatch; leave all artifacts and implementation files unchanged. Do not infer, repair, or substitute chat-only evidence. A failed gate requests a new user decision but starts no correction or replay.
 
 ## Critical Rules
 
@@ -47,12 +37,12 @@ An absent, malformed, stale, failed, or non-independent analysis fails closed. S
 - **One final review owner.** Upstream SDD runs the mandatory whole-branch review. Never dispatch a duplicate review from `implement`.
 - **Receipt result is mandatory.** Only exact `READY_TO_FINISH` authorizes `implementing → done`.
 - **Finish after done.** Branch/worktree finishing is unreachable until `done` is persisted.
-- **Independent analysis is a pre-write gate.** Status alone is not evidence. Validate the persisted current passing analysis before every new or resumed implementation.
+- **Readiness analysis is a pre-write gate.** Status alone is not evidence. Validate the current passing analysis before every new or resumed implementation.
 
 ## Resuming Interrupted Implementation
 
 If status is already `implementing`:
-- Re-run the independent analysis gate against the current artifacts; stop if it no longer passes
+- Re-run the readiness analysis check against the current artifacts; stop if it no longer passes
 - Read tasks.md to find the first `- [ ]` (unchecked) task
 - Resume from there — skip all `- [x]` tasks
 - Pass the exact artifact paths to `x-develop`, then complete the receipt-gated process normally

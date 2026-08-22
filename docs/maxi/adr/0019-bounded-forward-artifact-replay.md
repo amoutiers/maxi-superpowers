@@ -1,12 +1,12 @@
 ---
 adr: 0019
 slug: 0019-bounded-forward-artifact-replay
-status: accepted
+status: superseded
 created: 2026-08-03
 updated: 2026-08-03
 decider: "Antoine Moutiers"
 supersedes: 0017
-superseded_by: null
+superseded_by: 0022
 ---
 
 # ADR-0019: Bounded Replay for Future Forward Specs

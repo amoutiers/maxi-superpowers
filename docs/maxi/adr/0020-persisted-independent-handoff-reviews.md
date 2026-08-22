@@ -1,12 +1,12 @@
 ---
 adr: 0020
 slug: 0020-persisted-independent-handoff-reviews
-status: accepted
+status: superseded
 created: 2026-08-03
 updated: 2026-08-03
 decider: "Antoine Moutiers"
 supersedes: 0018
-superseded_by: null
+superseded_by: 0022
 ---
 
 # ADR-0020: Persisted Independent Reviews at Pipeline Handoffs

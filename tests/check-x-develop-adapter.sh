@@ -46,15 +46,13 @@ init_repo() {
 }
 
 write_spec() {
-  local path="$1" mode="$2" slug="${3:-adapter-sample}"
+  local path="$1" slug="${2:-adapter-sample}"
   {
     echo '---'
     echo "slug: $slug"
     echo 'created: 2026-08-19'
     echo 'updated: 2026-08-19'
     echo 'status: analyzed'
-    echo 'revision: 3'
-    [ "$mode" = marker ] && echo 'replay_contract: bounded-v1'
     echo '---'
     echo
     echo "# Spec: $slug"
@@ -62,10 +60,10 @@ write_spec() {
 }
 
 seed_case() {
-  local repo="$1" mode="${2:-marker}" slug="${3:-adapter-sample}"
+  local repo="$1" slug="${2:-adapter-sample}"
   local dir="$repo/docs/maxi/specs/$slug"
   mkdir -p "$dir" "$repo/.superpowers/sdd/projections"
-  write_spec "$dir/spec.md" "$mode" "$slug"
+  write_spec "$dir/spec.md" "$slug"
   cp "$FIXTURES/plan.md" "$dir/plan.md"
   cp "$FIXTURES/tasks.md" "$dir/tasks.md"
   if [ "$slug" != adapter-sample ]; then
@@ -131,8 +129,8 @@ assert_eq "$PROJECT_STATUS" 0 'canonical projection succeeds'
 PROJECTION="$PROJECT_OUTPUT"
 [ "$PROJECTION" = "$(cd -P "$(dirname "$PROJECTION")" && pwd)/$(basename "$PROJECTION")" ] && ok 'projection path is canonical absolute' || fail 'projection path is canonical absolute'
 case "$(basename "$PROJECTION")" in
-  adapter-sample-p-r7-????????????-t-r4-????????????-sdd.md) ok 'marker basename exact form' ;;
-  *) fail 'marker basename exact form' "$(basename "$PROJECTION")" ;;
+  adapter-sample-p-????????????-t-????????????-sdd.md) ok 'ordinary basename exact form' ;;
+  *) fail 'ordinary basename exact form' "$(basename "$PROJECTION")" ;;
 esac
 assert_eq "$(sha "$PLAN")" "$plan_before" 'plan bytes stay immutable'
 assert_eq "$(sha "$TASKS")" "$tasks_before" 'tasks bytes stay immutable during projection'
@@ -140,21 +138,19 @@ assert_has "$PROJECTION" '**Spec:** `spec.md`' 'preamble preserves Spec'
 assert_has "$PROJECTION" '**Goal:** Exercise deterministic Maxi-to-SDD projection.' 'preamble preserves Goal'
 assert_has "$PROJECTION" '**Architecture:** One projection adapter with immutable workspaces.' 'preamble preserves Architecture'
 assert_has "$PROJECTION" '## Global Constraints' 'preamble preserves Global Constraints'
-line_t1="$(grep -n '^### Task 1: T001 ' "$PROJECTION" | cut -d: -f1)"
-line_t2="$(grep -n '^### Task 2: T002 ' "$PROJECTION" | cut -d: -f1)"
-line_t3="$(grep -n '^### Task 3: T003 ' "$PROJECTION" | cut -d: -f1)"
-[ "$line_t1" -lt "$line_t2" ] && [ "$line_t2" -lt "$line_t3" ] && ok 'mapped projection follows source plan order' || fail 'mapped projection follows source plan order'
-assert_has "$PROJECTION" '### Task 99: This fenced heading is not executable' 'backtick-fenced heading stays in Task 1 body'
-assert_has "$PROJECTION" 'Keep this line after the backtick fence.' 'Task 1 body is complete'
-if grep -Eq '^[[:space:]]+```' "$PROJECTION"; then
-  fail 'indented backtick delimiters are normalized' 'an indented backtick delimiter remains'
+line_t3="$(grep -n '^### Task 1: T003 ' "$PROJECTION" | cut -d: -f1)"
+line_t1="$(grep -n '^### Task 2: T001 ' "$PROJECTION" | cut -d: -f1)"
+line_t2="$(grep -n '^### Task 3: T002 ' "$PROJECTION" | cut -d: -f1)"
+[ "$line_t3" -lt "$line_t1" ] && [ "$line_t1" -lt "$line_t2" ] && ok 'ordinary projection follows tasks-file order' || fail 'ordinary projection follows tasks-file order'
+assert_has "$PROJECTION" '- [ ] T003 [US1] Write the third file (plan Task 3)' 'ordinary projection retains the task line'
+assert_not_has "$PROJECTION" '### Task 99: This fenced heading is not executable' 'ordinary projection does not copy plan bodies'
+if grep -q '^mode:' "$PROJECTION"; then
+  fail 'ordinary projection has no mode branch' 'projection retained a mode field'
 else
-  ok 'indented backtick delimiters are normalized'
+  ok 'ordinary projection has no mode branch'
 fi
-assert_has "$PROJECTION" '```markdown' 'tilde opening fence is normalized'
-assert_has "$PROJECTION" '### Task 88: This tilde-fenced heading is not executable' 'tilde-fenced heading stays in Task 2 body'
-assert_not_has "$PROJECTION" '~~~' 'tilde fence delimiters are absent'
-assert_has "$PROJECTION" 'Write the complete third task body through end of file.' 'final task body is complete'
+assert_not_has "$PROJECTION" 'plan_revision:' 'ordinary projection has no revision branch'
+assert_not_has "$PROJECTION" 'tasks_revision:' 'ordinary projection has no revision branch'
 assert_eq "$(cat "$STATE")" "$PROJECTION" 'active pointer stores one canonical projection'
 
 # The anchor lives in the ordinary upstream ledger and must not disturb the
@@ -162,7 +158,7 @@ assert_eq "$(cat "$STATE")" "$PROJECTION" 'active pointer stores one canonical p
 PROJECTION_LEDGER="$REPO/.superpowers/sdd/$(basename "$PROJECTION" .md)/progress.md"
 assert_eq "$(sed -n '1p' "$PROJECTION_LEDGER")" "# SDD ledger — plan: $PROJECTION" 'selection ledger keeps upstream plan identity'
 assert_eq "$(grep -c '^Maxi selection:' "$PROJECTION_LEDGER")" 1 'selection ledger has one canonical anchor'
-assert_eq "$(sed -n '2p' "$PROJECTION_LEDGER")" 'Maxi selection: T001 T002 T003' 'selection ledger anchors the exact initial set'
+assert_eq "$(sed -n '2p' "$PROJECTION_LEDGER")" 'Maxi selection: T003 T001 T002' 'selection ledger anchors the exact initial set'
 assert_eq "$(grep -c '^Maxi projection SHA256:' "$PROJECTION_LEDGER")" 1 'selection ledger has one projection-byte anchor'
 assert_eq "$(sed -n '3p' "$PROJECTION_LEDGER")" "Maxi projection SHA256: $(sha "$PROJECTION")" 'ledger anchors the exact distributed projection bytes'
 selection_ledger_hash="$(sha "$PROJECTION_LEDGER")"
@@ -217,7 +213,7 @@ assert_eq "$(sha "$ORPHAN_OLD_LEDGER")" "$orphan_old_ledger_before" 'different-d
 ORPHAN_SYMLINK="$WORK/orphan-symlink"
 init_repo "$ORPHAN_SYMLINK"
 seed_case "$ORPHAN_SYMLINK"
-ORPHAN_LINK="$ORPHAN_SYMLINK/.superpowers/sdd/projections/adapter-sample-p-legacy-aaaaaaaaaaaa-t-legacy-bbbbbbbbbbbb-sdd.md"
+ORPHAN_LINK="$ORPHAN_SYMLINK/.superpowers/sdd/projections/adapter-sample-p-aaaaaaaaaaaa-t-bbbbbbbbbbbb-sdd.md"
 ln -s "$ORPHAN_SYMLINK/missing" "$ORPHAN_LINK"
 run_project "$ORPHAN_SYMLINK"
 [ "$PROJECT_STATUS" -ne 0 ] && ok 'same-slug orphan symlink rejects without active pointer' || fail 'same-slug orphan symlink rejects without active pointer' 'a fresh projection and pointer were created'
@@ -242,15 +238,15 @@ run_project "$ORPHAN_WORKSPACE"
 # Exact slug matching must not treat an adapter-sample orphan as adapter state.
 PREFIX_SLUG="$WORK/prefix-slug"
 init_repo "$PREFIX_SLUG"
-seed_case "$PREFIX_SLUG" marker adapter-sample
+seed_case "$PREFIX_SLUG" adapter-sample
 run_project "$PREFIX_SLUG" adapter-sample
 mv "$PREFIX_SLUG/.superpowers/sdd/active-adapter-sample" "$PREFIX_SLUG/pointer.saved"
-seed_case "$PREFIX_SLUG" marker adapter
+seed_case "$PREFIX_SLUG" adapter
 run_project "$PREFIX_SLUG" adapter
 assert_eq "$PROJECT_STATUS" 0 'another slug with a shared prefix remains fresh'
 [ -f "$PREFIX_SLUG/.superpowers/sdd/active-adapter" ] && ok 'shared-prefix slug gets its own active pointer' || fail 'shared-prefix slug gets its own active pointer'
 
-# The real upstream extractor must retain every complete projected body.
+# The real upstream extractor must retain each ordinary projected task.
 for task_number in 1 2 3; do
   brief="$WORK/task-$task_number-brief.md"
   if (cd "$REPO" && bash "$TASK_BRIEF" "$PROJECTION" "$task_number" "$brief") >/dev/null 2>&1; then
@@ -259,13 +255,11 @@ for task_number in 1 2 3; do
     fail "upstream task-brief extracts Task $task_number" 'extractor rejected the projection'
   fi
 done
-assert_has "$WORK/task-1-brief.md" '### Task 99: This fenced heading is not executable' 'Task 1 brief retains fenced heading'
-assert_has "$WORK/task-1-brief.md" 'Keep this line after the backtick fence.' 'Task 1 brief retains complete tail'
-assert_not_has "$WORK/task-1-brief.md" '### Task 2: T002 ' 'Task 1 brief stops at Task 2'
-assert_has "$WORK/task-2-brief.md" '### Task 88: This tilde-fenced heading is not executable' 'Task 2 brief retains normalized fenced heading'
-assert_has "$WORK/task-2-brief.md" 'Keep this line after the tilde fence.' 'Task 2 brief retains complete tail'
-assert_not_has "$WORK/task-2-brief.md" '### Task 3: T003 ' 'Task 2 brief stops at Task 3'
-assert_has "$WORK/task-3-brief.md" 'Write the complete third task body through end of file.' 'Task 3 brief retains complete tail'
+assert_has "$WORK/task-1-brief.md" '- [ ] T003 [US1] Write the third file (plan Task 3)' 'Task 1 brief retains ordinary task line'
+assert_not_has "$WORK/task-1-brief.md" '### Task 2: T001 ' 'Task 1 brief stops at Task 2'
+assert_has "$WORK/task-2-brief.md" '- [ ] T001 [P] [US1] Write the first file (plan Task 1)' 'Task 2 brief retains ordinary task line'
+assert_not_has "$WORK/task-2-brief.md" '### Task 3: T002 ' 'Task 2 brief stops at Task 3'
+assert_has "$WORK/task-3-brief.md" '- [ ] T002 [US1] Write the second file (depends on T001) (plan Task 2)' 'Task 3 brief retains ordinary task line'
 
 projection_hash="$(sha "$PROJECTION")"
 sed 's/- \[ \] T001/- [x] T001/' "$TASKS" > "$TASKS.tmp" && mv "$TASKS.tmp" "$TASKS"
@@ -281,7 +275,7 @@ init_repo "$TAMPERED"
 seed_case "$TAMPERED"
 run_project "$TAMPERED"
 TAMPERED_PROJECTION="$PROJECT_OUTPUT"
-sed 's/Write the complete first task body\./Write a forged first task body./' "$TAMPERED_PROJECTION" > "$TAMPERED/change"
+sed 's/Write the third file/Write a forged third file/' "$TAMPERED_PROJECTION" > "$TAMPERED/change"
 mv "$TAMPERED/change" "$TAMPERED_PROJECTION"
 tampered_body_sha="$(awk '
   NR == 1 && $0 == "---" { fm = 1; next }
@@ -303,7 +297,7 @@ seed_case "$FORGED_PREDECESSOR"
 run_project "$FORGED_PREDECESSOR"
 FORGED_PREDECESSOR_PROJECTION="$PROJECT_OUTPUT"
 FORGED_PREDECESSOR_STATE="$FORGED_PREDECESSOR/.superpowers/sdd/active-adapter-sample"
-sed 's/Write the complete first task body\./Write a forged predecessor task body./' "$FORGED_PREDECESSOR_PROJECTION" > "$FORGED_PREDECESSOR/change"
+sed 's/Write the third file/Write a forged predecessor task/' "$FORGED_PREDECESSOR_PROJECTION" > "$FORGED_PREDECESSOR/change"
 mv "$FORGED_PREDECESSOR/change" "$FORGED_PREDECESSOR_PROJECTION"
 forged_predecessor_body_sha="$(awk '
   NR == 1 && $0 == "---" { fm = 1; next }
@@ -328,12 +322,11 @@ OMITTED_PROJECTION="$PROJECT_OUTPUT"
 OMITTED_TASKS="$OMITTED/docs/maxi/specs/adapter-sample/tasks.md"
 OMITTED_LEDGER="$OMITTED/.superpowers/sdd/$(basename "$OMITTED_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$OMITTED_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\n' "$OMITTED_PROJECTION" "$(sha "$OMITTED_PROJECTION")" "$COMPLETE_1_CLEAN" > "$OMITTED_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T003 T001 T002\nMaxi projection SHA256: %s\n%s\n' "$OMITTED_PROJECTION" "$(sha "$OMITTED_PROJECTION")" "$COMPLETE_1_CLEAN" > "$OMITTED_LEDGER"
 bash "$RECONCILE" --projection "$OMITTED_PROJECTION" --ledger "$OMITTED_LEDGER" --tasks "$OMITTED_TASKS" >/dev/null
 awk '
-  /^### Task 1: T001 / { skip = 1; next }
-  /^### Task 2: T002 / { skip = 0; sub(/^### Task 2:/, "### Task 1:") }
-  /^### Task 3: T003 / { sub(/^### Task 3:/, "### Task 2:") }
+  /^### Task 2: T001 / { skip = 1; next }
+  /^### Task 3: T002 / { skip = 0; sub(/^### Task 3:/, "### Task 2:") }
   !skip { print }
 ' "$OMITTED_PROJECTION" > "$OMITTED/change"
 mv "$OMITTED/change" "$OMITTED_PROJECTION"
@@ -362,9 +355,8 @@ if [ -e "$NO_ANCHOR_LEDGER" ]; then mv "$NO_ANCHOR_LEDGER" "$NO_ANCHOR_LEDGER.sa
 sed 's/- \[ \] T001/- [x] T001/' "$NO_ANCHOR_TASKS" > "$NO_ANCHOR/change"
 mv "$NO_ANCHOR/change" "$NO_ANCHOR_TASKS"
 awk '
-  /^### Task 1: T001 / { skip = 1; next }
-  /^### Task 2: T002 / { skip = 0; sub(/^### Task 2:/, "### Task 1:") }
-  /^### Task 3: T003 / { sub(/^### Task 3:/, "### Task 2:") }
+  /^### Task 2: T001 / { skip = 1; next }
+  /^### Task 3: T002 / { skip = 0; sub(/^### Task 3:/, "### Task 2:") }
   !skip { print }
 ' "$NO_ANCHOR_PROJECTION" > "$NO_ANCHOR/change"
 mv "$NO_ANCHOR/change" "$NO_ANCHOR_PROJECTION"
@@ -393,8 +385,8 @@ for anchor_case in absent malformed duplicate mismatch; do
   case "$anchor_case" in
     absent) ;;
     malformed) printf 'Maxi selection: T001,T002,T003\n' >> "$ANCHOR_LEDGER" ;;
-    duplicate) printf 'Maxi selection: T001 T002 T003\nMaxi selection: T001 T002 T003\n' >> "$ANCHOR_LEDGER" ;;
-    mismatch) printf 'Maxi selection: T001 T002\n' >> "$ANCHOR_LEDGER" ;;
+    duplicate) printf 'Maxi selection: T003 T001 T002\nMaxi selection: T003 T001 T002\n' >> "$ANCHOR_LEDGER" ;;
+    mismatch) printf 'Maxi selection: T003 T001\n' >> "$ANCHOR_LEDGER" ;;
   esac
   anchor_projection_sha="$(sha "$ANCHOR_PROJECTION")"
   run_project "$ANCHOR_REPO"
@@ -457,7 +449,7 @@ run_project "$PRECHECKED"
 PRECHECKED_PROJECTION="$PROJECT_OUTPUT"
 PRECHECKED_LEDGER="$PRECHECKED/.superpowers/sdd/$(basename "$PRECHECKED_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$PRECHECKED_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T003\nMaxi projection SHA256: %s\n%s\n%s\n' "$PRECHECKED_PROJECTION" "$(sha "$PRECHECKED_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$PRECHECKED_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T003 T001\nMaxi projection SHA256: %s\n%s\n%s\n' "$PRECHECKED_PROJECTION" "$(sha "$PRECHECKED_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$PRECHECKED_LEDGER"
 assert_eq "$(bash "$RECONCILE" --projection "$PRECHECKED_PROJECTION" --ledger "$PRECHECKED_LEDGER" --tasks "$PRECHECKED_TASKS")" 0 'prechecked projection reconciles both selected tasks'
 run_project "$PRECHECKED"
 assert_eq "$PROJECT_STATUS" 0 'prechecked completed projection resumes for whole-branch review'
@@ -478,8 +470,8 @@ mv "$CHECKED_REPO/tasks.tmp" "$CHECKED_REPO/docs/maxi/specs/adapter-sample/tasks
 run_project "$CHECKED_REPO"
 assert_eq "$PROJECT_STATUS" 0 'initial checked-state projection succeeds'
 assert_not_has "$PROJECT_OUTPUT" 'T002' 'task checked before first execution is excluded'
-assert_has "$PROJECT_OUTPUT" '### Task 1: T001 ' 'remaining Task 1 is retained'
-assert_has "$PROJECT_OUTPUT" '### Task 2: T003 ' 'remaining Task 3 is renumbered sequentially'
+assert_has "$PROJECT_OUTPUT" '### Task 1: T003 ' 'remaining Task 3 is retained'
+assert_has "$PROJECT_OUTPUT" '### Task 2: T001 ' 'remaining Task 1 is renumbered sequentially'
 
 # Every structural tasks field changes the identity.
 for field in task-line phase goal dependency checkpoint; do
@@ -509,7 +501,7 @@ run_project "$CORRECT"
 OLD_PROJECTION="$PROJECT_OUTPUT"
 OLD_LEDGER="$CORRECT/.superpowers/sdd/$(basename "$OLD_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$OLD_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\nRuling: preserve old evidence\n' "$OLD_PROJECTION" "$(sha "$OLD_PROJECTION")" "$COMPLETE_1_PARKED" > "$OLD_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T003 T001 T002\nMaxi projection SHA256: %s\n%s\nRuling: preserve old evidence\n' "$OLD_PROJECTION" "$(sha "$OLD_PROJECTION")" "$COMPLETE_1_PARKED" > "$OLD_LEDGER"
 bash "$RECONCILE" --projection "$OLD_PROJECTION" --ledger "$OLD_LEDGER" --tasks "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 sed 's/- \[ \] T002/- [x] T002/' "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md" > "$CORRECT/change"
 mv "$CORRECT/change" "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md"
@@ -517,13 +509,13 @@ sed 's/Write the second file/Write the newly corrected second file/' "$CORRECT/d
 mv "$CORRECT/change" "$CORRECT/docs/maxi/specs/adapter-sample/tasks.md"
 run_project "$CORRECT"
 NEW_PROJECTION="$PROJECT_OUTPUT"
-if grep -Eq '^### Task [1-9][0-9]*: T001 ' "$NEW_PROJECTION"; then
-  fail 'successor excludes genuinely completed predecessor task' 'T001 executable heading remains'
+if grep -Eq '^### Task [1-9][0-9]*: T003 ' "$NEW_PROJECTION"; then
+  fail 'successor excludes genuinely completed predecessor task' 'T003 executable heading remains'
 else
   ok 'successor excludes genuinely completed predecessor task'
 fi
-assert_has "$NEW_PROJECTION" '### Task 1: T002 ' 'successor retains corrected pending task'
-assert_has "$NEW_PROJECTION" '### Task 2: T003 ' 'successor retains every other pending task'
+assert_has "$NEW_PROJECTION" '### Task 1: T001 ' 'successor retains every other pending task'
+assert_has "$NEW_PROJECTION" '### Task 2: T002 ' 'successor retains corrected pending task'
 
 # A structural successor cannot erase an anchored, uncompleted task by
 # removing it consistently from both current source artifacts.
@@ -546,26 +538,29 @@ run_project "$DELETED_SELECTED"
 [ "$PROJECT_STATUS" -ne 0 ] && ok 'successor rejects deleted anchored T003' || fail 'successor rejects deleted anchored T003' 'structural successor silently discarded T003'
 assert_eq "$(cat "$DELETED_SELECTED/.superpowers/sdd/active-adapter-sample")" "$DELETED_PREDECESSOR" 'deleted anchored task keeps predecessor active'
 
-# Legacy roots ignore historical annotations and use tasks-file order exactly once.
-LEGACY="$WORK/legacy-repo"
-init_repo "$LEGACY"
-seed_case "$LEGACY" legacy
-LEGACY_TASKS="$LEGACY/docs/maxi/specs/adapter-sample/tasks.md"
-sed 's/ (plan Task 3)/ (plan Task 900, Steps 1-3)/; s/ (plan Task 1)/ legacy note/; s/ (plan Task 2)/ (plan unknown historical syntax)/' "$LEGACY_TASKS" > "$LEGACY/change"
-mv "$LEGACY/change" "$LEGACY_TASKS"
-run_project "$LEGACY"
-assert_eq "$PROJECT_STATUS" 0 'legacy projection succeeds without annotation parsing'
+# Marker-bearing roots ignore historical annotations and use tasks-file order exactly once.
+MARKER="$WORK/marker-repo"
+init_repo "$MARKER"
+seed_case "$MARKER"
+MARKER_SPEC="$MARKER/docs/maxi/specs/adapter-sample/spec.md"
+MARKER_TASKS="$MARKER/docs/maxi/specs/adapter-sample/tasks.md"
+awk '{ print } /^status: analyzed$/ { print "replay_contract: bounded-v1" }' "$MARKER_SPEC" > "$MARKER/change"
+mv "$MARKER/change" "$MARKER_SPEC"
+sed 's/ (plan Task 3)/ (plan Task 900, Steps 1-3)/; s/ (plan Task 1)/ legacy note/; s/ (plan Task 2)/ (plan unknown historical syntax)/' "$MARKER_TASKS" > "$MARKER/change"
+mv "$MARKER/change" "$MARKER_TASKS"
+run_project "$MARKER"
+assert_eq "$PROJECT_STATUS" 0 'marker-bearing projection ignores historical annotation parsing'
 case "$(basename "$PROJECT_OUTPUT")" in
-  adapter-sample-p-legacy-????????????-t-legacy-????????????-sdd.md) ok 'legacy basename exact form' ;;
-  *) fail 'legacy basename exact form' "$(basename "$PROJECT_OUTPUT")" ;;
+  adapter-sample-p-????????????-t-????????????-sdd.md) ok 'marker-bearing root uses ordinary basename' ;;
+  *) fail 'marker-bearing root uses ordinary basename' "$(basename "$PROJECT_OUTPUT")" ;;
 esac
-legacy_t3="$(grep -n '^### Task 1: T003 ' "$PROJECT_OUTPUT" | cut -d: -f1)"
-legacy_t1="$(grep -n '^### Task 2: T001 ' "$PROJECT_OUTPUT" | cut -d: -f1)"
-legacy_t2="$(grep -n '^### Task 3: T002 ' "$PROJECT_OUTPUT" | cut -d: -f1)"
-[ "$legacy_t3" -lt "$legacy_t1" ] && [ "$legacy_t1" -lt "$legacy_t2" ] && ok 'legacy projection follows tasks-file order' || fail 'legacy projection follows tasks-file order'
-assert_eq "$(grep -c '^### Task [0-9][0-9]*: T001 ' "$PROJECT_OUTPUT")" 1 'legacy T001 projected once'
-assert_eq "$(grep -c '^### Task [0-9][0-9]*: T002 ' "$PROJECT_OUTPUT")" 1 'legacy T002 projected once'
-assert_eq "$(grep -c '^### Task [0-9][0-9]*: T003 ' "$PROJECT_OUTPUT")" 1 'legacy T003 projected once'
+marker_t3="$(grep -n '^### Task 1: T003 ' "$PROJECT_OUTPUT" | cut -d: -f1)"
+marker_t1="$(grep -n '^### Task 2: T001 ' "$PROJECT_OUTPUT" | cut -d: -f1)"
+marker_t2="$(grep -n '^### Task 3: T002 ' "$PROJECT_OUTPUT" | cut -d: -f1)"
+[ "$marker_t3" -lt "$marker_t1" ] && [ "$marker_t1" -lt "$marker_t2" ] && ok 'marker-bearing projection follows tasks-file order' || fail 'marker-bearing projection follows tasks-file order'
+assert_eq "$(grep -c '^### Task [0-9][0-9]*: T001 ' "$PROJECT_OUTPUT")" 1 'marker-bearing T001 projected once'
+assert_eq "$(grep -c '^### Task [0-9][0-9]*: T002 ' "$PROJECT_OUTPUT")" 1 'marker-bearing T002 projected once'
+assert_eq "$(grep -c '^### Task [0-9][0-9]*: T003 ' "$PROJECT_OUTPUT")" 1 'marker-bearing T003 projected once'
 
 # Indented task-like checkboxes fail closed, while ordinary nested checklist
 # content remains body text.
@@ -582,20 +577,14 @@ printf '%s\n' '  - [ ] Todo nested ordinary body note' >> "$NESTED_ORDINARY/docs
 run_project "$NESTED_ORDINARY"
 assert_eq "$PROJECT_STATUS" 0 'nested ordinary checklist remains valid body content'
 
-# Invalid mappings, IDs, and ambiguous fences fail before output.
-for invalid in duplicate-map missing-map unknown-map nonnumeric-map duplicate-id fence-collision; do
+# Invalid IDs fail before output.
+for invalid in duplicate-id; do
   BAD="$WORK/bad-$invalid"
   init_repo "$BAD"
   seed_case "$BAD"
   bad_tasks="$BAD/docs/maxi/specs/adapter-sample/tasks.md"
-  bad_plan="$BAD/docs/maxi/specs/adapter-sample/plan.md"
   case "$invalid" in
-    duplicate-map) sed 's/(plan Task 2)/(plan Task 1)/' "$bad_tasks" > "$BAD/change" && mv "$BAD/change" "$bad_tasks" ;;
-    missing-map) sed 's/ (plan Task 2)//' "$bad_tasks" > "$BAD/change" && mv "$BAD/change" "$bad_tasks" ;;
-    unknown-map) sed 's/(plan Task 2)/(plan Task 4)/' "$bad_tasks" > "$BAD/change" && mv "$BAD/change" "$bad_tasks" ;;
-    nonnumeric-map) sed 's/(plan Task 2)/(plan Task X)/' "$bad_tasks" > "$BAD/change" && mv "$BAD/change" "$bad_tasks" ;;
     duplicate-id) sed 's/T002/T003/' "$bad_tasks" > "$BAD/change" && mv "$BAD/change" "$bad_tasks" ;;
-    fence-collision) awk '{ print } /~~~markdown/ { print "```collision" }' "$bad_plan" > "$BAD/change" && mv "$BAD/change" "$bad_plan" ;;
   esac
   assert_rejected_without_projection "$BAD" "$invalid"
 done
@@ -652,14 +641,14 @@ for pointer_case in missing malformed foreign foreign-spec external provenance c
     missing) printf '%s\n' "$POINTER/.superpowers/sdd/projections/missing-sdd.md" > "$pointer_file" ;;
     malformed) printf 'one\ntwo\n' > "$pointer_file" ;;
     foreign)
-      seed_case "$POINTER" marker foreign-slug
+      seed_case "$POINTER" foreign-slug
       run_project "$POINTER" foreign-slug "$POINTER/.superpowers/sdd/projections/foreign-requested.md" "$POINTER/.superpowers/sdd/foreign-state"
       printf '%s\n' "$PROJECT_OUTPUT" > "$pointer_file"
       ;;
     foreign-spec)
       shadow="$POINTER/docs/maxi/specs/shadow-root"
       mkdir -p "$shadow"
-      write_spec "$shadow/spec.md" marker adapter-sample
+      write_spec "$shadow/spec.md" adapter-sample
       cp "$FIXTURES/plan.md" "$shadow/plan.md"
       sed 's/Write the second file/Write the foreign-root second file/' "$FIXTURES/tasks.md" > "$shadow/tasks.md"
       shadow_projection="$(bash "$PROJECT" --spec "$shadow/spec.md" --plan "$shadow/plan.md" --tasks "$shadow/tasks.md" --output "$POINTER/.superpowers/sdd/projections/shadow.md" --state-file "$POINTER/.superpowers/sdd/shadow-state")"
@@ -674,7 +663,7 @@ for pointer_case in missing malformed foreign foreign-spec external provenance c
     provenance)
       run_project "$POINTER"
       provenance_projection="$PROJECT_OUTPUT"
-      sed 's/^plan_revision: 7$/plan_revision: 99/' "$provenance_projection" > "$POINTER/change"
+      sed 's/^source_plan_sha256: /source_plan_sha256: 0/' "$provenance_projection" > "$POINTER/change"
       mv "$POINTER/change" "$provenance_projection"
       ;;
     cycle)
@@ -707,7 +696,7 @@ run_project "$INTERRUPTED"
 INT_PROJECTION="$PROJECT_OUTPUT"
 INT_LEDGER="$INTERRUPTED/.superpowers/sdd/$(basename "$INT_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$INT_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\n%s\n%s\n' "$INT_PROJECTION" "$(sha "$INT_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" "$COMPLETE_3_CLEAN" > "$INT_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T003 T001 T002\nMaxi projection SHA256: %s\n%s\n%s\n%s\n' "$INT_PROJECTION" "$(sha "$INT_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" "$COMPLETE_3_CLEAN" > "$INT_LEDGER"
 remaining="$(bash "$RECONCILE" --projection "$INT_PROJECTION" --ledger "$INT_LEDGER" --tasks "$INTERRUPTED/docs/maxi/specs/adapter-sample/tasks.md")"
 assert_eq "$remaining" 0 'last reconciliation reaches zero pending'
 run_project "$INTERRUPTED"
@@ -723,9 +712,9 @@ RESUME_PROJECTION="$PROJECT_OUTPUT"
 RESUME_TASKS="$RESUME/docs/maxi/specs/adapter-sample/tasks.md"
 RESUME_LEDGER="$RESUME/.superpowers/sdd/$(basename "$RESUME_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$RESUME_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\nRuling: keep numbering stable\n' "$RESUME_PROJECTION" "$(sha "$RESUME_PROJECTION")" "$COMPLETE_1_CLEAN" > "$RESUME_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T003 T001 T002\nMaxi projection SHA256: %s\n%s\nRuling: keep numbering stable\n' "$RESUME_PROJECTION" "$(sha "$RESUME_PROJECTION")" "$COMPLETE_1_CLEAN" > "$RESUME_LEDGER"
 foreign_ledger="$WORK/foreign-progress.md"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\n' "$RESUME_PROJECTION" "$(sha "$RESUME_PROJECTION")" "$COMPLETE_1_CLEAN" > "$foreign_ledger"
+printf '# SDD ledger — plan: %s\nMaxi selection: T003 T001 T002\nMaxi projection SHA256: %s\n%s\n' "$RESUME_PROJECTION" "$(sha "$RESUME_PROJECTION")" "$COMPLETE_1_CLEAN" > "$foreign_ledger"
 resume_tasks_before="$(sha "$RESUME_TASKS")"
 set +e
 bash "$RECONCILE" --projection "$RESUME_PROJECTION" --ledger "$foreign_ledger" --tasks "$RESUME_TASKS" >/dev/null 2>&1
@@ -734,16 +723,16 @@ set -e
 [ "$foreign_ledger_status" -ne 0 ] && ok 'reconciliation ledger stays in bound worktree' || fail 'reconciliation ledger stays in bound worktree'
 assert_eq "$(sha "$RESUME_TASKS")" "$resume_tasks_before" 'foreign reconciliation leaves tasks byte-identical'
 assert_eq "$(bash "$RECONCILE" --projection "$RESUME_PROJECTION" --ledger "$RESUME_LEDGER" --tasks "$RESUME_TASKS")" 2 'first reconciliation reports two pending'
-assert_has "$RESUME_TASKS" '- [x] T001 ' 'first reconciliation checks only T001'
+assert_has "$RESUME_TASKS" '- [x] T003 ' 'first reconciliation checks only T003'
+assert_has "$RESUME_TASKS" '- [ ] T001 ' 'first reconciliation leaves T001 pending'
 assert_has "$RESUME_TASKS" '- [ ] T002 ' 'first reconciliation leaves T002 pending'
-assert_has "$RESUME_TASKS" '- [ ] T003 ' 'first reconciliation leaves T003 pending'
 run_project "$RESUME"
 assert_eq "$PROJECT_OUTPUT" "$RESUME_PROJECTION" 'resume keeps immutable projection'
-assert_has "$RESUME_PROJECTION" '### Task 2: T002 ' 'resume keeps T002 as upstream Task 2'
+assert_has "$RESUME_PROJECTION" '### Task 2: T001 ' 'resume keeps T001 as upstream Task 2'
 printf '%s\n' "$COMPLETE_2_PARKED" >> "$RESUME_LEDGER"
 assert_eq "$(bash "$RECONCILE" --projection "$RESUME_PROJECTION" --ledger "$RESUME_LEDGER" --tasks "$RESUME_TASKS")" 1 'second reconciliation reports one pending'
-assert_has "$RESUME_TASKS" '- [x] T002 ' 'second reconciliation checks T002'
-assert_eq "$(grep -c '^### Task 3: T003 ' "$RESUME_PROJECTION")" 1 'T003 remains pending exactly once in immutable projection'
+assert_has "$RESUME_TASKS" '- [x] T001 ' 'second reconciliation checks T001'
+assert_eq "$(grep -c '^### Task 3: T002 ' "$RESUME_PROJECTION")" 1 'T002 remains pending exactly once in immutable projection'
 assert_has "$RESUME_LEDGER" 'Ruling: keep numbering stable' 'ledger Ruling persists unchanged'
 
 # Reconciliation must validate every predecessor byte anchor before checking a
@@ -763,7 +752,7 @@ mv "$STALE_PREDECESSOR/change" "$STALE_TASKS"
 run_project "$STALE_PREDECESSOR"
 STALE_NEW_PROJECTION="$PROJECT_OUTPUT"
 STALE_NEW_LEDGER="$STALE_PREDECESSOR/.superpowers/sdd/$(basename "$STALE_NEW_PROJECTION" .md)/progress.md"
-sed 's/Write the complete first task body\./Write a forged predecessor task body./' "$STALE_OLD_PROJECTION" > "$STALE_PREDECESSOR/change"
+sed 's/Write the third file/Write a forged predecessor task/' "$STALE_OLD_PROJECTION" > "$STALE_PREDECESSOR/change"
 mv "$STALE_PREDECESSOR/change" "$STALE_OLD_PROJECTION"
 stale_predecessor_body_sha="$(awk '
   NR == 1 && $0 == "---" { fm = 1; next }
@@ -827,7 +816,7 @@ run_project "$TERM"
 TERM_OLD="$PROJECT_OUTPUT"
 TERM_OLD_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_OLD" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_OLD_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002 T003\nMaxi projection SHA256: %s\n%s\nTask 1: parked — deferred option — Ruling: first workspace ruling\n' "$TERM_OLD" "$(sha "$TERM_OLD")" "$COMPLETE_1_CLEAN" > "$TERM_OLD_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T003 T001 T002\nMaxi projection SHA256: %s\n%s\nTask 1: parked — deferred option — Ruling: first workspace ruling\n' "$TERM_OLD" "$(sha "$TERM_OLD")" "$COMPLETE_1_CLEAN" > "$TERM_OLD_LEDGER"
 bash "$RECONCILE" --projection "$TERM_OLD" --ledger "$TERM_OLD_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 sed 's/- \[ \] T002/- [x] T002/' "$TERM/docs/maxi/specs/adapter-sample/tasks.md" > "$TERM/change"
 mv "$TERM/change" "$TERM/docs/maxi/specs/adapter-sample/tasks.md"
@@ -835,11 +824,11 @@ sed 's/Write the second file/Write the corrected terminal file/' "$TERM/docs/max
 mv "$TERM/change" "$TERM/docs/maxi/specs/adapter-sample/tasks.md"
 run_project "$TERM"
 TERM_PROJECTION="$PROJECT_OUTPUT"
-assert_has "$TERM_PROJECTION" '### Task 1: T002 ' 'terminal successor retains checkbox-only uncompleted task'
-assert_has "$TERM_PROJECTION" '### Task 2: T003 ' 'terminal successor retains remaining pending task'
+assert_has "$TERM_PROJECTION" '### Task 1: T001 ' 'terminal successor retains checkbox-only uncompleted task'
+assert_has "$TERM_PROJECTION" '### Task 2: T002 ' 'terminal successor retains remaining pending task'
 TERM_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T002 T003\nMaxi projection SHA256: %s\n%s\n%s\nTask 2: Ruling: successor workspace ruling\n' "$TERM_PROJECTION" "$(sha "$TERM_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$TERM_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002\nMaxi projection SHA256: %s\n%s\n%s\nTask 2: Ruling: successor workspace ruling\n' "$TERM_PROJECTION" "$(sha "$TERM_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$TERM_LEDGER"
 bash "$RECONCILE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 printf 'reviewed implementation\n' >> "$TERM/app.txt"
 git -C "$TERM" add app.txt

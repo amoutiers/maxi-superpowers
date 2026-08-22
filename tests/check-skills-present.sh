@@ -9,7 +9,7 @@ SKILLS_DIR="$ROOT/skills"
 failures=0
 
 MAXI_SKILLS=(
-  x-adr x-review analyze board cancel clarify constitution x-develop implement migrate-adr migrate-from-brownfield migrate-from-speckit park plan resume revise specify tasks using-maxi
+  x-adr analyze board cancel clarify constitution x-develop implement migrate-adr migrate-from-brownfield migrate-from-speckit park plan review resume revise specify tasks using-maxi
 )
 
 if [ "${#MAXI_SKILLS[@]}" -ne 19 ]; then
@@ -23,7 +23,7 @@ for skill in "${MAXI_SKILLS[@]}"; do
   assert_file_exists "$SKILLS_DIR/$skill/SKILL.md" "$skill"
 done
 
-assert_file_exists "$SKILLS_DIR/revise/replay-plan.sh" "read-only bounded replay planner"
-assert_file_exists "$ROOT/tests/check-x-review.sh" "targeted x-review check"
+assert_file_exists "$ROOT/tests/check-review-boundaries.sh" "fixed review boundary check"
+assert_not_grep "$SKILLS_DIR/review/SKILL.md" 'x-review\|bounded replay\|replay_continuation' "review has no obsolete handoff contract"
 
 summary_and_exit "maxi-native skill checks"

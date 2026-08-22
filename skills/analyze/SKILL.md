@@ -5,7 +5,7 @@ description: Use when the user invokes /maxi:analyze or wants to audit spec/plan
 
 # analyze
 
-Non-destructive 7-pass cross-artifact quality audit. Reads `spec.md`, `plan.md`, `tasks.md`, `constitution.md`, and any ADRs in `docs/maxi/adr/`. Writes findings to `analysis.md`. **Never structurally modifies source artifact bodies; its sole source-file write is the non-structural `spec.md` status/timestamp update in Step 8.**
+Non-destructive 7-pass cross-artifact quality audit and the named readiness review before implementation. Reads `spec.md`, `plan.md`, `tasks.md`, `constitution.md`, and any ADRs in `docs/maxi/adr/`. Writes findings to `analysis.md`. **Never structurally modifies source artifact bodies; its sole source-file write is the non-structural `spec.md` status/timestamp update in Step 8.**
 
 ## Prereqs
 
@@ -26,17 +26,7 @@ Required files:
 - `docs/maxi/specs/NNNN-slug/tasks.md` (task IDs, descriptions, phase grouping, [P] markers)
 - `docs/maxi/constitution.md` (principles, MUST/SHOULD rules)
 
-For an eligible root, also locate every versioned support artifact present beside the plan (`research.md`, `data-model.md`, and `contracts/*.md`). These are required direct inputs for a forward-pipeline analysis when present. `quickstart.md` remains an optional planning output but is not a direct input of a forward-pipeline analysis and carries no revision or provenance requirement from this mechanism.
-
 Abort with actionable message if any required file is missing.
-
-### Step 2 — Verify Independent Reviewer Context
-
-Activate this future-only contract only when the root `spec.md` carries exactly one exact `replay_contract: bounded-v1` root marker. Revision metadata alone never activates it. An unmarked existing, migrated, reverse-engineered, or pre-mechanism spec keeps the prior analysis behavior without revision, provenance, or independent-analysis metadata; a duplicate or non-exact marker is malformed and stops before any write. For an unmarked root, skip independent reviewer-context, structural-contributor, revision, provenance, and analysis-metadata requirements, then continue with the prior seven-pass audit and status behavior. For an eligible root, require one fresh reviewer context issued by the harness for this analysis invocation. Validate it with the same canonical single-line context grammar as `x-review`; never normalize or repair it.
-
-For an eligible root, read the complete current frontmatter of `spec.md`, `plan.md`, and `tasks.md`. The reviewer context must be absent from the current `spec.md`, `plan.md`, and `tasks.md` `structural_contributors` lists. Any missing or malformed contributor metadata, malformed context, or contributor match is non-independent and fails closed before any analysis write and before any status transition. Do not dispatch or perform the audit under another context.
-
-For an eligible root, the verified reviewer context is both `analysis.md`'s `reviewer_context` and its `writer_context`. This skill writes no structural source artifact content or review record. Its sole source-file write is the non-structural `spec.md` status/timestamp update in Step 8; it never asks `x-review` to manufacture final-analysis evidence.
 
 ### Step 3 — Load Artifacts (Minimal Sections)
 
@@ -109,25 +99,9 @@ Skip this pass entirely (and note "no ADRs" in Metrics) if `docs/maxi/adr/` is e
 
 ### Step 7 — Write analysis.md
 
-Write to `docs/maxi/specs/NNNN-slug/analysis.md`. For an eligible root, use this versioned structure. For an unmarked root, use the same report body without this future-only frontmatter.
+Write to `docs/maxi/specs/NNNN-slug/analysis.md`.
 
 ```markdown
----
-revision: 1
-writer_context: <unique-writer-context>
-structural_contributors:
-  - <unique-writer-context>
-reviewer_context: <same-unique-writer-context>
-reviewer_context_matches_harness: true
-independence_verified: true
-analysis_result: <passed-or-failed>
-derived_from:
-  - spec.md@<exact-revision-read>
-  - <support-artifact-path>@<exact-revision-read>
-  - plan.md@<exact-revision-read>
-  - tasks.md@<exact-revision-read>
----
-
 # Specification Analysis Report
 
 Generated: [date]
@@ -172,34 +146,19 @@ Spec: docs/maxi/specs/NNNN-slug/spec.md (status: [current status])
 [If LOW/MEDIUM only: may proceed; suggestions below]
 ```
 
-For an eligible root, this frontmatter applies only to the first `analysis.md` created for a spec created through the normal forward pipeline. Use the verified reviewer context as the non-empty writer context unique across that spec's pipeline-owned documents. The `derived_from` entries are the reviewed current revisions: include current `spec.md`, current `plan.md`, current `tasks.md`, and every present support artifact at the exact revision read. Constitution and ADR files remain audit context outside this spec-local replay graph.
-
-For an eligible root, set `analysis_result: passed` only when the completed seven-pass report has zero CRITICAL findings; otherwise set `analysis_result: failed`. Persisting the report, verified context, exact reviewed revisions, independence result, and analysis result happens in the same `analysis.md` write. Do not use the review-record-only `verdict` field.
-
-For an eligible root, on a later structural rewrite of `analysis.md`, repeat the independence gate with a fresh harness-issued reviewer context, increment only its revision, replace both `writer_context` and `reviewer_context` with that verified context, and append it to `structural_contributors`. Status, timestamps, task-completion checkboxes, and `related_adrs` are non-structural and never increment a revision or append a contributor. Do not add or infer revision, writer-context, contributor, or derived-input metadata for existing, migrated, or reverse-engineered specs.
-
 ### Step 8 — Transition Status
 
-For an eligible root, the persisted result determines the analyze owner action:
-
-| Persisted result branch | Analyze owner action |
-|---|---|
-| `analysis_result: passed` | Persist the report, then apply the Step 8 status/timestamp rule. |
-| `analysis_result: failed` after an approved replay | Keep `status: tasked`, consume the earlier replay `yes`, start no correction, replay, or phase invocation, and require a new explicit user decision. |
-
-For an eligible root, if current status was `tasked` and `analysis_result: passed`: update spec.md frontmatter `status: tasked → analyzed`; also set `updated: [today's ISO date]` on spec.md. This status/timestamp update is non-structural and leaves spec.md provenance unchanged.
-For an eligible root, if current status was `tasked` and `analysis_result: failed`: leave the status at `tasked`. Persist and report the failed analysis, then wait for the new explicit decision required below.
-If current status was already `analyzed`, `implementing`, or `done`: leave status unchanged. For an unmarked root, retain the prior `tasked → analyzed` status/timestamp behavior after writing the unversioned report.
+If current status was `tasked` and the completed report has zero CRITICAL findings, update spec.md frontmatter `status: tasked → analyzed`; also set `updated: [today's ISO date]` on spec.md.
+If the report has CRITICAL findings, leave status at `tasked` and wait for a new explicit user decision.
+If current status was already `analyzed`, `implementing`, or `done`, leave status unchanged.
 
 ### Step 9 — Report
 
-For a passing initial analysis, tell user: *"Analysis complete. Report written to `docs/maxi/specs/NNNN-slug/analysis.md` (status: `analyzed`). 0 critical issues found. `/maxi:implement` may now validate this evidence."*
+For a passing initial analysis, tell user: *"Analysis complete. Report written to `docs/maxi/specs/NNNN-slug/analysis.md` (status: `analyzed`). 0 critical issues found. This readiness review is complete before implementation."*
 
-For a failed analysis, tell user: *"Analysis complete with blocking findings. Report written to `docs/maxi/specs/NNNN-slug/analysis.md` (status unchanged). [N] critical issue(s) found. A new explicit decision is required before correction or replay."*
+For a failed analysis, tell user: *"Analysis complete with blocking findings. Report written to `docs/maxi/specs/NNNN-slug/analysis.md` (status unchanged). [N] critical issue(s) found. A new explicit decision is required before correction."*
 
 Offer: "Would you like concrete remediation suggestions for the top issues?" — **do NOT apply remediation automatically.**
-
-If this analysis follows one approved replay and its persisted analysis result is `failed`, report the failure and require a new explicit user decision before any next action. Start no correction, no replay, and no phase invocation; do not treat the replay's earlier `yes` as consent to continue. The same stop applies to any failed analysis, whether or not it was reached by replay.
 
 ## Artifact reference links
 
@@ -223,8 +182,7 @@ Writing `analysis.md` is the only artifact-body write. The explicit non-structur
 - Writing report to stdout/chat instead of `analysis.md` → always write the file
 - Re-transitioning `analyzed → analyzed` on rerun → only transition `tasked → analyzed` once
 - Producing 0 findings without proof — if no issues found, state explicitly "No issues found" with metrics
-- Reusing an author or corrector context for the analysis → fail closed before writing
-- A failed analysis starting a correction or replay → report it and await a new explicit decision
+- A failed analysis starting a correction → report it and await a new explicit decision
 
 ## Rationalization Counters
 

@@ -38,20 +38,6 @@ frontmatter_value() {
   ' "$file"
 }
 
-marker_mode() {
-  awk '
-    NR == 1 { if ($0 != "---") exit 2; fm = 1; next }
-    fm && $0 == "---" { fm = 0; closed = 1; next }
-    fm && /^replay_contract:/ { count++; if ($0 == "replay_contract: bounded-v1") exact++ }
-    END {
-      if (!closed) exit 2
-      if (count == 0) exit 4
-      if (count == 1 && exact == 1) exit 0
-      exit 2
-    }
-  ' "$1"
-}
-
 tasks_structural_sha() {
   awk '
     NR == 1 && $0 == "---" { fm = 1 }
@@ -105,29 +91,16 @@ canonical_projection() {
 }
 
 verify_projection() {
-  local file="$1" expected_slug="$2" stored_body actual_body mode plan_hash tasks_hash
-  local plan_revision tasks_revision expected_basename execution_mode task_sections
+  local file="$1" expected_slug="$2" stored_body actual_body plan_hash tasks_hash
+  local expected_basename execution_mode task_sections
   canonical_projection "$file" >/dev/null || return 1
   [ "$(projection_field "$file" sdd_projection 2>/dev/null)" = maxi-v1 ] || return 1
   [ "$(projection_field "$file" slug 2>/dev/null)" = "$expected_slug" ] || return 1
-  mode="$(projection_field "$file" mode 2>/dev/null)" || return 1
   plan_hash="$(projection_field "$file" source_plan_sha256 2>/dev/null)" || return 1
   tasks_hash="$(projection_field "$file" tasks_structural_sha256 2>/dev/null)" || return 1
-  plan_revision="$(projection_field "$file" plan_revision 2>/dev/null)" || return 1
-  tasks_revision="$(projection_field "$file" tasks_revision 2>/dev/null)" || return 1
   case "$plan_hash:$tasks_hash" in *[!0-9a-f:]*|*:|:*) return 1 ;; esac
   [ "${#plan_hash}" -eq 64 ] && [ "${#tasks_hash}" -eq 64 ] || return 1
-  case "$mode" in
-    marker-bound)
-      case "$plan_revision:$tasks_revision" in *[!0-9:]*|0:*|*:0|'':*|*:'') return 1 ;; esac
-      expected_basename="$expected_slug-p-r$plan_revision-$(printf '%s' "$plan_hash" | cut -c1-12)-t-r$tasks_revision-$(printf '%s' "$tasks_hash" | cut -c1-12)-sdd.md"
-      ;;
-    legacy)
-      [ "$plan_revision" = legacy ] && [ "$tasks_revision" = legacy ] || return 1
-      expected_basename="$expected_slug-p-legacy-$(printf '%s' "$plan_hash" | cut -c1-12)-t-legacy-$(printf '%s' "$tasks_hash" | cut -c1-12)-sdd.md"
-      ;;
-    *) return 1 ;;
-  esac
+  expected_basename="$expected_slug-p-$(printf '%s' "$plan_hash" | cut -c1-12)-t-$(printf '%s' "$tasks_hash" | cut -c1-12)-sdd.md"
   [ "$(basename "$file")" = "$expected_basename" ] || return 1
   execution_mode="$(projection_field "$file" execution_mode 2>/dev/null)" || return 1
   task_sections="$(grep -c '^### Task [1-9][0-9]*: T[0-9][0-9][0-9] ' "$file" || true)"
@@ -273,26 +246,12 @@ under "$SPEC" "$ROOT" && under "$PLAN" "$ROOT" && under "$TASKS" "$ROOT" || die 
 
 SLUG="$(frontmatter_value "$SPEC" slug 2>/dev/null)" || die 'spec slug is missing or duplicated'
 case "$SLUG" in ''|*[!A-Za-z0-9._-]*|.|..) die 'invalid spec slug' ;; esac
-if marker_mode "$SPEC"; then MODE=marker-bound; else
-  marker_status=$?
-  [ "$marker_status" -eq 4 ] || die 'malformed replay_contract marker'
-  MODE=legacy
-fi
 
 PLAN_HASH="$(sha "$PLAN")"
 TASKS_HASH="$(tasks_structural_sha "$TASKS")"
 PLAN12="$(printf '%s' "$PLAN_HASH" | cut -c1-12)"
 TASKS12="$(printf '%s' "$TASKS_HASH" | cut -c1-12)"
-if [ "$MODE" = marker-bound ]; then
-  PLAN_REV="$(frontmatter_value "$PLAN" revision 2>/dev/null)" || die 'marker-bound plan revision is missing or duplicated'
-  TASKS_REV="$(frontmatter_value "$TASKS" revision 2>/dev/null)" || die 'marker-bound tasks revision is missing or duplicated'
-  case "$PLAN_REV:$TASKS_REV" in *[!0-9:]*|0:*|*:0|'':*|*:'') die 'marker-bound revisions must be positive integers' ;; esac
-  BASENAME="$SLUG-p-r$PLAN_REV-$PLAN12-t-r$TASKS_REV-$TASKS12-sdd.md"
-else
-  PLAN_REV=legacy
-  TASKS_REV=legacy
-  BASENAME="$SLUG-p-legacy-$PLAN12-t-legacy-$TASKS12-sdd.md"
-fi
+BASENAME="$SLUG-p-$PLAN12-t-$TASKS12-sdd.md"
 
 [ ! -L "$OUTPUT" ] || die 'output final component is a symlink'
 OUTPUT_PARENT_INPUT="$(dirname "$OUTPUT")"
@@ -322,7 +281,7 @@ if [ ! -e "$STATE" ]; then
     case "$orphan_name" in
       "$SLUG"-p-*)
         orphan_identity="${orphan_name#"$SLUG-p-"}"
-        printf '%s\n' "$orphan_identity" | grep -Eq '^(r[1-9][0-9]*-[0-9a-f]{12}-t-r[1-9][0-9]*-[0-9a-f]{12}|legacy-[0-9a-f]{12}-t-legacy-[0-9a-f]{12})-sdd\.md$' && die 'orphan projection or workspace exists without active pointer'
+        printf '%s\n' "$orphan_identity" | grep -Eq '^[0-9a-f]{12}-t-[0-9a-f]{12}-sdd\.md$' && die 'orphan projection or workspace exists without active pointer'
         ;;
     esac
   done
@@ -332,7 +291,7 @@ if [ ! -e "$STATE" ]; then
     case "$orphan_name" in
       "$SLUG"-p-*)
         orphan_identity="${orphan_name#"$SLUG-p-"}"
-        printf '%s\n' "$orphan_identity" | grep -Eq '^(r[1-9][0-9]*-[0-9a-f]{12}-t-r[1-9][0-9]*-[0-9a-f]{12}|legacy-[0-9a-f]{12}-t-legacy-[0-9a-f]{12})-sdd$' && die 'orphan projection or workspace exists without active pointer'
+        printf '%s\n' "$orphan_identity" | grep -Eq '^[0-9a-f]{12}-t-[0-9a-f]{12}-sdd$' && die 'orphan projection or workspace exists without active pointer'
         ;;
     esac
   done
@@ -353,7 +312,7 @@ TMPDIR_LOCAL="$(mktemp -d "$OUT_PARENT/.project-tasks.XXXXXX")"
 trap 'rm -rf "$TMPDIR_LOCAL"' EXIT
 TASK_META="$TMPDIR_LOCAL/tasks.meta"
 
-awk -v mode="$MODE" '
+awk '
   function invalid(message) { print message > "/dev/stderr"; bad = 1 }
   ($0 ~ /^- \[[^]]*\] T/ || $0 ~ /^[[:space:]]+- \[[^]]*\] T[0-9]/) && $0 !~ /^- \[[ xX]\] T[0-9][0-9][0-9] .+/ { invalid("malformed task line: " $0); next }
   /^- \[[ xX]\] T[0-9][0-9][0-9] .+/ {
@@ -362,20 +321,7 @@ awk -v mode="$MODE" '
     if (seen[id]++) invalid("duplicate task id: " id)
     line = $0
     sub(/^- \[[ xX]\]/, "- [ ]", line)
-    mapping = ""
-    if (mode == "marker-bound") {
-      copy = line
-      if (copy !~ / \(plan Task [1-9][0-9]*\)$/) invalid("missing terminal plan mapping: " line)
-      else {
-        mapping = copy
-        sub(/^.* \(plan Task /, "", mapping)
-        sub(/\)$/, "", mapping)
-        sub(/ \(plan Task [1-9][0-9]*\)$/, "", copy)
-        if (copy ~ /\(plan Task /) invalid("duplicate plan mapping: " line)
-      }
-      line = copy
-    }
-    print state "\t" id "\t" mapping "\t" line
+    print state "\t" id "\tordinary\t" line
     count++
   }
   END { if (count == 0) invalid("no canonical tasks"); if (bad) exit 2 }
@@ -423,45 +369,16 @@ awk -v dir="$PLAN_PARTS" '
   END { if (section == 0) exit 2 }
 ' "$PLAN" || die 'plan has no executable Task heading'
 
-if [ "$MODE" = marker-bound ]; then
-  plan_count="$(wc -l < "$PLAN_PARTS/order" | tr -d ' ')"
-  [ "$plan_count" -eq "$task_count" ] || die 'plan/task mapping is not bijective'
-  [ "$(sort -u "$PLAN_PARTS/order" | wc -l | tr -d ' ')" -eq "$plan_count" ] || die 'duplicate source plan task number'
-  while IFS= read -r mapping; do
-    [ -n "$mapping" ] || die 'missing mapping'
-    [ "$(cut -f3 "$TASK_META" | grep -cx "$mapping" || true)" -eq 1 ] || die "mapping is not bijective: Task $mapping"
-  done < "$PLAN_PARTS/order"
-fi
-
 render_body() {
-  local selected="$1" output="$2" projected=0 section=0 source_number row id line description body_file backticks tildes state mapping
+  local selected="$1" output="$2" projected=0 state id mapping line description
   : > "$output"
   cat "$PLAN_PARTS/preamble" >> "$output"
-  if [ "$MODE" = marker-bound ]; then
-    while IFS= read -r source_number; do
-      section=$((section + 1))
-      row="$(awk -F '\t' -v number="$source_number" '$3 == number { print; exit }' "$TASK_META")"
-      [ -n "$row" ] || die "unmapped source Task $source_number"
-      id="$(printf '%s\n' "$row" | cut -f2)"
-      grep -Fqx -- "$id" "$selected" || continue
-      line="$(printf '%s\n' "$row" | cut -f4-)"
-      description="${line#- [ ] $id }"
-      projected=$((projected + 1))
-      body_file="$PLAN_PARTS/body-$section"
-      backticks="$(grep -c '^[[:space:]]*```' "$body_file" 2>/dev/null || true)"
-      tildes="$(grep -c '^[[:space:]]*~~~' "$body_file" 2>/dev/null || true)"
-      [ "$backticks" -eq 0 ] || [ "$tildes" -eq 0 ] || die "ambiguous fence collision in source Task $source_number"
-      printf '\n### Task %s: %s %s\n' "$projected" "$id" "$description" >> "$output"
-      sed -E -e 's/^[[:space:]]*```+/```/' -e 's/^[[:space:]]*~~~+/```/' "$body_file" >> "$output"
-    done < "$PLAN_PARTS/order"
-  else
-    while IFS=$'\t' read -r state id mapping line; do
-      grep -Fqx -- "$id" "$selected" || continue
-      projected=$((projected + 1))
-      description="${line#- [ ] $id }"
-      printf '\n### Task %s: %s %s\n\n%s\n' "$projected" "$id" "$description" "$line" >> "$output"
-    done < "$TASK_META"
-  fi
+  while IFS=$'\t' read -r state id mapping line; do
+    grep -Fqx -- "$id" "$selected" || continue
+    projected=$((projected + 1))
+    description="${line#- [ ] $id }"
+    printf '\n### Task %s: %s %s\n\n%s\n' "$projected" "$id" "$description" "$line" >> "$output"
+  done < "$TASK_META"
 }
 
 write_expected_projection() {
@@ -471,14 +388,11 @@ write_expected_projection() {
     echo '---'
     echo 'sdd_projection: maxi-v1'
     echo "slug: $SLUG"
-    echo "mode: $MODE"
     echo "execution_mode: $execution_mode"
     echo "source_spec: $SPEC"
     echo "source_plan: $PLAN"
     echo "source_plan_sha256: $PLAN_HASH"
     echo "tasks_structural_sha256: $TASKS_HASH"
-    echo "plan_revision: $PLAN_REV"
-    echo "tasks_revision: $TASKS_REV"
     echo "predecessor_projection: $predecessor"
     echo "projection_body_sha256: $body_hash"
     echo '---'
@@ -568,16 +482,9 @@ fi
 UNORDERED_IDS="$TMPDIR_LOCAL/selected-unordered"
 cp "$SELECTED_IDS" "$UNORDERED_IDS"
 : > "$SELECTED_IDS"
-if [ "$MODE" = marker-bound ]; then
-  while IFS= read -r source_number; do
-    id="$(awk -F '\t' -v number="$source_number" '$3 == number { print $2; exit }' "$TASK_META")"
-    grep -Fqx -- "$id" "$UNORDERED_IDS" && printf '%s\n' "$id" >> "$SELECTED_IDS"
-  done < "$PLAN_PARTS/order"
-else
-  while IFS=$'\t' read -r state id mapping line; do
-    grep -Fqx -- "$id" "$UNORDERED_IDS" && printf '%s\n' "$id" >> "$SELECTED_IDS"
-  done < "$TASK_META"
-fi
+while IFS=$'\t' read -r state id mapping line; do
+  grep -Fqx -- "$id" "$UNORDERED_IDS" && printf '%s\n' "$id" >> "$SELECTED_IDS"
+done < "$TASK_META"
 if [ -e "$FINAL" ] && [ "$PROJECT_PREDECESSOR" != null ]; then
   cmp -s "$SELECTED_IDS" "$ANCHORED_IDS" || die 'successor selection anchor disagrees with predecessor completion lineage'
 fi
