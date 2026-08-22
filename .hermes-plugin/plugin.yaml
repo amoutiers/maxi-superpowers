@@ -1,5 +1,5 @@
 name: maxi
-version: 2.4.2
+version: 2.4.3
 description: Maxi skills and workflow bootstrap for Hermes Agent
 provides_hooks:
   - pre_llm_call

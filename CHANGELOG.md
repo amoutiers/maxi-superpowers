@@ -1,4 +1,11 @@
 
+## [2.4.3] - 2026-08-22
+
+### Bug Fixes
+
+- Replace bounded replay with fixed review boundaries
+
+
 ## [2.4.2] - 2026-08-22
 
 ### Bug Fixes
