@@ -2,7 +2,7 @@
 slug: 0021-reopen-done-specs
 created: 2026-08-23
 updated: 2026-08-23
-status: implementing
+status: done
 parked_from: null
 related_adrs:
   - 0025-reopened-spec-adr-eligibility
