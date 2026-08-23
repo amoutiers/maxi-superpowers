@@ -7,4 +7,5 @@
 - Run the focused checks and full fast-tier suite before handoff.
 - Preserve compatibility with the existing design-review and SDD handoff flow.
 - Report verification evidence and obtain fresh authorization before any commit.
-- Push permission from the previous session remains authorized.
+- A prior permission does not carry forward; fresh authorization is required before any commit.
+  Push permission from the previous session remains authorized.

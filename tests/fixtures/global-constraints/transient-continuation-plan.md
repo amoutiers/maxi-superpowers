@@ -1,4 +1,4 @@
-# Implementation Plan: Duplicate Section Fixture
+# Implementation Plan: Transient Continuation Fixture
 
 ## Global Constraints
 
@@ -8,7 +8,8 @@
 - Preserve compatibility with the existing design-review and SDD handoff flow.
 - Report verification evidence and obtain fresh authorization before any commit.
 - A prior permission does not carry forward; fresh authorization is required before any commit.
+  Current worktree: `/private/tmp/durable-global-constraints`
 
-## Delivery Contract
+## Constitution Check
 
-The same constraints are repeated here.
+Pass.
