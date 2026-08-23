@@ -37,6 +37,12 @@ field() {
 valid_context() {
   local value="$1" lowered
 
+  case "$value" in
+    /root/*)
+      printf '%s\n' "$value" | grep -Eq '^/root(/[a-z][a-z0-9_]{0,127})+$' || return 1
+      return 0
+      ;;
+  esac
   printf '%s\n' "$value" | grep -Eq '^[A-Za-z][A-Za-z0-9._-]{0,127}$' || return 1
   lowered="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')"
   case "$lowered" in

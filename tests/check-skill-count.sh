@@ -65,7 +65,11 @@ done
 
 for doc in "${GLOBAL_CONSTRAINT_DOCS[@]}"; do
   label="$(basename "$doc")"
-  if ! grep -Fqx "$GLOBAL_CONSTRAINT_SENTENCE" "$doc"; then
+  expected="$GLOBAL_CONSTRAINT_SENTENCE"
+  if [ "$doc" = "$ROOT/docs/pipeline-flow.md" ]; then
+    expected="- $GLOBAL_CONSTRAINT_SENTENCE"
+  fi
+  if ! grep -Fqx -- "$expected" "$doc"; then
     echo "FAIL [$label documents durable global constraints]" >&2
     failures=$((failures + 1))
   else

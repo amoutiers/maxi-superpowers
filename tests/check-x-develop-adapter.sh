@@ -839,7 +839,9 @@ FULL_PACKAGE="$TERM/.superpowers/sdd/$(basename "$TERM_PROJECTION" .md)/review-f
 (cd "$TERM" && bash "$REVIEW_PACKAGE" "$TERM_PROJECTION" "$MERGE_BASE" "$REVIEWED_HEAD" "$FULL_PACKAGE") >/dev/null
 FINAL_REVIEW="$(dirname "$TERM_LEDGER")/maxi-final-review.md"
 REVIEWER_IDENTITY="$(dirname "$TERM_LEDGER")/final-reviewer-dispatch.identity"
-printf 'reviewer_context: independent-reviewer\n' > "$REVIEWER_IDENTITY"
+CODEX_REVIEWER_CONTEXT='/root/x_develop_0022/final_reviewer'
+MALFORMED_CODEX_REVIEWER_CONTEXT='/root/x_develop_0022/final-reviewer'
+printf 'reviewer_context: %s\n' "$CODEX_REVIEWER_CONTEXT" > "$REVIEWER_IDENTITY"
 TERM_SPEC="$TERM/docs/maxi/specs/adapter-sample/spec.md"
 TERM_TASKS="$TERM/docs/maxi/specs/adapter-sample/tasks.md"
 {
@@ -858,7 +860,7 @@ TERM_TASKS="$TERM/docs/maxi/specs/adapter-sample/tasks.md"
   echo "spec_sha256: $(sha "$TERM_SPEC")"
   echo "tasks: $TERM_TASKS"
   echo "tasks_sha256: $(sha "$TERM_TASKS")"
-  echo 'reviewer_context: independent-reviewer'
+  echo "reviewer_context: $CODEX_REVIEWER_CONTEXT"
   echo 'outcome: finish'
   echo '---'
   echo
@@ -912,8 +914,18 @@ set -e
 mv "$REVIEWER_IDENTITY.saved" "$REVIEWER_IDENTITY"
 [ "$missing_identity_status" -ne 0 ] && [ ! -e "$MISSING_IDENTITY_RECEIPT" ] && ok 'missing harness reviewer identity creates no receipt' || fail 'missing harness reviewer identity creates no receipt'
 
+cp "$REVIEWER_IDENTITY" "$REVIEWER_IDENTITY.canonical"
+printf 'reviewer_context: %s\n' "$MALFORMED_CODEX_REVIEWER_CONTEXT" > "$REVIEWER_IDENTITY"
+MALFORMED_CONTEXT_RECEIPT="$(dirname "$TERM_LEDGER")/malformed-codex-context-receipt.md"
+set +e
+bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FINAL_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$MALFORMED_CONTEXT_RECEIPT" >/dev/null 2>&1
+malformed_context_status=$?
+set -e
+mv "$REVIEWER_IDENTITY.canonical" "$REVIEWER_IDENTITY"
+[ "$malformed_context_status" -ne 0 ] && [ ! -e "$MALFORMED_CONTEXT_RECEIPT" ] && ok 'malformed Codex reviewer context creates no receipt' || fail 'malformed Codex reviewer context creates no receipt'
+
 FORGED_REVIEW="$FINAL_REVIEW.forged-reviewer"
-sed 's/^reviewer_context: independent-reviewer$/reviewer_context: forged-reviewer/' "$FINAL_REVIEW" > "$FORGED_REVIEW"
+sed "s|^reviewer_context: $CODEX_REVIEWER_CONTEXT$|reviewer_context: /root/x_develop_0022/forged_reviewer|" "$FINAL_REVIEW" > "$FORGED_REVIEW"
 FORGED_RECEIPT="$(dirname "$TERM_LEDGER")/forged-reviewer-receipt.md"
 set +e
 bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FORGED_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$FORGED_RECEIPT" >/dev/null 2>&1
@@ -953,8 +965,21 @@ bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM
 [ -f "$RECEIPT" ] && ok 'terminal receipt is created at Finish boundary' || fail 'terminal receipt is created at Finish boundary'
 assert_has "$RECEIPT" "reviewer_dispatch_identity: $REVIEWER_IDENTITY" 'receipt binds persisted reviewer dispatch identity'
 assert_has "$RECEIPT" "reviewer_dispatch_identity_sha256: $(sha "$REVIEWER_IDENTITY")" 'receipt binds reviewer dispatch identity hash'
-assert_has "$RECEIPT" 'reviewer_context: independent-reviewer' 'receipt binds reviewer context value'
+assert_has "$RECEIPT" "reviewer_context: $CODEX_REVIEWER_CONTEXT" 'receipt binds Codex reviewer task path'
 RESULT_OUTPUT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT")"
+
+# Codex paths extend, rather than replace, the existing opaque context grammar.
+cp "$REVIEWER_IDENTITY" "$REVIEWER_IDENTITY.codex"
+cp "$FINAL_REVIEW" "$FINAL_REVIEW.codex"
+printf 'reviewer_context: independent-reviewer\n' > "$REVIEWER_IDENTITY"
+sed "s|^reviewer_context: $CODEX_REVIEWER_CONTEXT$|reviewer_context: independent-reviewer|" "$FINAL_REVIEW.codex" > "$FINAL_REVIEW"
+LEGACY_RECEIPT="$(dirname "$TERM_LEDGER")/legacy-context-receipt.md"
+bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FINAL_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$LEGACY_RECEIPT"
+LEGACY_RESULT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$LEGACY_RECEIPT")"
+assert_has <(printf '%s\n' "$LEGACY_RESULT") 'READY_TO_FINISH' 'opaque legacy reviewer context remains accepted'
+mv "$REVIEWER_IDENTITY.codex" "$REVIEWER_IDENTITY"
+mv "$FINAL_REVIEW.codex" "$FINAL_REVIEW"
+
 assert_has "$RECEIPT" 'Task 1: parked — deferred option — Ruling: first workspace ruling' 'receipt aggregates entire predecessor Ruling line'
 assert_has "$RECEIPT" 'Task 2: Ruling: successor workspace ruling' 'receipt aggregates entire successor Ruling line'
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'READY_TO_FINISH' 'matching receipt emits READY_TO_FINISH'
@@ -1013,11 +1038,11 @@ mv "$RECEIPT.canonical" "$RECEIPT"
 
 cp "$FINAL_REVIEW" "$FINAL_REVIEW.saved"
 cp "$RECEIPT" "$RECEIPT.saved"
-sed 's/^reviewer_context: .*/reviewer_context: null/' "$FINAL_REVIEW.saved" > "$FINAL_REVIEW"
+sed "s|^reviewer_context: .*|reviewer_context: $MALFORMED_CODEX_REVIEWER_CONTEXT|" "$FINAL_REVIEW.saved" > "$FINAL_REVIEW"
 review_rehash="$(sha "$FINAL_REVIEW")"
 sed "s/^final_review_sha256: .*/final_review_sha256: $review_rehash/" "$RECEIPT.saved" > "$RECEIPT"
 invalid_context_rehashed="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT" 2>/dev/null || true)"
-assert_not_has <(printf '%s\n' "$invalid_context_rehashed") 'READY_TO_FINISH' 'rehashed invalid reviewer context cannot emit ready'
+assert_not_has <(printf '%s\n' "$invalid_context_rehashed") 'READY_TO_FINISH' 'rehashed malformed Codex reviewer context cannot emit ready'
 mv "$FINAL_REVIEW.saved" "$FINAL_REVIEW"
 mv "$RECEIPT.saved" "$RECEIPT"
 
