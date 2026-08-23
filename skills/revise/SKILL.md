@@ -1,6 +1,6 @@
 ---
 name: revise
-description: Use when the user invokes /maxi:revise, says requirements changed, the spec needs updating, or the plan needs to change — requires spec at clarified or later, rolls back status with A+ picker and consent.
+description: Use when the user invokes /maxi:revise, says requirements changed, the spec needs updating, or the plan needs to change — accepts a spec at clarified or later, including done, and rolls back status with A+ picker and consent.
 ---
 
 # revise
@@ -14,8 +14,7 @@ Roll back a spec to an earlier pipeline phase when requirements or design change
 - **Refuse** if `status: drafting` or `specified` → *"Spec is at `<status>` — use `/maxi:clarify` or `/maxi:specify` instead."*
 - **Refuse** if `status: parked` → *"Spec is parked. Run `/maxi:resume` first, then `/maxi:revise`."*
 - **Refuse** if `status: cancelled` → *"Spec is cancelled. Cannot revise."*
-- **Refuse** if `status: done` → *"Spec is done (shipped). To revise, create a new spec with `/maxi:specify`."*
-- Valid for: `clarified`, `planned`, `tasked`, `analyzed`, `implementing`.
+- Valid for: `clarified`, `planned`, `tasked`, `analyzed`, `implementing`, `done`.
 
 ## Process
 
@@ -36,11 +35,14 @@ Roll back a spec to an earlier pipeline phase when requirements or design change
 4. **Confirm**:
    > *"About to roll back `<slug>` from `<current>` to `<target>`. Downstream artefacts (plan.md, tasks.md, analysis.md as applicable) will stay on disk but are stale — the next pipeline skill will regenerate them. Proceed? (yes/no)"*
 
-5. **On explicit `yes` only**: write `spec.md` —
+5. **On explicit `yes` only**:
+   - write `spec.md` —
    - `status: <target>`
    - `updated: <today's ISO date>`
+   - If `<current>` is `done`, write `reopened_from: done`. Otherwise retain an existing `reopened_from: done`; never clear `reopened_from` after it has been set.
    - Append to `## Clarifications`:
      `**Revised (YYYY-MM-DD):** Rolled back from \`<current>\` to \`<target>\`. Change: <description>. Note: artefacts from phases after \`<target>\` (if any) are stale.`
+   - Any non-yes response writes nothing: do not write `spec.md`.
 6. **Report**: *"Spec `<slug>` is now at `<target>`. Correction recorded. No review or successor phase was started. Request `/maxi:review` when you want a new design review."*
 
 ## Artifact reference links
@@ -57,7 +59,8 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 - **Never roll back below `clarified` by default.** The sole exception is `specified` for a real missing or ambiguous requirement in the source spec; that path replays `clarify` and must never replay `specify`.
 - **Never delete, rename, or modify** `plan.md`, `tasks.md`, `analysis.md` — they stay on disk, flagged stale in `## Clarifications`.
 - **Never modify** `constitution.md` or any ADR file.
-- **Only `spec.md`** is written: `status:`, `updated:`, and the `## Clarifications` revision note. Successor phases keep ownership of their own artifacts.
+- Only `spec.md` is written: `status:`, `updated:`, the monotone `reopened_from: done` watermark when applicable, and the `## Clarifications` revision note. Successor phases keep ownership of their own artifacts.
+- Once present, retain `reopened_from: done`; never clear it during later lifecycle transitions.
 - **One consent boundary.** The rollback write requires its own exact `yes`; it authorizes no successor phase.
 
 ## Rationalization Counters
