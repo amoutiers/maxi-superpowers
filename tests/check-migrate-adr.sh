@@ -94,10 +94,12 @@ assert_not_grep "$ADR_README" "maxi:adr" "C1: no stale /maxi:adr in adr README.m
 assert_grep "$ADR" 'spec: <full-spec-slug> or `spec: null`' "ADR direct creating-spec link"
 assert_grep "$ADR" 'current active spec slug' "ADR links to the current active spec"
 assert_grep "$ADR" 'full amended ADR.*exact diff.*yes' "ADR amendment requires full diff and explicit consent"
+assert_grep "$ADR" 'no.*two ambiguous.*unchanged' "ADR amendment rejection leaves the ADR unchanged"
 assert_grep "$ADR" 'drafting.*specified.*clarified.*planned.*tasked.*analyzed.*implementing' "ADR amendment active-status eligibility"
 assert_grep "$ADR" 'missing.*null.*supersession' "ADR missing or null link falls back to supersession"
 assert_grep "$ADR" 'done.*parked.*cancelled.*supersession' "ADR closed spec falls back to supersession"
 assert_grep "$ADR" 'adr.*,.*slug.*,.*spec.*,.*created.*,.*status.*,.*supersedes.*,.*superseded_by' "ADR amendment preserves identity and supersession fields"
+assert_grep "$ADR" 'refresh.*updated' "ADR amendment refreshes updated"
 for file in "$MIGRATE" "$IMPORT" "$DISCOVER"; do
   label="$(basename "$file")"
   assert_grep "$file" 'spec: null' "$label creates unlinked migration ADRs"

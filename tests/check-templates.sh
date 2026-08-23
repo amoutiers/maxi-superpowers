@@ -66,7 +66,7 @@ check_template \
 assert_not_grep "$ROOT/tests/fixtures/sample-adr.md" "^related_specs:" "sample-adr.md: no related_specs"
 assert_not_grep "$ROOT/tests/fixtures/sample-adr.md" "^related_principles:" "sample-adr.md: no related_principles"
 assert_not_grep "$ROOT/tests/fixtures/sample-adr.md" "^related_requirements:" "sample-adr.md: no related_requirements"
-assert_grep "$ROOT/tests/fixtures/sample-adr.md" "^spec: 0001-csv-to-json$" "sample-adr.md: direct creating-spec link"
+assert_grep "$ROOT/tests/fixtures/sample-adr.md" "^spec: 0001-sample-feature$" "sample-adr.md: direct creating-spec link"
 
 # spec-template
 check_template \

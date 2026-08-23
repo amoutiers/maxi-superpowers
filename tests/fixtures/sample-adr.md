@@ -1,7 +1,7 @@
 ---
 adr: 0001
 slug: 0001-use-sqlite-for-local-store
-spec: 0001-csv-to-json
+spec: 0001-sample-feature
 status: accepted
 created: 2026-05-08
 updated: 2026-05-08
