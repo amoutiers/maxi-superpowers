@@ -33,6 +33,16 @@ SYNC_DOCS=(
   "$ROOT/README.md"
 )
 
+ADR_POLICY_DOCS=(
+  "$ROOT/README.md"
+  "$ROOT/docs/maxi/constitution.md"
+  "$ROOT/docs/pipeline-flow.md"
+  "$ROOT/docs/delegation-map.md"
+  "$ROOT/skills/using-maxi/SKILL.md"
+  "$ROOT/AGENTS.md"
+  "$ROOT/docs/architecture.md"
+)
+
 for doc in "${SYNC_DOCS[@]}"; do
   label="$(basename "$doc")"
   assert_grep "$doc" "$maxi_count.*13 user-facing.*2 internal.*1 session.*3 migration skills" "$label has the native-skill breakdown"
@@ -43,5 +53,14 @@ for doc in "${SYNC_DOCS[@]}"; do
   assert_grep "$doc" 'Upstream SDD owns task review, fix rounds, and the final implementation review' "$label preserves SDD final-review ownership"
   assert_not_grep "$doc" 'bounded replay\|replay_contract\|replay_continuation\|x-review\|reviews/spec-review.md\|reviews/plan-review.md' "$label excludes obsolete review mechanics"
 done
+
+for doc in "${ADR_POLICY_DOCS[@]}"; do
+  label="$(basename "$doc")"
+  assert_grep "$doc" 'direct `spec` link' "$label documents the direct ADR spec link"
+  assert_grep "$doc" 'agent-proposed active-spec amendment' "$label documents active-spec amendments"
+  assert_grep "$doc" 'closed-spec supersession' "$label documents closed-spec supersession"
+done
+
+assert_grep "$ROOT/README.md" 'direct `spec` link equals the current active spec slug' "README.md routes amendments through the current active spec slug"
 
 summary_and_exit "skill-count consistency checks"

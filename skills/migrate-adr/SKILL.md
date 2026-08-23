@@ -13,7 +13,7 @@ Bootstraps `docs/maxi/adr/` from two parallel subagents:
 1. **Importer** — scans known ADR directories, detects Nygard/MADR/plain-Markdown format, converts to maxi format
 2. **Discoverer** — analyzes manifests, config files, directory structure, and git history to surface undocumented decisions
 
-Non-destructive: originals are never deleted or moved. Standalone: no spec status required. `--import-only` skips the Discoverer.
+Non-destructive: originals are never deleted or moved. Standalone: no spec status required, so every migration-created ADR uses `spec: null`. Existing ADRs are not rewritten. `--import-only` skips the Discoverer.
 
 **Trigger:** `/maxi:migrate-adr [--import-only]`
 
@@ -239,7 +239,7 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 - Deleting or moving original ADR files
 - Migrating ADRs between two maxi projects
 - Bulk-accepting all proposals without consent
-- Retroactively editing existing `docs/maxi/adr/` files (append-only)
+- Retroactively editing existing `docs/maxi/adr/` files (append-only; existing ADRs are not rewritten)
 
 ---
 

@@ -167,7 +167,7 @@ The 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migratio
 docs/
   maxi/
     constitution.md        # project principles (required by all skills)
-    adr/                   # Architecture Decision Records (auto-captured during plan + implement)
+    adr/                   # consent-gated Architecture Decision Records with direct spec links
       README.md            # auto-maintained index
       0001-slug.md         # NNNN-slug.md format
     specs/
@@ -182,9 +182,9 @@ docs/
 
 ## Architecture Decision Records
 
-ADRs are captured automatically — you don't create them manually. During `/maxi:plan`, the skill scans the produced plan for architectural choices (tech stack, storage, framework) and proposes an ADR for each. During `/maxi:implement`, unplanned forks that surface mid-implementation also trigger a proposal. In both cases you see the full draft and choose yes/no/edit before anything is written.
+ADRs are proposed by internal Maxi workflows when they detect an architectural choice; you do not create them manually. You see the full draft and choose yes/no/edit before anything is written. Every newly written ADR holds a direct `spec` link to its creating spec, or `spec: null` when standalone.
 
-ADRs are append-only: once accepted, only status/supersede fields can change. To revise a decision, create a new ADR that supersedes the old one. `/maxi:analyze` includes a Pass G that cross-checks ADRs against the constitution and each other.
+An agent-proposed active-spec amendment may revise an accepted ADR only when its direct `spec` link equals the current active spec slug, which remains its creating spec, and that spec remains active (`drafting` through `implementing`), after you see the full amended ADR and exact diff and explicitly answer yes. Closed, missing, or null links use closed-spec supersession: create a new ADR that supersedes the old one. `/maxi:analyze` includes a Pass G that cross-checks ADRs against the constitution and each other.
 
 ## Status State Machine
 

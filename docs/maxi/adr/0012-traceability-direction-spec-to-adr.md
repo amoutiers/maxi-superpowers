@@ -1,12 +1,12 @@
 ---
 adr: 0012
 slug: 0012-traceability-direction-spec-to-adr
-status: accepted
+status: superseded
 created: 2026-05-31
-updated: 2026-05-31
+updated: 2026-08-23
 decider: "Antoine Moutiers"
 supersedes: null
-superseded_by: null
+superseded_by: 0024
 ---
 
 # ADR-0012: Traceability direction is spec → ADR, not ADR → spec

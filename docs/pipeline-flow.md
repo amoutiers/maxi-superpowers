@@ -30,7 +30,7 @@ flowchart TD
             IMPLEMENT["/maxi:implement\n─────────────\nanalyzed → implementing → done"]
             DEVELOP["/maxi:x-develop\n─────────────\nprojection + upstream SDD\n+ terminal receipt"]
             READY{{"READY_TO_FINISH\nvalidated receipt gate"}}
-            ADR["x-adr\n─────────────\n(internal — never\ninvoked by user)"]
+            ADR["x-adr\n─────────────\n(internal ADR\ncreate/amend)"]
             REVIEW["/maxi:review\n─────────────\n(explicit re-review;\nno status change)"]
             DONE(["✓ done"])
         end
@@ -96,7 +96,7 @@ flowchart TD
 - `/maxi:constitution` has no status prerequisite — it can run at any time.
 - Every forward phase is mandatory and must run in order — no phase may be skipped.
 - `/maxi:analyze` is non-destructive and can be re-run at any status from `tasked` onward; status does not change after the first run.
-- `x-adr` is internal and is never invoked directly by the user.
+- `x-adr` is internal and is never invoked directly by the user. Every new ADR records its creating spec through a direct `spec` link or uses `spec: null`. At every active status (`drafting` through `implementing`), a detected change to an accepted ADR linked to the current spec triggers an agent-proposed active-spec amendment: `x-adr` shows the full amended ADR and exact diff, then writes only after explicit approval. Missing or null links and specs at `done`, `parked`, or `cancelled` use closed-spec supersession instead. This cross-cutting route does not add a status or transition.
 - The initial design review is invoked once by `/maxi:plan` after its first normal write. `/maxi:review` is only for an explicit re-review after a correction or stale record. It dispatches the dedicated `skills/review/design-reviewer.md` artifact brief with the exact current `spec.md`, `plan.md`, and accepted ADRs named by `related_adrs`, then writes `reviews/design-review.md` only for one exact terminal verdict; `/maxi:tasks` stops without writing when that approval is missing or stale. Task `Files` lists are expected primary edits, not implementation allowlists, so mechanical closure is nonblocking unless the reviewed design itself must change.
 - The 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. The 10-state FSM remains unchanged. `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 - Upstream SDD owns the only whole-branch review. Before dispatch, `/maxi:x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. It also persists the harness-issued final-reviewer identity, regenerates the Git review package byte-for-byte, and returns `READY_TO_FINISH` only with a valid hash-bound terminal receipt. `/maxi:implement` alone then persists `done`; it never dispatches a duplicate final review.

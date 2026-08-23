@@ -62,6 +62,7 @@ Nygard supersession: if `## Status` contains "Supersedes ADR-NNN", set `supersed
 ```yaml
 created: [preserved from source, or "[unknown]" if not found]
 updated: [today]
+spec: null
 source: [original file path the ADR was imported from, or "[unknown]" if undeterminable]
 supersedes: null
 superseded_by: null

@@ -1,13 +1,13 @@
 ---
 name: x-adr
-description: Use when the plan or implement skill has detected an architectural decision worth recording — one that is costly to reverse, constrains future choices, or was contested (a real alternative was weighed) — that should be captured as an Architecture Decision Record in the current maxi project
+description: Use when an internal Maxi workflow detects an architectural decision that is costly to reverse, constrains future choices, was contested, or changes an existing decision in the current Maxi project
 ---
 
 # maxi: Recording Architecture Decision Records (ADRs)
 
 ## Overview
 
-This is an **internal pipeline skill** — it is invoked by `/maxi:plan` and `/maxi:implement`, not by the user directly. It is not listed in the `/maxi:*` command menu.
+This is an **internal pipeline skill** — it is invoked by Maxi workflows, not by the user directly. It is not listed in the `/maxi:*` command menu.
 
 **Core principle:** ADRs capture the *why* behind architectural choices. They are **never written silently** — the agent always drafts the ADR, shows it to the user, and waits for explicit approval before any file is created.
 
@@ -20,9 +20,9 @@ Before doing anything else:
 
 ## The Iron Rule: Never Write Without Consent
 
-**You MUST show the full drafted ADR and receive an explicit `yes` (or `edit`) before writing any file.**
+**You MUST show the full drafted ADR and receive explicit consent before writing any file. An amendment requires `yes`; `edit` only revises and re-displays it.**
 
-The fact that the calling skill (plan/implement) already identified the decision does NOT count as user consent to write the ADR. The user must see the draft and confirm.
+The fact that the calling workflow already identified the decision does NOT count as user consent to write the ADR. The user must see the draft and confirm.
 
 **Rationalizations that are NEVER valid:**
 - "The plan made the decision explicit" → still show draft, still ask
@@ -30,12 +30,26 @@ The fact that the calling skill (plan/implement) already identified the decision
 - "The user asked me to record it" → still show draft, still ask
 - "The contradiction isn't really a conflict" → still surface it, let the user decide
 
+## Amendment Eligibility
+
+Every new ADR records exactly one creating spec: `spec: <full-spec-slug>` or `spec: null`.
+When an agent detects a change to an accepted ADR, amend it only when its `spec:`
+equals the current active spec slug and that spec is active: `drafting`, `specified`, `clarified`, `planned`, `tasked`, `analyzed`, or `implementing`.
+If the link is missing or null, use supersession. If the linked spec is done, parked, or cancelled, use supersession. A missing linked spec also uses supersession.
+
 ## Process
 
 ```dot
 digraph adr_process {
     "Check docs/maxi/constitution.md" [shape=diamond];
     "Stop: run /maxi:constitution first" [shape=box];
+    "Detected change to accepted ADR?" [shape=diamond];
+    "Eligible active-spec amendment?" [shape=diamond];
+    "Show full amended ADR + exact diff" [shape=box];
+    "Amendment response?" [shape=diamond];
+    "Revise and re-display amendment" [shape=box];
+    "Write amended ADR + update index" [shape=box];
+    "Leave ADR unchanged" [shape=box];
     "Compute next NNNN" [shape=box];
     "Load accepted ADRs" [shape=box];
     "Contradiction with existing ADR?" [shape=diamond];
@@ -49,7 +63,16 @@ digraph adr_process {
     "Discard. No file written." [shape=box];
 
     "Check docs/maxi/constitution.md" -> "Stop: run /maxi:constitution first" [label="missing"];
-    "Check docs/maxi/constitution.md" -> "Compute next NNNN" [label="exists"];
+    "Check docs/maxi/constitution.md" -> "Detected change to accepted ADR?" [label="exists"];
+    "Detected change to accepted ADR?" -> "Eligible active-spec amendment?" [label="yes"];
+    "Detected change to accepted ADR?" -> "Compute next NNNN" [label="no"];
+    "Eligible active-spec amendment?" -> "Show full amended ADR + exact diff" [label="yes"];
+    "Eligible active-spec amendment?" -> "Compute next NNNN" [label="no, use generic path"];
+    "Show full amended ADR + exact diff" -> "Amendment response?";
+    "Amendment response?" -> "Write amended ADR + update index" [label="yes"];
+    "Amendment response?" -> "Revise and re-display amendment" [label="edit"];
+    "Revise and re-display amendment" -> "Show full amended ADR + exact diff";
+    "Amendment response?" -> "Leave ADR unchanged" [label="no / ambiguous x2"];
     "Compute next NNNN" -> "Load accepted ADRs";
     "Load accepted ADRs" -> "Contradiction with existing ADR?" ;
     "Contradiction with existing ADR?" -> "Frame as supersede proposal" [label="yes"];
@@ -67,19 +90,28 @@ digraph adr_process {
 
 ## Step-by-Step
 
-### 1. Compute next NNNN
+### 1. Route an accepted ADR change before supersession
+
+When an agent detects a changed accepted ADR, evaluate Amendment Eligibility
+before loading accepted ADRs for generic contradiction handling. An eligible
+change goes directly to the amendment procedure below and never enters the
+generic supersession path. An ineligible change, including a missing, `null`,
+or closed `spec:` link, continues to the existing generic path, which offers
+supersession. If no accepted ADR changed, continue to step 2.
+
+### 2. Compute next NNNN
 
 Scan `docs/maxi/adr/` for files matching `NNNN-*.md` (excluding `README.md`). Extract the numeric prefix of each file and find the highest value. Next NNNN = highest + 1, zero-padded to 4 digits. If the directory does not exist or contains no matching files, NNNN = 0001.
 
 Use max-based numbering (not count-based) to survive deletions, renames, or manual additions — these operations change the count but not the highest assigned number.
 
-### 2. Load accepted ADRs for contradiction check
+### 3. Load accepted ADRs for contradiction check
 
 Read every `docs/maxi/adr/NNNN-*.md` (where status = `accepted`) and scan their Decision sections for domain overlap with the new decision (same technology category: storage, runtime, framework, auth mechanism, etc.).
 
 **Surface any overlap to the user — do not decide silently.** You are not qualified to judge whether two decisions in the same domain are contradictory or simply different contexts. The user is. If there is any resemblance in domain, show it to the user and let them decide whether to supersede or treat as independent.
 
-### 3. Draft the ADR
+### 4. Draft the ADR
 
 Verify `adr-template.md` exists (Read tool) before proceeding; if missing, stop: *"Cannot proceed — `adr-template.md` is missing. Please reinstall the maxi plugin."*
 
@@ -87,6 +119,7 @@ Use `adr-template.md` as the base. Fill in:
 
 - `adr:` — the 4-digit number
 - `slug:` — `NNNN-[short-kebab-title]`
+- `spec:` — replace the template's `null` with the current active spec slug when this ADR is created for that spec; otherwise keep `spec: null`
 - `status: proposed` ← draft state; transitions to `accepted` when user confirms
 - `created:` — today in YYYY-MM-DD
 - `updated:` — today in YYYY-MM-DD
@@ -109,7 +142,7 @@ Body: fill all six sections from the architectural choice that was detected:
 - **Consequences** — concrete implications of the chosen option (Good/Bad)
 - **Confirmation** — how the decision will be verified or enforced over time
 
-### 4. Frame supersede proposal (if contradiction found)
+### 5. Frame supersede proposal (if contradiction found)
 
 If this decision contradicts an existing accepted ADR (say ADR-003), present the draft with this header:
 
@@ -117,7 +150,7 @@ If this decision contradicts an existing accepted ADR (say ADR-003), present the
 
 The proposal shows the full new ADR draft. The user can say yes, edit, or no.
 
-### 5. Show to user and wait
+### 6. Show to user and wait
 
 Output the full ADR as formatted Markdown and ask:
 
@@ -125,12 +158,26 @@ Output the full ADR as formatted Markdown and ask:
 
 Wait for the response. Do not write anything yet.
 
-### 6. Handle user response
+### Amendment: propose an eligible active-spec change
+
+Do not create a replacement ADR when the eligibility conditions above hold. Show the full amended ADR and exact diff.
+
+> *"Apply this amendment to ADR-NNNN? (yes / no)"*
+
+**`yes`:** Write the amended ADR in place, refresh `updated:` to today's ISO date, and regenerate the index.
+
+**`edit`:** Revise and re-display the full amended ADR and exact diff, then ask the same question again. Only `yes` may write an amendment; `edit` is not consent to write.
+
+**`no`:** Leave the ADR unchanged.
+
+**Anything else:** Re-ask the same amendment question once. On no or two ambiguous responses, leave the ADR unchanged. The amendment preserves `adr`, `slug`, `spec`, `created`, `status`, `supersedes`, and `superseded_by`; it changes the body and refreshes `updated:` to today's ISO date. It never changes ADR identity or supersession links, and never creates a new ADR.
+
+### 7. Handle new-ADR response
 
 **`yes`:**
 - Normal case: set `status: accepted` in the ADR, then write `docs/maxi/adr/NNNN-slug.md`, then regenerate index (step 7)
 - Supersede case: write new ADR; also update old ADR — set `status: superseded` and `superseded_by: NNNN`; then regenerate index. If any of the three writes fails, stop and report the failure — do not leave the ADR log in a partially-written state.
-- **Spec back-link (both cases):** if this ADR was accepted in the context of an active spec — the calling `/maxi:plan` or `/maxi:implement` knows the spec directory — append this ADR's full slug (e.g. `NNNN-slug`) to that spec's `related_adrs` frontmatter list (create the list if absent; do not duplicate if already present) and bump the spec's `updated:` to today's ISO date, written in the same edit. If there is no active spec, skip this silently — the ADR still stands.
+- **Spec back-link (both cases):** if this ADR was accepted in the context of an active spec — the calling workflow knows the spec directory — append this ADR's full slug (e.g. `NNNN-slug`) to that spec's `related_adrs` frontmatter list (create the list if absent; do not duplicate if already present) and bump the spec's `updated:` to today's ISO date, written in the same edit. If there is no active spec, skip this silently — the ADR still stands.
 
 **`edit`:**
 - Accept the user's amendments to the draft inline
@@ -143,7 +190,7 @@ Wait for the response. Do not write anything yet.
 **Anything else (silence, "ok", "sure", "looks good", "cancel", "skip", ambiguous text):**
 - Treat as `no` — do not write anything. Re-ask the question once: *"To confirm: skip recording this decision? (yes to record / no to skip)"*. If still ambiguous, treat as no and move on.
 
-### 7. Regenerate docs/maxi/adr/README.md
+### 8. Regenerate docs/maxi/adr/README.md
 
 After every successful write, rewrite the index by scanning all `.md` files in `docs/maxi/adr/` (excluding `README.md`). Sort by ADR number ascending. Read each ADR file's own frontmatter and H1 for the **ADR**, **Title**, **Status**, and **Created** columns. Status must reflect the current frontmatter value (including `superseded` or `deprecated` — do not default to `accepted`).
 
@@ -164,7 +211,7 @@ The **Related Specs** column is built by **reverse-lookup** — ADRs no longer c
 
 ## Append-Only After Creation
 
-Once an ADR is written, its **content is immutable**. These fields MAY be updated:
+An eligible active-spec amendment is the sole exception and must use the full-draft, exact-diff, explicit-`yes` procedure above. Otherwise, once an ADR is written, its **content is immutable**. These fields MAY be updated:
 - `status` (accepted → deprecated or superseded)
 - `superseded_by`
 - `supersedes`
@@ -175,7 +222,7 @@ These fields and the body sections MUST NOT be edited on an existing ADR:
 
 If the user wants to revise a past decision, create a new ADR that supersedes the old one. The old one stays as a historical record.
 
-**If asked to edit an existing ADR's body:** decline and explain — *"ADRs are append-only. To revise this decision, I can create ADR-NNNN that supersedes ADR-NNNN. Shall I?"*
+**If asked to edit an ineligible ADR's body:** decline and explain — *"ADRs are append-only. To revise this decision, I can create ADR-NNNN that supersedes ADR-NNNN. Shall I?"*
 
 ## Artifact reference links
 
@@ -194,5 +241,5 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 | Using a manually constructed frontmatter | Use `adr-template.md` as base |
 | Picking a number without counting existing files | Count `docs/maxi/adr/*.md` (excluding README), add 1 |
 | Forgetting to regenerate README.md | Always regenerate after every write |
-| Editing the body of an existing ADR | Decline; offer to supersede instead |
+| Editing an ineligible ADR body | Decline; offer to supersede instead |
 | Writing the ADR but forgetting the spec back-link | On acceptance with an active spec, append the ADR slug to the spec's `related_adrs` and bump its `updated:` |

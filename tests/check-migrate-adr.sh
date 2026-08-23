@@ -90,4 +90,30 @@ assert_not_grep "$MIGRATE" "maxi:adr" "C1: no stale /maxi:adr in migrate-adr SKI
 assert_file_exists "$ADR_README" "adr README.md"
 assert_not_grep "$ADR_README" "maxi:adr" "C1: no stale /maxi:adr in adr README.md"
 
+# --- Active-spec ADR amendment (spec 0020) ---
+assert_grep "$ADR" 'creating spec: `spec: <full-spec-slug>` or `spec: null`' "ADR direct creating-spec link"
+assert_grep "$ADR" 'current active spec slug' "ADR links to the current active spec"
+assert_grep "$ADR" 'full amended ADR.*exact diff' "ADR amendment shows the full diff package"
+assert_grep "$ADR" 'no.*two ambiguous.*unchanged' "ADR amendment rejection leaves the ADR unchanged"
+assert_grep "$ADR" 'edit.*re-display.*full amended ADR.*exact diff' "ADR amendment edit re-displays the consent package"
+assert_grep "$ADR" 'Only.*yes.*write.*amendment' "ADR amendment edit is not write consent"
+assert_grep "$ADR" 'drafting.*specified.*clarified.*planned.*tasked.*analyzed.*implementing' "ADR amendment active-status eligibility"
+assert_grep "$ADR" 'missing.*null.*supersession' "ADR missing or null link falls back to supersession"
+assert_grep "$ADR" 'done.*parked.*cancelled.*supersession' "ADR closed spec falls back to supersession"
+assert_grep "$ADR" 'adr.*,.*slug.*,.*spec.*,.*created.*,.*status.*,.*supersedes.*,.*superseded_by' "ADR amendment preserves identity and supersession fields"
+assert_grep "$ADR" 'refresh.*updated' "ADR amendment refreshes updated"
+amendment_route_line=$(grep -n 'Route an accepted ADR change before supersession' "$ADR" | head -1 | cut -d: -f1 || true)
+generic_supersession_line=$(grep -n 'Load accepted ADRs for contradiction check' "$ADR" | head -1 | cut -d: -f1 || true)
+if [ -n "$amendment_route_line" ] && [ -n "$generic_supersession_line" ] && [ "$amendment_route_line" -lt "$generic_supersession_line" ]; then
+  echo "OK  [ADR amendment routes before generic supersession]"
+else
+  echo "FAIL [ADR amendment routes before generic supersession]: eligible changes must route before contradiction handling" >&2
+  failures=$((failures + 1))
+fi
+for file in "$MIGRATE" "$IMPORT" "$DISCOVER"; do
+  label="$(basename "$file")"
+  assert_grep "$file" 'spec: null' "$label creates unlinked migration ADRs"
+done
+assert_grep "$MIGRATE" 'Existing ADRs.*not.*rewritten' "migration leaves existing ADRs unchanged"
+
 summary_and_exit "migrate-adr invariant checks"
