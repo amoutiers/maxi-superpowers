@@ -1,7 +1,7 @@
 ---
-version: "1.4.0"
+version: "1.4.2"
 created: 2026-05-24
-updated: 2026-05-30
+updated: 2026-08-23
 ---
 
 # maxi-superpowers Constitution
@@ -24,7 +24,7 @@ Each pipeline phase exists because its responsibility deserves to be enforced. B
 
 ### IV. ADR for Every Non-Trivial Architectural Decision
 
-Every structural choice (stack, pattern, dependency, pipeline deviation) generates an ADR — proposed automatically by the pipeline during `/maxi:plan` and `/maxi:implement`, written only with explicit consent, append-only after creation. Any revision goes through a supersede chain, never direct editing.
+Every structural choice (stack, pattern, dependency, pipeline deviation) generates an ADR, proposed automatically by the pipeline and written only with explicit consent. Every new ADR records its creating spec through a direct `spec` link containing the full spec slug, or `spec: null` when it is standalone; existing ADRs are not migrated. That link enables the sole exception to append-only bodies: at `drafting`, `specified`, `clarified`, `planned`, `tasked`, `analyzed`, or `implementing`, an agent-proposed active-spec amendment may update an accepted ADR whose `spec` matches the current spec only after the full amended ADR and exact diff are shown and explicitly approved. Missing or null links and specs at `done`, `parked`, or `cancelled` are ineligible and use closed-spec supersession instead.
 
 ### V. Artifacts Over Chat
 
@@ -52,4 +52,4 @@ Every skill owns exactly one responsibility — one phase transition, one report
 
 The constitution takes precedence over any other practice documented in this repo. In case of conflict between a skill and the constitution, the constitution wins — the skill must be updated. Any amendment to the constitution bumps `version` (semver), refreshes the `updated` date, and generates an ADR.
 
-**Version**: 1.4.0 | **Created**: 2026-05-24 | **Updated**: 2026-05-30
+**Version**: 1.4.2 | **Created**: 2026-05-24 | **Updated**: 2026-08-23

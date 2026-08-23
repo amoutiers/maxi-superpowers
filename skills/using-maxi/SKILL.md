@@ -23,7 +23,7 @@ maxi adds a strict spec-driven pipeline to superpowers. The 19 Maxi-native skill
 /maxi:implement     → delegate to x-develop; persist done after READY_TO_FINISH
 ```
 
-Every new ADR records its creating spec as `spec: <full-spec-slug>` or `spec: null`. At every active spec status, an agent detecting a change to an accepted ADR whose `spec` equals the current spec slug invokes internal `x-adr`: it shows the full amended ADR and exact diff, then writes only after explicit approval. Unlinked or closed-spec ADRs use supersession instead.
+Every new ADR records its creating spec through a direct `spec` link as `spec: <full-spec-slug>`, or `spec: null` when standalone. At every active spec status, an agent detecting a change to an accepted ADR whose `spec` equals the current spec slug invokes internal `x-adr` for an agent-proposed active-spec amendment: it shows the full amended ADR and exact diff, then writes only after explicit approval. Unlinked or closed-spec ADRs use closed-spec supersession instead.
 
 ## Status State Machine
 
