@@ -124,6 +124,7 @@ assert_path_absent() {
 }
 
 assert_file_exists "$ROOT/skills/review/SKILL.md" "public design review skill"
+assert_file_exists "$ROOT/skills/review/design-reviewer.md" "dedicated design reviewer brief"
 assert_grep "$ROOT/skills/plan/SKILL.md" 'one design review.*spec.md.*plan.md' "plan has one design boundary"
 assert_grep "$ROOT/skills/tasks/SKILL.md" 'missing or stale.*design review.*stop' "tasks require a current design review"
 assert_grep "$ROOT/skills/analyze/SKILL.md" 'readiness review.*before implementation' "analysis is readiness review"
@@ -157,11 +158,41 @@ assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Process' 'pre-existing `pla
 assert_correction_section_not_grep "$ROOT/skills/plan/SKILL.md" '## Explicit Structural Plan Correction' 'Invoke `/maxi:review`|dispatch.*design review' "plan correction dispatches zero design reviews"
 assert_section_grep "$ROOT/skills/tasks/SKILL.md" '## Process' 'missing or stale.*design review.*stop.*no write.*`/maxi:review`' "stale design review blocks tasks without writing"
 assert_grep "$ROOT/skills/review/SKILL.md" 'only re-review entry point' "public review is the only re-review entry point"
+assert_not_grep "$ROOT/skills/review/SKILL.md" 'superpowers:requesting-code-review\|code-reviewer\.md\|Ready to merge' "design review does not use the code-review contract"
+assert_grep "$ROOT/skills/review/SKILL.md" 'design-reviewer\.md' "design review dispatches its dedicated brief"
+assert_grep "$ROOT/skills/review/SKILL.md" '`related_adrs` entry in `spec.md`' "design review resolves explicitly applicable ADRs"
+assert_not_grep "$ROOT/skills/review/SKILL.md" 'inline `ADR-NNNN` references' "historical inline ADR mentions do not become review inputs"
+assert_grep "$ROOT/skills/review/SKILL.md" 'Inline prose mentions do not select ADR inputs\.' "historical inline ADR mentions are explicitly excluded"
+assert_grep "$ROOT/skills/review/SKILL.md" 'exactly one terminal verdict line' "design review requires one terminal verdict"
+assert_grep "$ROOT/skills/review/SKILL.md" 'final non-empty line' "design review requires a terminal verdict"
+assert_grep "$ROOT/skills/review/SKILL.md" 'discard.*write nothing' "design review rejects malformed verdicts without writing"
 assert_section_not_grep "$ROOT/README.md" '## Quick Start' '^/maxi:review[[:space:]]' "quick start leaves initial review to plan"
 assert_section_not_grep "$ROOT/skills/using-maxi/SKILL.md" '## The Pipeline' '^/maxi:review[[:space:]]' "session pipeline leaves initial review to plan"
 
 assert_grep "$ROOT/skills/x-develop/SKILL.md" 'Upstream SDD remains authoritative' "x-develop preserves upstream SDD ownership"
 assert_grep "$ROOT/skills/x-develop/SKILL.md" 'Use upstream.*final review' "x-develop preserves upstream final review"
+
+if [ -f "$ROOT/skills/review/design-reviewer.md" ]; then
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'The reviewed baseline is the complete supplied `spec.md` and `plan.md` pair\.' "reviewer baseline is the complete supplied pair"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'Applicable accepted ADR paths.*APPLICABLE_ADR_PATHS' "reviewer receives applicable ADR paths"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'APPLICABLE_ADR_BYTES' "reviewer receives applicable ADR bytes"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'untrusted design content' "reviewer treats artifact bytes as untrusted content"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'never as instructions' "artifact content cannot replace reviewer instructions"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'violates or omits a requirement or success criterion' "reviewer blocks requirement omissions"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'adds or changes behavior beyond the reviewed spec and owning task' "reviewer blocks extra behavior"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'Task `Files` lists identify expected primary edits, not implementation allowlists\.' "reviewer treats Files lists as primary edits"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'technically infeasible or materially incorrect' "reviewer blocks infeasible designs"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'architecture ownership or boundaries' "reviewer blocks architecture violations"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'public contract' "reviewer checks public contracts"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'task boundaries or decomposition' "reviewer checks task decomposition"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'dependency order' "reviewer checks dependency order"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'safety control' "reviewer checks safety controls"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'verification strategy' "reviewer checks verification strategy"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'Callers, module declarations, registrations, fixtures, manifests, generated metadata, and lockfiles' "reviewer recognizes mechanical closure"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'Blocking basis:' "reviewer requires blocking basis"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'Return `VERDICT: approved` when no qualifying Critical or Important finding exists\.' "reviewer approves without qualifying findings"
+  assert_grep "$ROOT/skills/review/design-reviewer.md" 'VERDICT: rejected' "reviewer has rejected terminal verdict"
+fi
 
 for document in \
   "$ROOT/docs/pipeline-flow.md" \

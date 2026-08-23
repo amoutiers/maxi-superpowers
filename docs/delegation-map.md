@@ -12,7 +12,7 @@ This table shows which maxi pipeline skill delegates to which sub-skill, what st
 | `specify` | constitution exists (no spec status required) | `/maxi:brainstorming` | `drafting → specified` |
 | `clarify` | `specified` | (none — interactive Q&A dialogue) | `specified → clarified` |
 | `plan` | `clarified` | `/maxi:writing-plans`, then one design review | `clarified → planned` |
-| `review` | current `spec.md` and `plan.md`; explicit re-review request | `/maxi:requesting-code-review` | none; writes `reviews/design-review.md` |
+| `review` | current `spec.md` and `plan.md`; explicit re-review request | dedicated `skills/review/design-reviewer.md` brief with accepted `related_adrs` and one exact terminal verdict | none; writes `reviews/design-review.md` |
 | `tasks` | `planned`; current approved `reviews/design-review.md` | (none — extraction from plan.md) | `planned → tasked` |
 | `analyze` | `tasked`, `analyzed`, `implementing`, or `done` | (none — reads artifacts, writes analysis.md) | `tasked → analyzed` (once; reruns don't change status) |
 | `implement` | `analyzed` or `implementing` (resume) | `/maxi:x-develop` | `analyzed → implementing`; `READY_TO_FINISH` receipt gate; then `implementing → done` |
@@ -39,7 +39,7 @@ Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineag
 | readiness review of the current design and tasks | Before implementation | `/maxi:analyze` | `tasked → analyzed` |
 | Final implementation review | Before branch finishing | Upstream SDD through `/maxi:x-develop` | `implementing → done` only after `READY_TO_FINISH` |
 
-The design review is bound to the exact current `spec.md` and `plan.md`; a missing or stale approval stops task extraction without a write. A correction stops after its owner write and never starts a review or successor phase. Re-review is only the explicit `/maxi:review` command. These boundaries are gates, not statuses or automatic phase transitions.
+The design review is bound to the complete exact current `spec.md` and `plan.md` pair; a missing or stale approval stops task extraction without a write. Its dedicated artifact brief treats task `Files` lists as expected primary edits, not implementation allowlists. Mechanical callers, declarations, registrations, fixtures, manifests, generated metadata, and lockfiles are nonblocking unless they expose a requirement, feasibility, architecture, contract, decomposition, ordering, safety, or verification defect that requires the reviewed design to change. A correction stops after its owner write and never starts a review or successor phase. Re-review is only the explicit `/maxi:review` command. These boundaries are gates, not statuses or automatic phase transitions.
 
 ### Lifecycle Skills
 

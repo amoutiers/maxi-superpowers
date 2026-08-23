@@ -42,8 +42,26 @@ request, and only then may the review run again.
   contributor metadata, the replay planner, its fixtures, and the automatic
   review-handoff protocol.
 - Replace internal `x-review` with the public `review` skill. It owns the
-  single persisted design-review record and delegates to the existing
-  Superpowers code-review capability.
+  single persisted design-review record and a dedicated read-only
+  artifact-design reviewer brief. The reviewer receives the complete current
+  `spec.md` and `plan.md` bytes, their paths and SHA-256 values, applicable
+  constitution requirements, and complete bytes for every accepted ADR named
+  by `spec.md`'s `related_adrs`. It returns complete findings plus
+  exactly one final `VERDICT: approved` or `VERDICT: rejected` line; any absent,
+  malformed, duplicate, contradictory, or nonterminal verdict fails without a
+  write.
+- A Critical or Important finding blocks only when the reviewed design must
+  change because it violates a requirement or success criterion; adds behavior
+  beyond the reviewed spec and owning task; is technically infeasible or
+  materially incorrect; violates established architecture ownership or
+  boundaries; omits or contradicts a required public contract; leaves task
+  decomposition or dependency order unable to deliver the spec; weakens a
+  safety control; or leaves verification insufficient.
+- Task `Files` lists identify expected primary edits, not implementation
+  allowlists. Callers, module declarations, registrations, fixtures, manifests,
+  generated metadata, and lockfiles are nonblocking mechanical closure when
+  they only implement the reviewed owning task without adding behavior beyond
+  the reviewed spec and task. This does not excuse an infeasible design.
 - Bind a design review to the exact current `spec.md` and `plan.md` bytes. A
   correction makes that record stale, but does nothing else automatically.
 - Make `tasks` require a current approved design review. If it is missing or

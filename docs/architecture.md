@@ -33,6 +33,7 @@ maxi-superpowers/
 │   ├── clarify/
 │   ├── plan/
 │   ├── review/              # explicit design-review owner
+│   │   └── design-reviewer.md # dedicated artifact-review brief
 │   ├── tasks/
 │   ├── analyze/
 │   ├── implement/
@@ -107,7 +108,7 @@ See [delegation-map.md](delegation-map.md) for the complete mapping and [pipelin
 | `specify` | `/maxi:brainstorming` |
 | `clarify` | interactive dialogue |
 | `plan` | `/maxi:writing-plans`, then `/maxi:x-adr` for detected architectural choices |
-| `review` | `/maxi:requesting-code-review`; writes the design-review record |
+| `review` | dedicated `review/design-reviewer.md`; writes the design-review record |
 | `tasks` | extraction from `plan.md` |
 | `analyze` | reads artifacts and ADRs, writes `analysis.md` |
 | `implement` | `/maxi:x-develop`, then `/maxi:x-adr` for returned unplanned rulings |
@@ -116,7 +117,7 @@ See [delegation-map.md](delegation-map.md) for the complete mapping and [pipelin
 
 The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
 
-The public `/maxi:review` command writes `reviews/design-review.md`, bound to the exact current `spec.md` and `plan.md`. `/maxi:tasks` stops before any write if that approval is missing or stale. A correction stops after its owner write and never starts a review or successor phase; request `/maxi:review` explicitly when a new design review is wanted.
+The public `/maxi:review` command dispatches `review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It writes `reviews/design-review.md`, bound to the spec/plan pair, only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure does not block unless the design must change. `/maxi:tasks` stops before any write if that approval is missing or stale. A correction stops after its owner write and never starts a review or successor phase; request `/maxi:review` explicitly when a new design review is wanted.
 
 `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 

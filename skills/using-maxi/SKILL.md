@@ -48,7 +48,7 @@ The 10-state FSM remains unchanged. The three fixed review boundaries are design
 | `/maxi:analyze` | `tasked`+ | `analyzed` |
 | `/maxi:implement` | `analyzed` or `implementing` | `done` after `READY_TO_FINISH` |
 
-The design review records SHA-256 values for the current `spec.md` and `plan.md`. A missing or stale approval stops `/maxi:tasks` before any write. Corrections stop after their owner write and never start a review or successor phase; request `/maxi:review` when a re-review is wanted.
+The design review uses `skills/review/design-reviewer.md` and supplies the complete current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It records SHA-256 values for the spec/plan pair and writes only after one exact terminal verdict. Task `Files` lists identify expected primary edits, not implementation allowlists. Mechanical callers, module declarations, registrations, fixtures, manifests, generated metadata, and lockfiles are nonblocking when they only implement the reviewed owning task without changing requirements, behavior beyond that task, feasibility, architecture, public contracts, task decomposition, dependency order, safety, or verification. A missing or stale approval stops `/maxi:tasks` before any write. Corrections stop after their owner write and never start a review or successor phase; request `/maxi:review` when a re-review is wanted.
 
 ## SDD Final Review
 

@@ -24,6 +24,7 @@ for skill in "${MAXI_SKILLS[@]}"; do
 done
 
 assert_file_exists "$ROOT/tests/check-review-boundaries.sh" "fixed review boundary check"
+assert_file_exists "$SKILLS_DIR/review/design-reviewer.md" "dedicated design reviewer support file"
 assert_not_grep "$SKILLS_DIR/review/SKILL.md" 'x-review\|bounded replay\|replay_continuation' "review has no obsolete handoff contract"
 
 summary_and_exit "maxi-native skill checks"

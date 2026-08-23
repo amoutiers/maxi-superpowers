@@ -157,7 +157,7 @@ Full reference for the forward pipeline:
 
 The 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
 
-`/maxi:review` writes `reviews/design-review.md` for the exact current `spec.md` and `plan.md`. A missing or stale approval stops `/maxi:tasks` before any write. Corrections stop after their owner write and never start a review or successor phase; request `/maxi:review` to re-review.
+`/maxi:review` dispatches the dedicated `skills/review/design-reviewer.md` artifact brief with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It writes `reviews/design-review.md` only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure is nonblocking unless the reviewed design itself must change. A missing or stale approval stops `/maxi:tasks` before any write. Corrections stop after their owner write and never start a review or successor phase; request `/maxi:review` to re-review.
 
 `/maxi:revise` offers the exceptional `specified` rollback only for a demonstrated source-spec gap. It resumes at `clarify` and never reruns `specify`.
 
