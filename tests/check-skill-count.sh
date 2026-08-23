@@ -61,4 +61,6 @@ for doc in "${ADR_POLICY_DOCS[@]}"; do
   assert_grep "$doc" 'closed-spec supersession' "$label documents closed-spec supersession"
 done
 
+assert_grep "$ROOT/README.md" 'direct `spec` link equals the current active spec slug' "README.md routes amendments through the current active spec slug"
+
 summary_and_exit "skill-count consistency checks"
