@@ -34,6 +34,7 @@ SYNC_DOCS=(
 )
 
 ADR_POLICY_DOCS=(
+  "$ROOT/README.md"
   "$ROOT/docs/maxi/constitution.md"
   "$ROOT/docs/pipeline-flow.md"
   "$ROOT/docs/delegation-map.md"
