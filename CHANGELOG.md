@@ -1,4 +1,46 @@
 
+## [2.5.0] - 2026-08-23
+
+### Features
+
+- Amend active spec decisions
+- Reopen completed specs for revision
+- Preserve durable global constraints
+
+### Bug Fixes
+
+- Use a bounded artifact design reviewer
+- Route active amendments before supersession
+- Accept fresh authorization constraints
+- Handshake Codex final reviewer
+- Cover complete global constraints sections
+
+### Documentation
+
+- Document active-spec ADR amendments
+- Record active-spec amendment decision
+- Align README ADR lifecycle
+- Clarify active ADR routing
+- Govern reopened spec ADRs
+- Complete reopened spec implementation
+- Record durable global constraints
+
+### Testing
+
+- Lock active-spec ADR amendment contract
+- Tighten active-spec ADR contract
+- Lock reopened done spec contracts
+- Strengthen reopened spec contract checks
+- Close remaining reopened spec review gaps
+- Bind consent and eligibility assertions
+
+### Internal
+
+- Mark active ADR amendment done
+- Record completed reopening tasks
+- Complete durable global constraints
+
+
 ## [2.4.3] - 2026-08-22
 
 ### Bug Fixes
