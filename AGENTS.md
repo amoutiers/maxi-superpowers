@@ -20,6 +20,8 @@ The authoring flow:
 3. **plan** — write the implementation plan (`superpowers:writing-plans`, via `/maxi:plan`)
 4. **writing-skills** — author/edit the SKILL.md (`superpowers:writing-skills`), which runs its own RED/GREEN/REFACTOR cycle internally
 
+Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
+
 ## Vendored Skills
 
 `skills/` contains a mix of vendored (from superpowers) and maxi-native skills.
@@ -84,11 +86,13 @@ Run `bash tests/run-all.sh` after changes.
 - `check-frontmatter.sh` — every `skills/*/SKILL.md` has valid YAML frontmatter
 - `check-sync-invariant.sh` — vendored skills in `skills/` are byte-identical to `vendor/superpowers/skills/`
 - `check-spec-fixture.sh` — spec fixture has valid `slug`/`created` fields (the 10-status consistency check now lives in `check-status-consistency.sh`)
-- `check-templates.sh` — all 6 maxi templates + 2 fixtures have required fields and body sections
+- `check-templates.sh` — all 6 maxi templates + 2 fixtures have required fields and body sections, including the single Global Constraints section
+- `check-global-constraints.sh` — fixture-backed durable Global Constraints outcomes and planner guidance remain aligned
 - `check-review-boundaries.sh` — the three fixed review boundaries, explicit re-review, and terminal corrections remain aligned
 - `check-x-develop-adapter.sh` — immutable task projection, lineage reconciliation, final-review identity/package validation, and terminal receipts remain fail-closed
 - `check-implement-handoff.sh` — `implement`/`x-develop` ownership and Mandatory Sync 5 terminal-gate contracts remain aligned
 - `check-skills-present.sh` — all 19 maxi-native skills and targeted support files exist
+- `check-revise.sh` — completed-spec reopening and explicit-consent invariants remain aligned
 - `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
 - `check-declarative-harnesses.sh` — Cursor, Kimi, Devin, and Gemini manifests match `package.json`, Kimi/Gemini bootstrap wiring is complete, and Pi remains project-gated
@@ -108,7 +112,7 @@ Run `bash tests/run-all.sh` after changes.
 - `integration/test-codex-timeout.sh` — macOS Perl deadline-supervisor regression runs in the fast tier, including material plugin staging and timeout status 124
 - `check-doc-consistency-skill.sh` — local doc-consistency skills stay aligned with the Mandatory Sync 5 rule
 - `check-release-skill.sh` — release instructions keep the fast-tier/doc-consistency gates, bump and stage all eight manifests, derive the plugin name from `.claude-plugin/plugin.json`, and leave marketplace pinning in commit 2
-- `check-skill-count.sh` — maxi-native skill count and documented review/replay contracts match the filesystem and Mandatory Sync 5
+- `check-skill-count.sh` — maxi-native skill count, documented review contracts, and Mandatory Sync 5 durable-plan sentence match the filesystem
 - `check-status-consistency.sh` — the 10 FSM statuses are consistent across spec-template, board, and AGENTS.md
 - `check-artifact-link-convention.sh` — the duplicated artifact-link block is byte-identical to the canonical fixture
 - `check-version-consistency.sh` — superpowers version citations in `README.md`/`docs/architecture.md`/`docs/delegation-map.md` match the `VENDORED.md` pin

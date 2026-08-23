@@ -115,6 +115,8 @@ See [delegation-map.md](delegation-map.md) for the complete mapping and [pipelin
 | `x-develop` | `superpowers:subagent-driven-development` |
 | `x-adr` | internal ADR creation and active-spec amendment workflow |
 
+Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
+
 The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
 
 The public `/maxi:review` command dispatches `review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It writes `reviews/design-review.md`, bound to the spec/plan pair, only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure does not block unless the design must change. `/maxi:tasks` stops before any write if that approval is missing or stale. A correction stops after its owner write and never starts a review or successor phase; request `/maxi:review` explicitly when a new design review is wanted.

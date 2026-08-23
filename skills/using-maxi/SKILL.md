@@ -23,6 +23,8 @@ maxi adds a strict spec-driven pipeline to superpowers. The 19 Maxi-native skill
 /maxi:implement     → delegate to x-develop; persist done after READY_TO_FINISH
 ```
 
+Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
+
 Every new ADR records its creating spec through a direct `spec` link as `spec: <full-spec-slug>`, or `spec: null` when standalone. For an initial active lifecycle that lacks `reopened_from: done`, an agent detecting a change to an accepted ADR whose `spec` equals the current spec slug invokes internal `x-adr` for an agent-proposed active-spec amendment: it shows the full amended ADR and exact diff, then writes only after explicit approval. `reopened_from: done` is a monotone lifecycle watermark: a spec reopened with `/maxi:revise` uses supersession for accepted linked ADRs even while its status is active. Unlinked, closed-spec, or reopened-spec ADRs use closed-spec supersession instead.
 
 ## Status State Machine

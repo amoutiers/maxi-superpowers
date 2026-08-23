@@ -21,7 +21,7 @@ Create or explicitly correct a technical implementation plan for an existing spe
 1. **Read artifacts** — before normal planning, record whether `plan.md` already exists; then load `spec.md` (FRs, SCs, user stories) and `constitution.md` (principles, constraints).
 2. **Constitution check** — before planning: does anything in the spec contradict constitution principles? Flag violations to the user before proceeding. (Do NOT silently discard violating requirements — surface them.)
 3. **Invoke /maxi:writing-plans** — **REQUIRED SUB-SKILL.** Pass the spec and constitution as context. Let writing-plans run its full planning process including file structure decisions and task decomposition.
-4. **Post-format into plan schema** — write output to `docs/maxi/specs/NNNN-slug/plan.md` following `plan-template.md` structure. Set plan.md frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
+4. **Post-format into plan schema** — write output to `docs/maxi/specs/NNNN-slug/plan.md` following `plan-template.md` structure and the Global Constraints Protocol below. Set plan.md frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
 5. **ADR scan (post-planning)** — scan the just-written `plan.md` for non-obvious architectural choices. Look for: Tech Stack sections, storage/database/runtime/framework picks, phrases like "we chose X over Y because" or "considered A, B, chose C". For each detected choice, invoke `/maxi:x-adr` — it will draft the ADR, show it to the user, and write it only if the user consents. If the user declines all ADR proposals, the plan is still complete; ADR capture is opt-out, not mandatory. Do not invoke `/maxi:x-adr` for trivial choices (e.g., variable naming conventions, test library defaults).
 6. **Transition status** — update spec.md frontmatter `status → planned`; also set `updated: [today's ISO date]` on spec.md and on plan.md.
 7. **Initial design review** — only when `plan.md` did not exist before normal planning, Invoke `/maxi:review` exactly once for one design review after both current `spec.md` and `plan.md` files are written. Do not ask the user to invoke it. If it is rejected, report its findings and stop; do not start a correction, replacement review, or successor phase.
@@ -34,10 +34,23 @@ Use this owner mode only when the user explicitly requests a structural correcti
 
 1. Read the current `plan.md` before any write.
 2. Invoke `superpowers:writing-plans` for the correction.
-3. Return the spec status to `planned`.
-4. Report: *"Correction recorded. No review or successor phase was started. Request `/maxi:review` when you want a new design review."*
+3. Post-format the corrected plan using the Global Constraints Protocol below.
+4. Return the spec status to `planned`.
+5. Report: *"Correction recorded. No review or successor phase was started. Request `/maxi:review` when you want a new design review."*
 
 This correction never invokes `review`, `specify`, `clarify`, `tasks`, or `analyze` and never edits `tasks.md` or `analysis.md`.
+
+## Global Constraints Protocol
+
+Apply this protocol to normal creation, replanning, and explicit structural plan correction after mandatory delegation to `superpowers:writing-plans`. Classify only applicable durable cross-task constraints from the current spec and constitution: scope boundaries, protected artifacts or data, required verification evidence, compatibility or integration handoffs, and completion or reporting expectations.
+
+Post-format every newly written or structurally corrected plan with exactly one `Global Constraints` section and no second delivery-contract section. Use simple applicable-only bullets with no fixed category labels or per-category None entries. When none apply, write exactly:
+
+- No additional global constraints apply.
+
+Exclude current worktree, HEAD, selected tasks, and stop point. Do not persist individual authorization for Git-history, remote-repository, deployment/infrastructure, data-publication, or secret-access mutations. A durable rule requiring fresh authorization is allowed, but an earlier authorization never carries forward.
+
+Do not add a reviewer predicate, artifact, status, ledger record, automatic dispatch, or any other execution mechanism for this protocol. Existing historical plans remain byte-unchanged unless an owning Maxi workflow explicitly rewrites them.
 
 ## Constitution Check Protocol
 

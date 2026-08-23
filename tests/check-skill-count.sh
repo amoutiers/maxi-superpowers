@@ -33,6 +33,15 @@ SYNC_DOCS=(
   "$ROOT/README.md"
 )
 
+GLOBAL_CONSTRAINT_DOCS=(
+  "$ROOT/docs/pipeline-flow.md"
+  "$ROOT/docs/delegation-map.md"
+  "$ROOT/skills/using-maxi/SKILL.md"
+  "$ROOT/AGENTS.md"
+  "$ROOT/docs/architecture.md"
+)
+GLOBAL_CONSTRAINT_SENTENCE='Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.'
+
 ADR_POLICY_DOCS=(
   "$ROOT/README.md"
   "$ROOT/docs/maxi/constitution.md"
@@ -52,6 +61,16 @@ for doc in "${SYNC_DOCS[@]}"; do
   assert_grep "$doc" 'final implementation review' "$label documents the final boundary"
   assert_grep "$doc" 'Upstream SDD owns task review, fix rounds, and the final implementation review' "$label preserves SDD final-review ownership"
   assert_not_grep "$doc" 'bounded replay\|replay_contract\|replay_continuation\|x-review\|reviews/spec-review.md\|reviews/plan-review.md' "$label excludes obsolete review mechanics"
+done
+
+for doc in "${GLOBAL_CONSTRAINT_DOCS[@]}"; do
+  label="$(basename "$doc")"
+  if ! grep -Fqx "$GLOBAL_CONSTRAINT_SENTENCE" "$doc"; then
+    echo "FAIL [$label documents durable global constraints]" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [$label documents durable global constraints]"
+  fi
 done
 
 for doc in "${ADR_POLICY_DOCS[@]}"; do

@@ -31,6 +31,20 @@ updated: YYYY-MM-DD
 **Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
 **Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
+## Global Constraints
+
+<!--
+  List only applicable durable cross-task constraints from the current spec
+  and constitution as simple bullets. Do not add fixed category labels or
+  per-category None entries. If none apply, write exactly one bullet:
+  - No additional global constraints apply.
+
+  Never persist current worktree, HEAD, selected tasks, stop point, or an
+  individual authorization for Git-history, remote-repository,
+  deployment/infrastructure, data-publication, or secret-access mutations.
+  A durable rule requiring fresh authorization is allowed.
+-->
+
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*

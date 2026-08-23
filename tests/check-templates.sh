@@ -94,7 +94,14 @@ check_template \
   "$ROOT/skills/plan/plan-template.md" "plan-template.md" "true" \
   "slug:" "spec_slug:" "created:" "updated:" \
   "--" \
-  "## Summary" "## Technical Context" "## Constitution Check"
+  "## Summary" "## Technical Context" "## Global Constraints" "## Constitution Check"
+if [ "$(grep -c '^## Global Constraints$' "$ROOT/skills/plan/plan-template.md")" -ne 1 ]; then
+  echo "FAIL [plan-template.md: one Global Constraints section]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [plan-template.md: one Global Constraints section]"
+fi
+assert_not_grep "$ROOT/skills/plan/plan-template.md" '^##+ Delivery Contract$' "plan-template.md: no delivery-contract section"
 
 # tasks-template
 check_template \
