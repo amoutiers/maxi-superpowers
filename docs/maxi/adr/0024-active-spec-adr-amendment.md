@@ -1,13 +1,13 @@
 ---
 adr: 0024
 slug: 0024-active-spec-adr-amendment
-status: accepted
+status: superseded
 created: 2026-08-23
 updated: 2026-08-23
 decider: "Antoine Moutiers"
 spec: 0020-active-spec-adr-amendment
 supersedes: 0012
-superseded_by: null
+superseded_by: 0025
 ---
 
 # ADR-0024: Active-Spec ADR Amendments with Direct Spec Links

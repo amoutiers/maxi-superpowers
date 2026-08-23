@@ -17,7 +17,7 @@ This table shows which maxi pipeline skill delegates to which sub-skill, what st
 | `analyze` | `tasked`, `analyzed`, `implementing`, or `done` | (none — reads artifacts, writes analysis.md) | `tasked → analyzed` (once; reruns don't change status) |
 | `implement` | `analyzed` or `implementing` (resume) | `/maxi:x-develop` | `analyzed → implementing`; `READY_TO_FINISH` receipt gate; then `implementing → done` |
 
-Internal `x-adr` records every new ADR's creating spec through a direct `spec` link, or `spec: null` for a standalone ADR. At any active status, a detected change to an accepted ADR linked to the current spec delegates to an agent-proposed active-spec amendment: `x-adr` shows the full amended ADR and exact diff and writes only after explicit approval, with no status transition. Missing or null links and `done`, `parked`, or `cancelled` specs delegate to closed-spec supersession instead.
+Internal `x-adr` records every new ADR's creating spec through a direct `spec` link, or `spec: null` for a standalone ADR. During an initial active lifecycle that lacks the monotone `reopened_from: done` watermark, a detected change to an accepted ADR linked to the current spec delegates to an agent-proposed active-spec amendment: `x-adr` shows the full amended ADR and exact diff and writes only after explicit approval, with no status transition. Missing or null links, `done`, `parked`, or `cancelled` specs, and reopened specs marked `reopened_from: done` delegate to closed-spec supersession instead.
 
 The 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. The 10-state FSM remains unchanged. `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 
@@ -51,7 +51,7 @@ The design review is bound to the complete exact current `spec.md` and `plan.md`
 | `park` | any active status (not `parked`, `cancelled`, `done`) | (none — writes spec.md only) | `<any> → parked` (stores `parked_from:`) |
 | `resume` | `parked` | (none — reads `parked_from:`, writes spec.md) | `parked → <parked_from>` (clears `parked_from:`) |
 | `cancel` | any active status (not `parked`, `cancelled`, `done`) | (none — writes spec.md only) | `<any> → cancelled` (terminal) |
-| `revise` | `clarified` through `implementing` | (none — writes spec.md only) | `<any> → <rollback_target>` (A+ picker: `clarified`/`planned`/`tasked`/`analyzed`; exceptional `specified` rollback for a source-spec gap) |
+| `revise` | `clarified` through `implementing`, or `done` | (none — writes spec.md only) | `<any> → <rollback_target>` (A+ picker: `clarified`/`planned`/`tasked`/`analyzed`; exceptional `specified` rollback for a source-spec gap; `done` writes the monotone `reopened_from: done` watermark) |
 
 ### Ingress / Migration Skills
 
@@ -67,7 +67,7 @@ These skills ingest *already-implemented* work, so they may set a terminal/advan
 
 - `/maxi:analyze` can be rerun at any status from `tasked` onward — it is non-destructive and never modifies source artifacts. Status does not change on subsequent runs.
 - `/maxi:implement` resumes from `implementing` if an earlier run was interrupted — it starts from the first unchecked `- [ ]` task.
-- `/maxi:revise` is the **only skill that makes `status:` go backwards**. It is consent-gated and leaves downstream artefacts in place.
+- `/maxi:revise` is the **only skill that makes `status:` go backwards**. It is consent-gated and leaves downstream artefacts in place; a confirmed rollback from `done` writes the monotone `reopened_from: done` watermark.
 - The exceptional `specified` rollback is offered only for a demonstrated missing or ambiguous requirement in the source spec; it resumes at `clarify` and never reruns `specify`.
 - `/maxi:resume` restores the exact status stored in `parked_from:` — it never asks the user what status to restore to (unless `parked_from:` is missing).
 - `/maxi:cancel` is **terminal** — there is no un-cancel path in the pipeline.

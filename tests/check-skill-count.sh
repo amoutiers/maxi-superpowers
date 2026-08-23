@@ -58,6 +58,9 @@ for doc in "${ADR_POLICY_DOCS[@]}"; do
   label="$(basename "$doc")"
   assert_grep "$doc" 'direct `spec` link' "$label documents the direct ADR spec link"
   assert_grep "$doc" 'agent-proposed active-spec amendment' "$label documents active-spec amendments"
+  assert_grep "$doc" 'initial active lifecycle' "$label limits amendments to the initial lifecycle"
+  assert_grep "$doc" 'monotone.*watermark' "$label documents the permanent reopening watermark"
+  assert_grep "$doc" 'reopened_from: done' "$label names the reopening watermark"
   assert_grep "$doc" 'closed-spec supersession' "$label documents closed-spec supersession"
 done
 

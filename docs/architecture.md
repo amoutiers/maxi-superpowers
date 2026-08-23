@@ -42,7 +42,7 @@ maxi-superpowers/
 │   ├── resume/
 │   ├── cancel/
 │   ├── revise/
-│   ├── x-adr/               # internal ADR creation and active-spec amendment skill
+│   ├── x-adr/               # internal ADR creation, amendment, and supersession skill
 │   ├── x-develop/           # internal SDD adapter (invoked by implement)
 │   │   ├── project-tasks.sh # immutable TNNN → Task N projection
 │   │   ├── reconcile-tasks.sh # upstream ledger → Maxi checkbox reconciliation
@@ -131,7 +131,7 @@ Every projection's exact distributed bytes are SHA-256-bound by its ordinary SDD
 
 ## Architecture Decision Records
 
-ADRs live in each user's project under `docs/maxi/adr/`. Every new ADR records its creating spec through a direct `spec` link, or `spec: null` when standalone; `related_adrs` remains the spec-side review and analysis index. At every active status, a detected change to an accepted ADR whose `spec` matches the current spec invokes an agent-proposed active-spec amendment through internal `x-adr`. It shows the full amended ADR and exact diff and writes only after explicit approval. Existing ADRs are not migrated, and missing or null links and `done`, `parked`, or `cancelled` specs use closed-spec supersession instead. `/maxi:analyze` includes the ADR-alignment pass for missing decisions, constitution conflicts, stale links, and cyclic supersession chains.
+ADRs live in each user's project under `docs/maxi/adr/`. Every new ADR records its creating spec through a direct `spec` link, or `spec: null` when standalone; `related_adrs` remains the spec-side review and analysis index. During an initial active lifecycle that lacks the monotone `reopened_from: done` watermark, a detected change to an accepted ADR whose `spec` matches the current spec invokes an agent-proposed active-spec amendment through internal `x-adr`. It shows the full amended ADR and exact diff and writes only after explicit approval. Existing ADRs are not migrated, and missing or null links, `done`, `parked`, or `cancelled` specs, and reopened specs marked `reopened_from: done` use closed-spec supersession instead. `/maxi:analyze` includes the ADR-alignment pass for missing decisions, constitution conflicts, stale links, and cyclic supersession chains.
 
 ## Phase Gating
 

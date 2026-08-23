@@ -184,7 +184,7 @@ docs/
 
 ADRs are proposed by internal Maxi workflows when they detect an architectural choice; you do not create them manually. You see the full draft and choose yes/no/edit before anything is written. Every newly written ADR holds a direct `spec` link to its creating spec, or `spec: null` when standalone.
 
-An agent-proposed active-spec amendment may revise an accepted ADR only when its direct `spec` link equals the current active spec slug, which remains its creating spec, and that spec remains active (`drafting` through `implementing`), after you see the full amended ADR and exact diff and explicitly answer yes. Closed, missing, or null links use closed-spec supersession: create a new ADR that supersedes the old one. `/maxi:analyze` includes a Pass G that cross-checks ADRs against the constitution and each other.
+An agent-proposed active-spec amendment may revise an accepted ADR only when its direct `spec` link equals the current active spec slug, which remains its creating spec, and that spec is in its initial active lifecycle (`drafting` through `implementing`) without the monotone `reopened_from: done` watermark, after you see the full amended ADR and exact diff and explicitly answer yes. Closed, missing, or null links and reopened specs marked `reopened_from: done` use closed-spec supersession: create a new ADR that supersedes the old one. `/maxi:analyze` includes a Pass G that cross-checks ADRs against the constitution and each other.
 
 ## Status State Machine
 

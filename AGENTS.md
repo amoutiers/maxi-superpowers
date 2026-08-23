@@ -37,7 +37,7 @@ Reverse-engineered specs produced by `migrate-from-brownfield` carry two extra o
 
 Every new ADR records its creating spec through a direct `spec` link containing the full spec slug, or `spec: null` when it is standalone. Existing ADRs are not migrated. `spec.md` frontmatter retains `related_adrs: [...]` as the spec-side index used by review and analysis; obsolete plural ADR fields (`related_specs`, `related_principles`, and `related_requirements`) remain forbidden (ADR-0024).
 
-At every active spec status, a detected change to an accepted ADR whose `spec` matches the current spec triggers an agent-proposed active-spec amendment through internal `x-adr`. The full amended ADR and exact diff require explicit approval before writing. Missing or null links and `done`, `parked`, or `cancelled` specs use closed-spec supersession instead.
+During an initial active lifecycle that lacks the monotone `reopened_from: done` watermark, a detected change to an accepted ADR whose `spec` matches the current spec triggers an agent-proposed active-spec amendment through internal `x-adr`. The full amended ADR and exact diff require explicit approval before writing. Missing or null links, `done`, `parked`, or `cancelled` specs, and reopened specs marked `reopened_from: done` use closed-spec supersession instead.
 
 ## Status Frontmatter
 
