@@ -78,7 +78,7 @@ and deterministically guarded.
 
 **Purpose**: Verify the complete policy change without expanding its scope.
 
-- [ ] T004 Inspect the full committed diff and `git diff --check` to confirm
+- [x] T004 Inspect the full committed diff and `git diff --check` to confirm
   ADR-0024 changed only in supersession metadata, run `bash tests/run-all.sh`,
   and leave the worktree clean after the owner's explicit commit authorization
   (plan Task 4)
