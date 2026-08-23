@@ -100,6 +100,17 @@ assert_grep "$ADR" 'Only.*yes.*write.*amendment' "ADR amendment edit is not writ
 assert_grep "$ADR" 'drafting.*specified.*clarified.*planned.*tasked.*analyzed.*implementing' "ADR amendment active-status eligibility"
 assert_grep "$ADR" 'missing.*null.*supersession' "ADR missing or null link falls back to supersession"
 assert_grep "$ADR" 'done.*parked.*cancelled.*supersession' "ADR closed spec falls back to supersession"
+assert_grep "$ADR" 'reopened_from: done' "reopened specs are ineligible for amendment"
+assert_grep "$ADR" 'reopened_from: done.*supersession\|supersession.*reopened_from: done' "reopened specs use supersession"
+assert_grep "$ADR" 'never reached.*done\|never.*reopened_from: done' "initial lifecycle amendment path remains available"
+reopened_check_line=$(grep -n 'reopened_from: done' "$ADR" | head -1 | cut -d: -f1 || true)
+active_eligibility_line=$(grep -n 'active spec slug' "$ADR" | head -1 | cut -d: -f1 || true)
+if [ -n "$reopened_check_line" ] && [ -n "$active_eligibility_line" ] && [ "$reopened_check_line" -lt "$active_eligibility_line" ]; then
+  echo "OK  [reopened watermark checked before active eligibility]"
+else
+  echo "FAIL [reopened watermark checked before active eligibility]: permanent boundary must be evaluated first" >&2
+  failures=$((failures + 1))
+fi
 assert_grep "$ADR" 'adr.*,.*slug.*,.*spec.*,.*created.*,.*status.*,.*supersedes.*,.*superseded_by' "ADR amendment preserves identity and supersession fields"
 assert_grep "$ADR" 'refresh.*updated' "ADR amendment refreshes updated"
 amendment_route_line=$(grep -n 'Route an accepted ADR change before supersession' "$ADR" | head -1 | cut -d: -f1 || true)
