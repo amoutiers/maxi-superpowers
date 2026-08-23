@@ -127,17 +127,23 @@ assert_same_route_paragraph() {
     failures=$((failures + 1))
   fi
 }
+assert_route_order_in_paragraph() {
+  local first="$1" second="$2" label="$3"
+  if printf '%s\n' "$route_section" | awk -v first="$first" -v second="$second" '
+    BEGIN { RS = "" }
+    $0 ~ first && $0 ~ second && index($0, first) < index($0, second) { found = 1 }
+    END { exit(found ? 0 : 1) }
+  '; then
+    echo "OK  [$label]"
+  else
+    echo "FAIL [$label]: expected '$first' before '$second' in one normative route paragraph" >&2
+    failures=$((failures + 1))
+  fi
+}
 assert_section_pattern "$route_section" 'reopened_from: done' "reopened specs are ineligible for amendment"
 assert_same_route_paragraph 'reopened_from: done' 'supersession' "reopened specs use supersession"
 assert_same_route_paragraph 'active' 'never reached.*done|lacks.*reopened_from: done|without.*reopened_from: done' "initial lifecycle amendment path remains available"
-reopened_check_line=$(printf '%s\n' "$route_section" | grep -n 'reopened_from: done' | head -1 | cut -d: -f1 || true)
-active_eligibility_line=$(printf '%s\n' "$route_section" | grep -nE 'eligible.*active|active.*amendment' | head -1 | cut -d: -f1 || true)
-if [ -n "$reopened_check_line" ] && [ -n "$active_eligibility_line" ] && [ "$reopened_check_line" -lt "$active_eligibility_line" ]; then
-  echo "OK  [reopened watermark checked before active eligibility]"
-else
-  echo "FAIL [reopened watermark checked before active eligibility]: permanent boundary must be evaluated first" >&2
-  failures=$((failures + 1))
-fi
+assert_route_order_in_paragraph 'reopened_from: done' 'active' "reopened watermark checked before active eligibility"
 assert_grep "$ADR" 'adr.*,.*slug.*,.*spec.*,.*created.*,.*status.*,.*supersedes.*,.*superseded_by' "ADR amendment preserves identity and supersession fields"
 assert_grep "$ADR" 'refresh.*updated' "ADR amendment refreshes updated"
 amendment_route_line=$(grep -n 'Route an accepted ADR change before supersession' "$ADR" | head -1 | cut -d: -f1 || true)

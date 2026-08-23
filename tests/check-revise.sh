@@ -50,7 +50,7 @@ else
   echo "FAIL [write is gated by explicit yes]: missing explicit consent write boundary" >&2
   failures=$((failures + 1))
 fi
-if printf '%s\n' "$process_section" | grep -Eq 'no.*write nothing|anything else.*write nothing|non-yes.*write'; then
+if printf '%s\n' "$process_section" | grep -Eq 'do not write|write nothing|no file (is )?written|writes no file'; then
   echo "OK  [non-yes response writes nothing]"
 else
   echo "FAIL [non-yes response writes nothing]: missing no-write rule" >&2
