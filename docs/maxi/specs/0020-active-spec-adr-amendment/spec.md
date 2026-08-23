@@ -2,7 +2,7 @@
 slug: 0020-active-spec-adr-amendment
 created: 2026-08-23
 updated: 2026-08-23
-status: implementing
+status: done
 parked_from: null
 related_adrs:
   - 0024-active-spec-adr-amendment

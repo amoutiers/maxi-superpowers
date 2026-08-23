@@ -51,7 +51,7 @@ updated: 2026-08-23
 
 **Purpose**: Verify the complete change and prepare it for explicit commit approval.
 
-- [ ] T004 Run the targeted deterministic checks and `bash tests/run-all.sh`, inspect the complete diff, then stage only this feature's files and present the cached diff for explicit commit consent (plan Task 4)
+- [x] T004 Run the targeted deterministic checks and `bash tests/run-all.sh`, inspect the complete diff, then stage only this feature's files and present the cached diff for explicit commit consent (plan Task 4)
 
 **Checkpoint**: The verified, scoped change is staged but not committed.
 
