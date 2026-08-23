@@ -23,7 +23,7 @@ maxi adds a strict spec-driven pipeline to superpowers. The 19 Maxi-native skill
 /maxi:implement     → delegate to x-develop; persist done after READY_TO_FINISH
 ```
 
-ADRs are proposed during `/maxi:plan` and `/maxi:implement`, then written only after explicit user approval.
+Every new ADR records its creating spec as `spec: <full-spec-slug>` or `spec: null`. At every active spec status, an agent detecting a change to an accepted ADR whose `spec` equals the current spec slug invokes internal `x-adr`: it shows the full amended ADR and exact diff, then writes only after explicit approval. Unlinked or closed-spec ADRs use supersession instead.
 
 ## Status State Machine
 
@@ -70,4 +70,4 @@ Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineag
 
 - Never skip the constitution step.
 - Never hand-edit `status:` frontmatter.
-- ADRs are append-only; supersede a decision instead of editing its body.
+- ADRs are append-only after their creating spec closes; while its linked spec is active, an agent-proposed, explicitly approved `x-adr` amendment is permitted.

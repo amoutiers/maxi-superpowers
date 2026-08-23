@@ -22,6 +22,7 @@ Skip domains in exclusion context.
 
 ```yaml
 decider: "[unknown — inferred from code analysis]"
+spec: null
 supersedes: null
 superseded_by: null
 created: [today]
