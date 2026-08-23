@@ -100,11 +100,38 @@ assert_grep "$ADR" 'Only.*yes.*write.*amendment' "ADR amendment edit is not writ
 assert_grep "$ADR" 'drafting.*specified.*clarified.*planned.*tasked.*analyzed.*implementing' "ADR amendment active-status eligibility"
 assert_grep "$ADR" 'missing.*null.*supersession' "ADR missing or null link falls back to supersession"
 assert_grep "$ADR" 'done.*parked.*cancelled.*supersession' "ADR closed spec falls back to supersession"
-assert_grep "$ADR" 'reopened_from: done' "reopened specs are ineligible for amendment"
-assert_grep "$ADR" 'reopened_from: done.*supersession\|supersession.*reopened_from: done' "reopened specs use supersession"
-assert_grep "$ADR" 'never reached.*done\|never.*reopened_from: done' "initial lifecycle amendment path remains available"
-reopened_check_line=$(grep -n 'reopened_from: done' "$ADR" | head -1 | cut -d: -f1 || true)
-active_eligibility_line=$(grep -n 'active spec slug' "$ADR" | head -1 | cut -d: -f1 || true)
+route_section="$(awk '
+  $0 == "### 1. Route an accepted ADR change before supersession" { found = 1 }
+  found && /^### / && $0 != "### 1. Route an accepted ADR change before supersession" { exit }
+  found { print }
+' "$ADR")"
+assert_section_pattern() {
+  local section="$1" pattern="$2" label="$3"
+  if printf '%s\n' "$section" | grep -Eq "$pattern"; then
+    echo "OK  [$label]"
+  else
+    echo "FAIL [$label]: missing pattern '$pattern' in the prescribed flow" >&2
+    failures=$((failures + 1))
+  fi
+}
+assert_same_route_paragraph() {
+  local first="$1" second="$2" label="$3"
+  if printf '%s\n' "$route_section" | awk -v first="$first" -v second="$second" '
+    BEGIN { RS = "" }
+    $0 ~ first && $0 ~ second { found = 1 }
+    END { exit(found ? 0 : 1) }
+  '; then
+    echo "OK  [$label]"
+  else
+    echo "FAIL [$label]: route conditions are not stated in one prescribed-flow paragraph" >&2
+    failures=$((failures + 1))
+  fi
+}
+assert_section_pattern "$route_section" 'reopened_from: done' "reopened specs are ineligible for amendment"
+assert_same_route_paragraph 'reopened_from: done' 'supersession' "reopened specs use supersession"
+assert_same_route_paragraph 'active' 'never reached.*done|lacks.*reopened_from: done|without.*reopened_from: done' "initial lifecycle amendment path remains available"
+reopened_check_line=$(printf '%s\n' "$route_section" | grep -n 'reopened_from: done' | head -1 | cut -d: -f1 || true)
+active_eligibility_line=$(printf '%s\n' "$route_section" | grep -nE 'eligible.*active|active.*amendment' | head -1 | cut -d: -f1 || true)
 if [ -n "$reopened_check_line" ] && [ -n "$active_eligibility_line" ] && [ "$reopened_check_line" -lt "$active_eligibility_line" ]; then
   echo "OK  [reopened watermark checked before active eligibility]"
 else
