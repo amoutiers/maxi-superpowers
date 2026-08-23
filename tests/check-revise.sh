@@ -26,6 +26,20 @@ assert_process_order() {
   fi
 }
 
+assert_non_yes_no_write() {
+  if printf '%s\n' "$process_section" | awk '
+    BEGIN { RS = "" }
+    $0 ~ /non[- ]yes|anything other than.*yes|response.*not.*yes/ &&
+      $0 ~ /do not write|write nothing|no file (is )?written|writes no file/ { found = 1 }
+    END { exit(found ? 0 : 1) }
+  '; then
+    echo "OK  [non-yes response writes nothing]"
+  else
+    echo "FAIL [non-yes response writes nothing]: non-yes and no-write must be stated together" >&2
+    failures=$((failures + 1))
+  fi
+}
+
 assert_file_exists "$REVISE" "revise SKILL.md"
 
 # A completed spec is a valid rollback source, while the existing A+ picker
@@ -50,12 +64,7 @@ else
   echo "FAIL [write is gated by explicit yes]: missing explicit consent write boundary" >&2
   failures=$((failures + 1))
 fi
-if printf '%s\n' "$process_section" | grep -Eq 'do not write|write nothing|no file (is )?written|writes no file'; then
-  echo "OK  [non-yes response writes nothing]"
-else
-  echo "FAIL [non-yes response writes nothing]: missing no-write rule" >&2
-  failures=$((failures + 1))
-fi
+assert_non_yes_no_write
 assert_process_order 'On explicit `yes` only' 'write `spec.md`' "write follows explicit yes"
 
 summary_and_exit "revise invariant checks"

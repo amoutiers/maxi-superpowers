@@ -131,7 +131,11 @@ assert_route_order_in_paragraph() {
   local first="$1" second="$2" label="$3"
   if printf '%s\n' "$route_section" | awk -v first="$first" -v second="$second" '
     BEGIN { RS = "" }
-    $0 ~ first && $0 ~ second && index($0, first) < index($0, second) { found = 1 }
+    $0 ~ first && $0 ~ second {
+      match($0, first); first_pos = RSTART
+      match($0, second); second_pos = RSTART
+      if (first_pos < second_pos) found = 1
+    }
     END { exit(found ? 0 : 1) }
   '; then
     echo "OK  [$label]"
@@ -143,7 +147,7 @@ assert_route_order_in_paragraph() {
 assert_section_pattern "$route_section" 'reopened_from: done' "reopened specs are ineligible for amendment"
 assert_same_route_paragraph 'reopened_from: done' 'supersession' "reopened specs use supersession"
 assert_same_route_paragraph 'active' 'never reached.*done|lacks.*reopened_from: done|without.*reopened_from: done' "initial lifecycle amendment path remains available"
-assert_route_order_in_paragraph 'reopened_from: done' 'active' "reopened watermark checked before active eligibility"
+assert_route_order_in_paragraph 'reopened_from: done' 'active spec|spec is active|active-spec' "reopened watermark checked before active eligibility"
 assert_grep "$ADR" 'adr.*,.*slug.*,.*spec.*,.*created.*,.*status.*,.*supersedes.*,.*superseded_by' "ADR amendment preserves identity and supersession fields"
 assert_grep "$ADR" 'refresh.*updated' "ADR amendment refreshes updated"
 amendment_route_line=$(grep -n 'Route an accepted ADR change before supersession' "$ADR" | head -1 | cut -d: -f1 || true)
