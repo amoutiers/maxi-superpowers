@@ -39,7 +39,7 @@ check_case() {
     actual="rejected"
   fi
 
-  if printf '%s\n' "$plan_list" | grep -Eqi 'permission|remains authorized|previous.*authorization|carried.*authorization' ||
+  if printf '%s\n' "$plan_list" | grep -Eqi '(permission|authorization).*(remains authorized|continues to apply|still applies|carries forward|carried forward)|(remains authorized|continues to apply|still applies|carries forward|carried forward).*(permission|authorization)' ||
     { printf '%s\n' "$plan_list" | grep -Eqi 'authorization|authorized' &&
       ! printf '%s\n' "$plan_list" | grep -Eqi 'fresh authorization'; }; then
     actual="rejected"
