@@ -90,4 +90,18 @@ assert_not_grep "$MIGRATE" "maxi:adr" "C1: no stale /maxi:adr in migrate-adr SKI
 assert_file_exists "$ADR_README" "adr README.md"
 assert_not_grep "$ADR_README" "maxi:adr" "C1: no stale /maxi:adr in adr README.md"
 
+# --- Active-spec ADR amendment (spec 0020) ---
+assert_grep "$ADR" 'spec: <full-spec-slug> or `spec: null`' "ADR direct creating-spec link"
+assert_grep "$ADR" 'current active spec slug' "ADR links to the current active spec"
+assert_grep "$ADR" 'full amended ADR.*exact diff.*yes' "ADR amendment requires full diff and explicit consent"
+assert_grep "$ADR" 'drafting.*specified.*clarified.*planned.*tasked.*analyzed.*implementing' "ADR amendment active-status eligibility"
+assert_grep "$ADR" 'missing.*null.*supersession' "ADR missing or null link falls back to supersession"
+assert_grep "$ADR" 'done.*parked.*cancelled.*supersession' "ADR closed spec falls back to supersession"
+assert_grep "$ADR" 'adr.*,.*slug.*,.*spec.*,.*created.*,.*status.*,.*supersedes.*,.*superseded_by' "ADR amendment preserves identity and supersession fields"
+for file in "$MIGRATE" "$IMPORT" "$DISCOVER"; do
+  label="$(basename "$file")"
+  assert_grep "$file" 'spec: null' "$label creates unlinked migration ADRs"
+done
+assert_grep "$MIGRATE" 'Existing ADRs.*not.*rewritten' "migration leaves existing ADRs unchanged"
+
 summary_and_exit "migrate-adr invariant checks"

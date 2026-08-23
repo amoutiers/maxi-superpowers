@@ -49,22 +49,24 @@ check_template() {
 # adr-template
 check_template \
   "$ROOT/skills/x-adr/adr-template.md" "adr-template.md" "true" \
-  "adr:" "slug:" "status:" "created:" "updated:" "decider:" "supersedes:" "superseded_by:" \
+  "adr:" "slug:" "spec:" "status:" "created:" "updated:" "decider:" "supersedes:" "superseded_by:" \
   "--" \
   "^## Context" "^## Decision Drivers" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
 assert_not_grep "$ROOT/skills/x-adr/adr-template.md" "^related_specs:" "adr-template.md: no related_specs"
 assert_not_grep "$ROOT/skills/x-adr/adr-template.md" "^related_principles:" "adr-template.md: no related_principles"
 assert_not_grep "$ROOT/skills/x-adr/adr-template.md" "^related_requirements:" "adr-template.md: no related_requirements"
+assert_grep "$ROOT/skills/x-adr/adr-template.md" "^spec: null$" "adr-template.md: unlinked ADR default"
 
 # adr fixture
 check_template \
   "$ROOT/tests/fixtures/sample-adr.md" "fixtures/sample-adr.md" "true" \
-  "adr:" "slug:" "status:" "created:" "updated:" "decider:" "supersedes:" "superseded_by:" \
+  "adr:" "slug:" "spec:" "status:" "created:" "updated:" "decider:" "supersedes:" "superseded_by:" \
   "--" \
   "^## Context" "^## Decision Drivers" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
 assert_not_grep "$ROOT/tests/fixtures/sample-adr.md" "^related_specs:" "sample-adr.md: no related_specs"
 assert_not_grep "$ROOT/tests/fixtures/sample-adr.md" "^related_principles:" "sample-adr.md: no related_principles"
 assert_not_grep "$ROOT/tests/fixtures/sample-adr.md" "^related_requirements:" "sample-adr.md: no related_requirements"
+assert_grep "$ROOT/tests/fixtures/sample-adr.md" "^spec: 0001-csv-to-json$" "sample-adr.md: direct creating-spec link"
 
 # spec-template
 check_template \
