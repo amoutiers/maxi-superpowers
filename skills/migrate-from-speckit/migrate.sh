@@ -198,11 +198,29 @@ maxi_root=$(cd docs/maxi && pwd -P)
 [[ "$maxi_root" == "$repo_root/docs/maxi" ]] \
   || die "docs/maxi resolves outside the project root"
 
-stage_dir=$(mktemp -d "$maxi_root/.specs-migration.XXXXXX")
-cleanup_stage() {
+lock_dir="$maxi_root/.specs-migration.lock"
+lock_owned=0
+stage_dir=""
+# This serializes cooperating migrate.sh instances, not arbitrary external writers.
+cleanup_migration() {
   [ -z "${stage_dir:-}" ] || rm -rf "$stage_dir"
+  if [[ "$lock_owned" -eq 1 ]]; then
+    rmdir "$lock_dir" 2>/dev/null || true
+  fi
 }
-trap cleanup_stage EXIT
+release_lock() {
+  [[ "$lock_owned" -eq 1 ]] || return
+  rmdir "$lock_dir" || die "Could not release migration lock"
+  lock_owned=0
+}
+trap cleanup_migration EXIT
+
+if ! mkdir "$lock_dir"; then
+  die "Another spec migration is in progress"
+fi
+lock_owned=1
+
+stage_dir=$(mktemp -d "$maxi_root/.specs-migration.XXXXXX")
 mkdir "$stage_dir/specs"
 
 # Status counters
@@ -295,18 +313,23 @@ done
 if [[ "$const_action" == "COPY" ]]; then
   const_stage="$stage_dir/constitution.md"
   cp "$CONST_SRC" "$const_stage"
-  if ! (set -o noclobber; exec 3> "$maxi_root/constitution.md" && cat "$const_stage" >&3); then
+  if ! ln "$const_stage" "$maxi_root"; then
     die "Constitution destination appeared during migration: $CONST_DST"
   fi
   rm "$const_stage"
 fi
 
-if [ -d docs/maxi/specs ]; then
-  rmdir docs/maxi/specs || die "docs/maxi/specs must be empty before install"
+[[ ! -L "$maxi_root/specs" ]] || die "Symlinked destination component: docs/maxi/specs"
+if [[ -e "$maxi_root/specs" ]]; then
+  [[ -d "$maxi_root/specs" ]] || die "Destination component is not a directory: docs/maxi/specs"
+  [[ -z "$(ls -A "$maxi_root/specs" 2>/dev/null)" ]] \
+    || die "docs/maxi/specs/ already exists and is non-empty. Aborting to avoid overwriting."
+  rmdir "$maxi_root/specs" || die "docs/maxi/specs must be empty before install"
 fi
-mv "$stage_dir/specs" docs/maxi/specs
+mv "$stage_dir/specs" "$maxi_root/specs"
 rmdir "$stage_dir"
 stage_dir=""
+release_lock
 
 echo ""
 echo "Migration complete."

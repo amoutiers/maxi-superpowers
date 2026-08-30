@@ -290,48 +290,85 @@ fi
 # ---------------------------------------------------------------------------
 constitution_race_case="$TMP/constitution-race-case"
 constitution_race_wrapper="$TMP/constitution-race-wrapper"
-constitution_race_outside="$TMP/constitution-race-outside.md"
+constitution_race_capture="$TMP/constitution-race-capture"
+constitution_race_reader_pid="$TMP/constitution-race-reader.pid"
 constitution_race_marker="$TMP/constitution-race-marker"
 cp -r "$FIXTURE/." "$constitution_race_case/"
 mkdir "$constitution_race_wrapper"
 RACE_REAL_CP=$(command -v cp)
 export RACE_REAL_CP
 export RACE_CONST_DST="docs/maxi/constitution.md"
-export RACE_OUTSIDE="$constitution_race_outside"
+export RACE_CAPTURE="$constitution_race_capture"
+export RACE_READER_PID="$constitution_race_reader_pid"
 export RACE_MARKER="$constitution_race_marker"
 cat > "$constitution_race_wrapper/cp" <<'EOF'
 #!/usr/bin/env bash
 if [ ! -e "$RACE_MARKER" ]; then
   : > "$RACE_MARKER"
-  ln -s "$RACE_OUTSIDE" "$RACE_CONST_DST"
+  mkfifo "$RACE_CONST_DST"
+  cat "$RACE_CONST_DST" > "$RACE_CAPTURE" &
+  printf '%s\n' "$!" > "$RACE_READER_PID"
 fi
 exec "$RACE_REAL_CP" "$@"
 EOF
 chmod +x "$constitution_race_wrapper/cp"
 if (cd "$constitution_race_case" && PATH="$constitution_race_wrapper:$PATH" bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
-  echo "FAIL [constitution race: apply should fail]" >&2
+  echo "FAIL [constitution FIFO race: apply should fail]" >&2
   failures=$((failures + 1))
 else
-  echo "OK  [constitution race: apply refused]"
+  echo "OK  [constitution FIFO race: apply refused]"
 fi
-if [[ -e "$constitution_race_outside" ]]; then
-  echo "FAIL [constitution race: outside file was written]" >&2
-  failures=$((failures + 1))
-else
-  echo "OK  [constitution race: outside file absent]"
+if [[ -f "$constitution_race_reader_pid" ]]; then
+  constitution_reader_pid=$(sed -n '1p' "$constitution_race_reader_pid")
+  kill "$constitution_reader_pid" 2>/dev/null || true
 fi
 if [[ -e "$constitution_race_case/docs/maxi/specs" ]]; then
-  echo "FAIL [constitution race: specs were installed]" >&2
+  echo "FAIL [constitution FIFO race: specs were installed]" >&2
   failures=$((failures + 1))
 else
-  echo "OK  [constitution race: specs absent]"
+  echo "OK  [constitution FIFO race: specs absent]"
 fi
 if find "$constitution_race_case/docs/maxi" -maxdepth 1 -name '.specs-migration.*' -print | grep -q .; then
-  echo "FAIL [constitution race: staging directory was not cleaned]" >&2
+  echo "FAIL [constitution FIFO race: staging directory was not cleaned]" >&2
   failures=$((failures + 1))
 else
-  echo "OK  [constitution race: staging directory cleaned]"
+  echo "OK  [constitution FIFO race: staging directory cleaned]"
 fi
+
+# ---------------------------------------------------------------------------
+# A pre-existing cooperative lock blocks installation without nested specs/
+# ---------------------------------------------------------------------------
+lock_case="$TMP/lock-case"
+cp -r "$FIXTURE/." "$lock_case/"
+mkdir -p "$lock_case/docs/maxi"
+mkdir "$lock_case/docs/maxi/.specs-migration.lock"
+if (cd "$lock_case" && bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
+  echo "FAIL [migration lock: apply should fail]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [migration lock: apply refused]"
+fi
+if [[ -e "$lock_case/docs/maxi/specs" ]]; then
+  echo "FAIL [migration lock: specs were installed]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [migration lock: specs absent]"
+fi
+if [[ -e "$lock_case/docs/maxi/specs/specs" ]]; then
+  echo "FAIL [migration lock: nested specs were installed]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [migration lock: no nested specs]"
+fi
+rmdir "$lock_case/docs/maxi/.specs-migration.lock"
+if (cd "$lock_case" && bash "$SCRIPT" --apply --yes >/dev/null); then
+  echo "OK  [migration lock: rerun succeeds after release]"
+else
+  echo "FAIL [migration lock: rerun should succeed after release]" >&2
+  failures=$((failures + 1))
+fi
+assert_file_exists "$lock_case/docs/maxi/specs/001-shipped-feature/spec.md" \
+  "migration lock: successful rerun installs specs"
 
 nonempty_case="$TMP/nonempty-case"
 cp -r "$FIXTURE/." "$nonempty_case/"
