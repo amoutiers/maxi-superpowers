@@ -38,6 +38,15 @@ assert_grep "$ROOT/skills/implement/SKILL.md" \
 assert_grep "$ROOT/skills/implement/SKILL.md" \
   'before any write or `/maxi:x-develop` dispatch' \
   "readiness verification is pre-write"
+require_literal "$IMPLEMENT" 'exact loaded `analyze/SKILL.md`' 'implement does not bind the verifier to the loaded analyze skill'
+assert_grep "$IMPLEMENT" 'canonical absolute.*`readiness_contract`' 'implement does not canonicalize the installed verifier path'
+require_literal "$IMPLEMENT" 'regular, non-symlink file' 'implement accepts an unsafe installed verifier'
+if [ "$(grep -Fc 'bash "$readiness_contract" verify \' "$IMPLEMENT")" -ne 2 ]; then
+  fail_contract 'every implement readiness verification does not use the bound installed verifier'
+fi
+if grep -Fq 'bash skills/analyze/readiness-contract.sh' "$IMPLEMENT"; then
+  fail_contract 'implement retains a project-relative verifier fallback'
+fi
 
 # x-develop owns one projection/ledger/review lifecycle and returns before finishing.
 require_literal "$DEVELOP" '`project-tasks.sh`' 'x-develop does not create or verify a projection'

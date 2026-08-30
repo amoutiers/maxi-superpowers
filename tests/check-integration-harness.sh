@@ -70,14 +70,25 @@ if [ -f "$READINESS_HARNESS" ]; then
   assert_grep "$READINESS_HARNESS" 'codex exec.*--sandbox workspace-write' "readiness runner permits fixture writes"
   assert_grep "$READINESS_HARNESS" 'codex exec.*--cd.*FIXTURE' "readiness runner binds the fixture root"
   assert_grep "$READINESS_HARNESS" 'git -C.*init' "readiness runner creates an isolated Git fixture"
-  assert_grep "$READINESS_HARNESS" 'readiness-contract.sh.*verify' "readiness runner verifies stamped evidence"
+  assert_grep "$READINESS_HARNESS" 'bash "\$INSTALLED_READINESS_CONTRACT" verify' "readiness runner verifies stamped evidence"
   assert_grep "$READINESS_HARNESS" 'SOURCE_STATE_BEFORE' "readiness runner snapshots source state"
   assert_grep "$READINESS_HARNESS" 'SOURCE_STATE_AFTER' "readiness runner verifies source state"
+  assert_grep "$READINESS_HARNESS" 'FIXTURE_HEAD_BEFORE' "readiness runner snapshots fixture HEAD before Codex"
+  assert_grep "$READINESS_HARNESS" 'FIXTURE_HEAD_AFTER' "readiness runner snapshots fixture HEAD after Codex"
+  assert_grep "$READINESS_HARNESS" 'FIXTURE_HEAD_AFTER.*!=.*FIXTURE_HEAD_BEFORE' "readiness runner rejects fixture commits"
   assert_grep "$READINESS_HARNESS" 'command -v jq' "readiness runner requires jq"
   assert_grep "$READINESS_HARNESS" 'jq -e' "readiness runner parses JSONL structurally"
   assert_grep "$READINESS_HARNESS" '\.type == "turn.completed"' "readiness runner requires a top-level completed event"
   assert_grep "$READINESS_HARNESS" '\.type == "turn.failed"' "readiness runner rejects a top-level failed event"
   assert_not_grep "$READINESS_HARNESS" 'grep .*turn\.completed\|grep .*turn\.failed' "readiness runner does not substring-match terminal events"
+  assert_grep "$READINESS_HARNESS" 'jq -s -e --arg verifier "\$INSTALLED_READINESS_CONTRACT"' "readiness runner binds command proof to the installed verifier"
+  assert_grep "$READINESS_HARNESS" '\.type == "item.completed"' "readiness runner requires a completed verifier command item"
+  assert_grep "$READINESS_HARNESS" '\.item\.type == "command_execution"' "readiness runner requires verifier command execution"
+  assert_grep "$READINESS_HARNESS" '\.item\.exit_code == 0' "readiness runner requires verifier command success"
+  assert_grep "$READINESS_HARNESS" '\.item\.status == "completed"' "readiness runner requires completed verifier command status"
+  assert_grep "$READINESS_HARNESS" 'contains(\$verifier)' "readiness runner requires the exact installed verifier path in the command"
+  assert_grep "$READINESS_HARNESS" 'contains("READINESS_VERIFIED")' "readiness runner requires verifier output proof"
+  assert_grep "$READINESS_HARNESS" 'length == 1' "readiness runner requires exactly one verifier proof item"
   if awk '/^if \[ -n "\$SOURCE_STATE_BEFORE" \]; then/{ dirty = NR } /^mkdir -p "\$SPEC_DIR"/{ output = NR } /codex exec .*--sandbox workspace-write/{ exec = NR } END { exit !(dirty && output && exec && dirty < output && dirty < exec) }' "$READINESS_HARNESS"; then
     echo "OK  [readiness runner rejects dirty source before output and Codex]"
   else
@@ -88,6 +99,12 @@ if [ -f "$READINESS_HARNESS" ]; then
     echo "OK  [readiness runner snapshots final source state before result checks]"
   else
     echo "FAIL [readiness runner snapshots final source state before result checks]" >&2
+    failures=$((failures + 1))
+  fi
+  if awk '/^FIXTURE_HEAD_BEFORE=/{ before = NR } /codex exec .*--sandbox workspace-write/{ exec = NR } /^FIXTURE_HEAD_AFTER=/{ after = NR } END { exit !(before && exec && after && before < exec && exec < after) }' "$READINESS_HARNESS"; then
+    echo "OK  [readiness runner brackets Codex with fixture HEAD snapshots]"
+  else
+    echo "FAIL [readiness runner brackets Codex with fixture HEAD snapshots]" >&2
     failures=$((failures + 1))
   fi
 fi

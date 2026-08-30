@@ -28,6 +28,12 @@ Required files:
 
 Abort with actionable message if any required file is missing.
 
+### Step 2 — Bind Installed Readiness Verifier
+
+Before any artifact write, take the exact loaded `analyze/SKILL.md` path reported by the skill loader for this invocation. Canonicalize its containing directory to a physical absolute path and set the canonical absolute `readiness_contract` path to the adjacent `readiness-contract.sh`.
+
+Require `readiness_contract` to resolve to a regular, non-symlink file (`-f` and not `-L`). If path resolution or either check fails, stop before writing or reporting success. Do not search from the project root or use a project-relative fallback.
+
 ### Step 3 — Load Artifacts (Minimal Sections)
 
 Load only what each pass needs:
@@ -159,7 +165,7 @@ Set `outcome=pass` only when `critical_count` is zero; otherwise set `outcome=bl
 As the final action before reporting success, invoke `readiness-contract.sh` `stamp`:
 
 ```bash
-bash skills/analyze/readiness-contract.sh stamp \
+bash "$readiness_contract" stamp \
   "$analysis_path" "$spec_path" "$plan_path" "$tasks_path" \
   "$outcome" "$critical_count"
 ```

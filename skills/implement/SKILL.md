@@ -18,9 +18,11 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 
 ## Process
 
-1. **Verify readiness review** — `analysis.md` is the required readiness review of the current design and tasks before code begins. Resolve the selected root's canonical `analysis.md`, `spec.md`, `plan.md`, and `tasks.md` paths, then run `readiness-contract.sh` `verify`:
+1. **Verify readiness review** — first resolve the verifier from the installed plugin snapshot. Load `analyze` by its registered skill name and take the exact loaded `analyze/SKILL.md` path reported by the skill loader. Canonicalize its containing directory to a physical absolute path and set the canonical absolute `readiness_contract` path to the adjacent `readiness-contract.sh`. Require it to resolve to a regular, non-symlink file (`-f` and not `-L`); otherwise stop before any write or `/maxi:x-develop` dispatch. Do not search from the project root or use a project-relative fallback.
+
+   `analysis.md` is the required readiness review of the current design and tasks before code begins. Resolve the selected root's canonical `analysis.md`, `spec.md`, `plan.md`, and `tasks.md` paths, then run the bound verifier:
    ```bash
-   bash skills/analyze/readiness-contract.sh verify \
+   bash "$readiness_contract" verify \
      "$analysis_path" "$spec_path" "$plan_path" "$tasks_path"
    ```
    Require exit 0 and exactly one stdout line: `READINESS_VERIFIED`. On any failure, stop before any write or `/maxi:x-develop` dispatch, report that the readiness evidence is missing, malformed, blocked, unsupported, or stale, and instruct the user to run `/maxi:analyze`.
@@ -49,7 +51,7 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 If status is already `implementing`:
 - Re-run `readiness-contract.sh` `verify` against the current artifacts:
   ```bash
-  bash skills/analyze/readiness-contract.sh verify \
+  bash "$readiness_contract" verify \
     "$analysis_path" "$spec_path" "$plan_path" "$tasks_path"
   ```
   Require exit 0 and exactly one stdout line, `READINESS_VERIFIED`; otherwise stop before any write or `/maxi:x-develop` dispatch and instruct the user to run `/maxi:analyze` because the readiness evidence is missing, malformed, blocked, unsupported, or stale.

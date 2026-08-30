@@ -131,6 +131,21 @@ assert_grep "$ROOT/skills/analyze/SKILL.md" 'readiness review.*before implementa
 assert_grep "$ROOT/skills/analyze/SKILL.md" \
   'readiness-contract.sh` `stamp`' \
   "analyze stamps readiness evidence"
+assert_grep "$ROOT/skills/analyze/SKILL.md" \
+  'exact loaded `analyze/SKILL.md`' \
+  "analyze binds the verifier to its loaded skill snapshot"
+assert_grep "$ROOT/skills/analyze/SKILL.md" \
+  'canonical absolute.*`readiness_contract`' \
+  "analyze canonicalizes the installed verifier path"
+assert_grep "$ROOT/skills/analyze/SKILL.md" \
+  'regular, non-symlink file' \
+  "analyze rejects an unsafe installed verifier"
+assert_grep "$ROOT/skills/analyze/SKILL.md" \
+  'bash "\$readiness_contract" stamp' \
+  "analyze stamps through the bound installed verifier"
+assert_not_grep "$ROOT/skills/analyze/SKILL.md" \
+  'bash skills/analyze/readiness-contract\.sh' \
+  "analyze has no project-relative verifier fallback"
 assert_not_grep "$ROOT/skills/plan/SKILL.md" 'replay_continuation\|REVIEW_REQUIRED\|x-review' "plan cannot auto-replay"
 assert_path_absent "$ROOT/skills/revise/replay-plan.sh" "obsolete replay planner is absent"
 

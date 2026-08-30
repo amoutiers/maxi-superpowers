@@ -17,6 +17,7 @@ MARKETPLACE_DIR="$ISOLATED_CODEX_HOME/marketplace"
 PLUGIN_DIR="$MARKETPLACE_DIR/plugins/$PLUGIN_NAME"
 MARKETPLACE_LOG="$OUTPUT_DIR/plugin-install.log"
 INSTALLED_ANALYZE_DIR=""
+INSTALLED_READINESS_CONTRACT=""
 TIMEOUT_SECONDS=300
 TIMEOUT_GRACE_SECONDS=5
 
@@ -132,16 +133,18 @@ if [ -z "$INSTALLED_ANALYZE_SKILL" ]; then
   exit 1
 fi
 INSTALLED_ANALYZE_DIR=$(dirname "$INSTALLED_ANALYZE_SKILL")
+INSTALLED_READINESS_CONTRACT="$INSTALLED_ANALYZE_DIR/readiness-contract.sh"
 if ! cmp -s "$ROOT/skills/analyze/SKILL.md" "$INSTALLED_ANALYZE_DIR/SKILL.md"; then
   echo "ERROR: installed analyze skill differs from this worktree" >&2
   exit 1
 fi
 if ! cmp -s "$ROOT/skills/analyze/readiness-contract.sh" \
-  "$INSTALLED_ANALYZE_DIR/readiness-contract.sh"; then
+  "$INSTALLED_READINESS_CONTRACT"; then
   echo "ERROR: installed readiness verifier differs from this worktree" >&2
   exit 1
 fi
 
+FIXTURE_HEAD_BEFORE=$(git -C "$FIXTURE" rev-parse HEAD)
 echo "Running codex exec ..."
 : > "$LOG_FILE"
 if run_codex_with_deadline "$LOG_FILE" \
@@ -151,6 +154,7 @@ if run_codex_with_deadline "$LOG_FILE" \
 else
   CODEX_STATUS=$?
 fi
+FIXTURE_HEAD_AFTER=$(git -C "$FIXTURE" rev-parse HEAD)
 SOURCE_STATE_AFTER=$(git -C "$ROOT" status --porcelain=v1 --untracked-files=all)
 SOURCE_HEAD_AFTER=$(git -C "$ROOT" rev-parse HEAD)
 
@@ -160,6 +164,8 @@ echo "=== Results ==="
 if [ "$SOURCE_HEAD_AFTER" != "$SOURCE_HEAD_BEFORE" ] || \
    [ "$SOURCE_STATE_AFTER" != "$SOURCE_STATE_BEFORE" ]; then
   echo "FAIL: source worktree changed during readiness lifecycle" >&2
+elif [ "$FIXTURE_HEAD_AFTER" != "$FIXTURE_HEAD_BEFORE" ]; then
+  echo "FAIL: readiness lifecycle committed in the fixture" >&2
 elif [ "$CODEX_STATUS" -ne 0 ]; then
   echo "FAIL: Codex exited with status $CODEX_STATUS" >&2
   echo "Log: $LOG_FILE"
@@ -172,9 +178,22 @@ elif tr -d '\000' < "$LOG_FILE" | grep -a '^{' | jq -e \
   echo "FAIL: Codex reported a failed turn" >&2
 elif grep -Fq 'failed to load plugin' "$LOG_FILE"; then
   echo "FAIL: Codex failed to load the local plugin" >&2
+elif ! tr -d '\000' < "$LOG_FILE" | grep -a '^{' | jq -s -e --arg verifier "$INSTALLED_READINESS_CONTRACT" '
+  [
+    .[] | select(
+      .type == "item.completed" and
+      .item.type == "command_execution" and
+      .item.exit_code == 0 and
+      .item.status == "completed" and
+      (.item.command | contains($verifier)) and
+      (.item.aggregated_output | contains("READINESS_VERIFIED"))
+    )
+  ] | length == 1
+' > /dev/null; then
+  echo "FAIL: Codex did not successfully run the exact installed readiness verifier" >&2
 elif ! grep -q '^status: analyzed$' "$SPEC_DIR/spec.md"; then
   echo "FAIL: readiness lifecycle did not reach status: analyzed" >&2
-elif ! bash "$INSTALLED_ANALYZE_DIR/readiness-contract.sh" verify \
+elif ! bash "$INSTALLED_READINESS_CONTRACT" verify \
   "$SPEC_DIR/analysis.md" \
   "$SPEC_DIR/spec.md" \
   "$SPEC_DIR/plan.md" \
