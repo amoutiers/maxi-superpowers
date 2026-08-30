@@ -203,6 +203,38 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Symlinked source specs must fail in both modes before any mutation
+# ---------------------------------------------------------------------------
+source_symlink_case="$TMP/source-symlink-case"
+source_symlink_outside="$TMP/source-symlink-outside"
+source_symlink_before="$TMP/source-symlink-before.md"
+cp -r "$FIXTURE/." "$source_symlink_case/"
+mkdir "$source_symlink_outside"
+printf '# External sentinel\n\n**Created**: 2026-08-30\n' > "$source_symlink_outside/spec.md"
+cp "$source_symlink_outside/spec.md" "$source_symlink_before"
+ln -s "$source_symlink_outside" "$source_symlink_case/specs/003-linked-feature"
+for mode in --preview --apply; do
+  if (cd "$source_symlink_case" && bash "$SCRIPT" "$mode" --yes >/dev/null 2>&1); then
+    echo "FAIL [symlinked source spec: $mode should fail]" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [symlinked source spec: $mode refused before mutation]"
+  fi
+done
+if [[ -e "$source_symlink_case/docs" ]]; then
+  echo "FAIL [symlinked source spec: docs/ must not be created]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [symlinked source spec: docs/ absent]"
+fi
+if cmp -s "$source_symlink_before" "$source_symlink_outside/spec.md"; then
+  echo "OK  [symlinked source spec: external bytes unchanged]"
+else
+  echo "FAIL [symlinked source spec: external bytes changed]" >&2
+  failures=$((failures + 1))
+fi
+
+# ---------------------------------------------------------------------------
 # Existing destination safety and symlink rejection
 # ---------------------------------------------------------------------------
 symlink_case="$TMP/symlink-case"

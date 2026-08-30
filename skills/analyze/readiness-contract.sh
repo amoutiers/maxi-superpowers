@@ -19,20 +19,57 @@ sha_file() {
 
 spec_structural_sha() {
   awk '
-    NR == 1 && $0 == "---" { fm = 1 }
-    fm && /^(status|updated):/ { next }
+    NR == 1 {
+      if ($0 != "---") exit 2
+      fm = 1
+      print
+      next
+    }
+    fm && $0 == "---" {
+      fm = 0
+      closed = 1
+      print
+      next
+    }
+    fm && /^status:/ {
+      status_count++
+      if ($0 !~ /^status: (drafting|specified|clarified|planned|tasked|analyzed|implementing|done|parked|cancelled)$/) invalid = 1
+      next
+    }
+    fm && /^updated:/ {
+      updated_count++
+      if ($0 !~ /^updated: [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) invalid = 1
+      next
+    }
     { print }
-    fm && NR > 1 && $0 == "---" { fm = 0 }
+    END {
+      if (!closed || status_count != 1 || updated_count != 1 || invalid) exit 2
+    }
   ' "$1" | shasum -a 256 | awk '{print $1}'
 }
 
 tasks_structural_sha() {
   awk '
-    NR == 1 && $0 == "---" { fm = 1 }
-    fm && /^updated:/ { next }
+    NR == 1 {
+      if ($0 != "---") exit 2
+      fm = 1
+      print
+      next
+    }
+    fm && $0 == "---" {
+      fm = 0
+      closed = 1
+      print
+      next
+    }
+    fm && /^updated:/ {
+      updated_count++
+      if ($0 !~ /^updated: [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) invalid = 1
+      next
+    }
     /^- \[[ xX]\] T[0-9][0-9][0-9] / { sub(/^- \[[ xX]\]/, "- [ ]") }
     { print }
-    fm && NR > 1 && $0 == "---" { fm = 0 }
+    END { if (!closed || updated_count != 1 || invalid) exit 2 }
   ' "$1" | shasum -a 256 | awk '{print $1}'
 }
 
@@ -110,9 +147,9 @@ stamp() {
   esac
 
   resolve_inputs "$analysis" "$spec" "$plan" "$tasks"
-  spec_hash="$(spec_structural_sha "$SPEC")"
+  spec_hash="$(spec_structural_sha "$SPEC")" || die 'invalid spec frontmatter'
   plan_hash="$(sha_file "$PLAN")"
-  tasks_hash="$(tasks_structural_sha "$TASKS")"
+  tasks_hash="$(tasks_structural_sha "$TASKS")" || die 'invalid tasks frontmatter'
   analysis_dir="$(dirname "$ANALYSIS")"
   TEMP_FILE="$(mktemp "$analysis_dir/.analysis.XXXXXX")"
   {
@@ -133,6 +170,7 @@ stamp() {
 verify() {
   local analysis="$1" spec="$2" plan="$3" tasks="$4"
   local contract outcome critical_count spec_hash plan_hash tasks_hash
+  local current_spec_hash current_tasks_hash
 
   resolve_inputs "$analysis" "$spec" "$plan" "$tasks"
   exact_fields "$ANALYSIS" || die 'readiness contract fields are not exact'
@@ -147,9 +185,11 @@ verify() {
   [ "$outcome" = pass ] || die 'readiness outcome is not pass'
   [ "$critical_count" = 0 ] || die 'critical issues remain'
   valid_hash "$spec_hash" && valid_hash "$plan_hash" && valid_hash "$tasks_hash" || die 'malformed readiness hash'
-  [ "$spec_hash" = "$(spec_structural_sha "$SPEC")" ] || die 'spec structural hash mismatch'
+  current_spec_hash="$(spec_structural_sha "$SPEC")" || die 'invalid spec frontmatter'
+  current_tasks_hash="$(tasks_structural_sha "$TASKS")" || die 'invalid tasks frontmatter'
+  [ "$spec_hash" = "$current_spec_hash" ] || die 'spec structural hash mismatch'
   [ "$plan_hash" = "$(sha_file "$PLAN")" ] || die 'plan hash mismatch'
-  [ "$tasks_hash" = "$(tasks_structural_sha "$TASKS")" ] || die 'tasks structural hash mismatch'
+  [ "$tasks_hash" = "$current_tasks_hash" ] || die 'tasks structural hash mismatch'
   echo READINESS_VERIFIED
 }
 

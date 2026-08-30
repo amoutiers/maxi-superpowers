@@ -48,6 +48,12 @@ spec_dirs=( specs/[0-9][0-9][0-9]-*/ )
 shopt -u nullglob
 [[ ${#spec_dirs[@]} -gt 0 ]] || die "No specs/NNN-* directories found."
 
+repo_root=$(pwd -P)
+[[ -d specs && ! -L specs ]] || die "Invalid source specs directory: specs"
+specs_root=$(cd specs && pwd -P)
+[[ "$specs_root" == "$repo_root/specs" ]] \
+  || die "Source specs directory resolves outside the project root"
+
 # ---------------------------------------------------------------------------
 # Constitution paths
 # ---------------------------------------------------------------------------
@@ -76,6 +82,12 @@ skipped=()
 for raw_dir in "${spec_dirs[@]}"; do
   src_dir="${raw_dir%/}"
   sl=$(basename "$src_dir")
+
+  [[ -d "$src_dir" && ! -L "$src_dir" ]] \
+    || die "Invalid source spec directory: $src_dir"
+  src_physical=$(cd "$src_dir" && pwd -P)
+  [[ "${src_physical%/*}" == "$specs_root" ]] \
+    || die "Source spec directory resolves outside specs/: $src_dir"
 
   [[ "$sl" =~ ^[0-9][0-9][0-9]-[a-z0-9]+(-[a-z0-9]+)*$ ]] \
     || die "Invalid spec slug: $sl"
@@ -193,7 +205,6 @@ if [[ -d docs/maxi/specs ]] && [[ -n "$(ls -A docs/maxi/specs 2>/dev/null)" ]]; 
 fi
 mkdir -p docs/maxi
 
-repo_root=$(pwd -P)
 maxi_root=$(cd docs/maxi && pwd -P)
 [[ "$maxi_root" == "$repo_root/docs/maxi" ]] \
   || die "docs/maxi resolves outside the project root"
@@ -235,6 +246,7 @@ lock_owned=1
 
 stage_dir=$(mktemp -d "$maxi_root/.specs-migration.XXXXXX")
 mkdir "$stage_dir/specs"
+stage_specs_root=$(cd "$stage_dir/specs" && pwd -P)
 
 # Status counters
 cnt_done=0; cnt_tasked=0; cnt_planned=0; cnt_specified=0; cnt_other=0
@@ -248,6 +260,11 @@ for i in "${!slugs[@]}"; do
 
   # Copy directory verbatim
   cp -r "$src" "$dst"
+  [[ -d "$dst" && ! -L "$dst" ]] \
+    || die "Invalid staged spec directory: $dst"
+  dst_physical=$(cd "$dst" && pwd -P)
+  [[ "${dst_physical%/*}" == "$stage_specs_root" ]] \
+    || die "Staged spec directory resolves outside staging: $dst"
 
   spec_file="$dst/spec.md"
   plan_file="$dst/plan.md"

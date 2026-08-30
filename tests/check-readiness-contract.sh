@@ -135,6 +135,15 @@ expect_command_failure() {
   fi
 }
 
+expect_invalid_artifact() {
+  local label="$1" name="$2" artifact="$3" program="$4" dir
+  dir="$(copy_fixture "$name")"
+  rewrite "$dir/$artifact" "$program"
+  expect_command_failure "$label is rejected by stamp" stamp "$dir" pass 0
+  cp "$GOOD/analysis.md" "$dir/analysis.md"
+  expect_verify_failure "$label is rejected by verify" "$dir"
+}
+
 GOOD="$(copy_fixture good)"
 if stamp "$GOOD" pass 0 >/dev/null 2>&1; then
   ok "stamp accepts pass with zero critical issues"
@@ -161,10 +170,46 @@ cp "$GOOD/analysis.md" "$case_dir/analysis.md"
 rewrite "$case_dir/spec.md" '{ if ($0 == "updated: 2026-08-30") print "updated: 2026-08-31"; else if ($0 == "status: tasked") print "status: analyzed"; else print }'
 expect_verify_success "spec status and updated are normalized" "$case_dir"
 
+for known_status in drafting specified clarified planned tasked analyzed implementing done parked cancelled; do
+  case_dir="$(copy_fixture "spec-status-$known_status")"
+  cp "$GOOD/analysis.md" "$case_dir/analysis.md"
+  rewrite "$case_dir/spec.md" "{ if (\$0 == \"status: tasked\") print \"status: $known_status\"; else print }"
+  expect_verify_success "known spec status $known_status is normalized" "$case_dir"
+done
+
 case_dir="$(copy_fixture tasks-metadata)"
 cp "$GOOD/analysis.md" "$case_dir/analysis.md"
 rewrite "$case_dir/tasks.md" '{ if ($0 == "updated: 2026-08-30") print "updated: 2026-08-31"; else if ($0 == "- [ ] T001 Implement requirement A") print "- [x] T001 Implement requirement A"; else print }'
 expect_verify_success "tasks updated and canonical checkbox state are normalized" "$case_dir"
+
+expect_invalid_artifact "duplicate spec status" duplicate-spec-status spec.md \
+  '{ print; if ($0 == "status: tasked") print }'
+expect_invalid_artifact "missing spec status" missing-spec-status spec.md \
+  '$0 != "status: tasked" { print }'
+expect_invalid_artifact "empty spec status" empty-spec-status spec.md \
+  '{ if ($0 == "status: tasked") print "status:"; else print }'
+expect_invalid_artifact "invalid spec status" invalid-spec-status spec.md \
+  '{ if ($0 == "status: tasked") print "status: unknown"; else print }'
+expect_invalid_artifact "duplicate spec updated" duplicate-spec-updated spec.md \
+  '{ print; if ($0 == "updated: 2026-08-30") print }'
+expect_invalid_artifact "missing spec updated" missing-spec-updated spec.md \
+  '$0 != "updated: 2026-08-30" { print }'
+expect_invalid_artifact "malformed spec updated" malformed-spec-updated spec.md \
+  '{ if ($0 == "updated: 2026-08-30") print "updated: 2026/08/30"; else print }'
+expect_invalid_artifact "duplicate tasks updated" duplicate-tasks-updated tasks.md \
+  '{ print; if ($0 == "updated: 2026-08-30") print }'
+expect_invalid_artifact "missing tasks updated" missing-tasks-updated tasks.md \
+  '$0 != "updated: 2026-08-30" { print }'
+expect_invalid_artifact "malformed tasks updated" malformed-tasks-updated tasks.md \
+  '{ if ($0 == "updated: 2026-08-30") print "updated: 30-08-2026"; else print }'
+expect_invalid_artifact "spec without leading frontmatter" missing-spec-frontmatter spec.md \
+  'NR != 1 { print }'
+expect_invalid_artifact "unclosed spec frontmatter" unclosed-spec-frontmatter spec.md \
+  '$0 != "---" || NR == 1 { print }'
+expect_invalid_artifact "tasks without leading frontmatter" missing-tasks-frontmatter tasks.md \
+  'NR != 1 { print }'
+expect_invalid_artifact "unclosed tasks frontmatter" unclosed-tasks-frontmatter tasks.md \
+  '$0 != "---" || NR == 1 { print }'
 
 case_dir="$(copy_fixture spec-body)"; cp "$GOOD/analysis.md" "$case_dir/analysis.md"; printf '\nRequirement B.\n' >> "$case_dir/spec.md"
 expect_verify_failure "spec body changes invalidate readiness" "$case_dir"

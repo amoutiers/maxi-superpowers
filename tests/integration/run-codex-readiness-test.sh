@@ -149,7 +149,7 @@ echo "Running codex exec ..."
 : > "$LOG_FILE"
 if run_codex_with_deadline "$LOG_FILE" \
   codex exec --ephemeral --json --sandbox workspace-write --cd "$FIXTURE" \
-  "Run /maxi:analyze for 0001-readiness-integration. Complete the readiness review and its allowed status transition. Do not implement or commit anything."; then
+  "Run /maxi:analyze for 0001-readiness-integration. Complete the readiness review and its allowed status transition. Do not implement or commit anything. After /maxi:analyze, run one separate shell command containing only: bash \"$INSTALLED_READINESS_CONTRACT\" verify \"$SPEC_DIR/analysis.md\" \"$SPEC_DIR/spec.md\" \"$SPEC_DIR/plan.md\" \"$SPEC_DIR/tasks.md\". Do not combine that verifier command with stamp or any other command."; then
   CODEX_STATUS=0
 else
   CODEX_STATUS=$?
@@ -178,15 +178,27 @@ elif tr -d '\000' < "$LOG_FILE" | grep -a '^{' | jq -e \
   echo "FAIL: Codex reported a failed turn" >&2
 elif grep -Fq 'failed to load plugin' "$LOG_FILE"; then
   echo "FAIL: Codex failed to load the local plugin" >&2
-elif ! tr -d '\000' < "$LOG_FILE" | grep -a '^{' | jq -s -e --arg verifier "$INSTALLED_READINESS_CONTRACT" '
+elif ! tr -d '\000' < "$LOG_FILE" | grep -a '^{' | jq -s -e \
+  --arg verifier "$INSTALLED_READINESS_CONTRACT" \
+  --arg analysis "$SPEC_DIR/analysis.md" \
+  --arg spec "$SPEC_DIR/spec.md" \
+  --arg plan "$SPEC_DIR/plan.md" \
+  --arg tasks "$SPEC_DIR/tasks.md" '
+  def shell_words:
+    [scan("[^[:space:]]+")
+      | sub("^[\"\u0027();]+"; "")
+      | sub("[\"\u0027();]+$"; "")];
   [
     .[] | select(
       .type == "item.completed" and
       .item.type == "command_execution" and
       .item.exit_code == 0 and
       .item.status == "completed" and
-      (.item.command | contains($verifier)) and
-      (.item.aggregated_output | contains("READINESS_VERIFIED"))
+      ((.item.command | shell_words) as $words |
+        $words == ["/bin/zsh", "-lc", "bash",
+          $verifier, "verify", $analysis, $spec, $plan, $tasks]) and
+      (.item.aggregated_output == "READINESS_VERIFIED" or
+       .item.aggregated_output == "READINESS_VERIFIED\n")
     )
   ] | length == 1
 ' > /dev/null; then
