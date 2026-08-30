@@ -16,6 +16,15 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 die() { echo "ERROR: $*" >&2; exit 1; }
 
+yaml_single_quote() {
+  local escaped
+  if LC_ALL=C printf '%s' "$1" | grep -q '[[:cntrl:]]'; then
+    die "YAML string contains a control character"
+  fi
+  escaped=$(printf '%s' "$1" | sed "s/'/''/g")
+  printf "'%s'" "$escaped"
+}
+
 TODAY=$(date +%Y-%m-%d)
 MODE="preview"
 YES=0
@@ -38,15 +47,6 @@ shopt -s nullglob
 spec_dirs=( specs/[0-9][0-9][0-9]-*/ )
 shopt -u nullglob
 [[ ${#spec_dirs[@]} -gt 0 ]] || die "No specs/NNN-* directories found."
-
-# ---------------------------------------------------------------------------
-# Clobber guard (apply mode only)
-# ---------------------------------------------------------------------------
-if [[ "$MODE" == "apply" ]]; then
-  if [[ -d docs/maxi/specs ]] && [[ -n "$(ls -A docs/maxi/specs 2>/dev/null)" ]]; then
-    die "docs/maxi/specs/ already exists and is non-empty. Aborting to avoid overwriting."
-  fi
-fi
 
 # ---------------------------------------------------------------------------
 # Constitution paths
@@ -75,6 +75,9 @@ for raw_dir in "${spec_dirs[@]}"; do
   src_dir="${raw_dir%/}"
   sl=$(basename "$src_dir")
 
+  [[ "$sl" =~ ^[0-9][0-9][0-9]-[a-z0-9]+(-[a-z0-9]+)*$ ]] \
+    || die "Invalid spec slug: $sl"
+
   if [[ ! -f "$src_dir/spec.md" ]]; then
     skipped+=("$src_dir (no spec.md)")
     continue
@@ -84,6 +87,13 @@ for raw_dir in "${spec_dirs[@]}"; do
   created=$(grep -m1 '^\*\*Created\*\*:' "$src_dir/spec.md" 2>/dev/null \
     | sed 's/^\*\*Created\*\*:[[:space:]]*//' | tr -d '[:space:]' || true)
   [[ -n "$created" ]] || created="$TODAY"
+  [[ "$created" =~ ^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$ ]] \
+    || die "Invalid Created date for $sl: $created"
+  if [[ ${#slugs[@]} -gt 0 ]]; then
+    for seen_slug in "${slugs[@]}"; do
+      [[ "$seen_slug" != "$sl" ]] || die "Duplicate spec destination: $sl"
+    done
+  fi
 
   sk_status=$(grep -m1 '^\*\*Status\*\*:' "$src_dir/spec.md" 2>/dev/null \
     | sed 's/^\*\*Status\*\*:[[:space:]]*//' | awk '{print $1}' || true)
@@ -171,14 +181,27 @@ if [[ "$YES" -ne 1 ]]; then
   [[ "$confirm" =~ ^[Yy]([Ee][Ss])?$ ]] || { echo "Aborted."; exit 0; }
 fi
 
-mkdir -p docs/maxi/specs
-
-# Constitution
-if [[ "$const_action" == "COPY" ]]; then
-  mkdir -p docs
-  cp "$CONST_SRC" "$CONST_DST"
-  echo "  Copied constitution → $CONST_DST"
+for component in docs docs/maxi docs/maxi/specs; do
+  [[ ! -L "$component" ]] || die "Symlinked destination component: $component"
+  [[ ! -e "$component" || -d "$component" ]] \
+    || die "Destination component is not a directory: $component"
+done
+if [[ -d docs/maxi/specs ]] && [[ -n "$(ls -A docs/maxi/specs 2>/dev/null)" ]]; then
+  die "docs/maxi/specs/ already exists and is non-empty. Aborting to avoid overwriting."
 fi
+mkdir -p docs/maxi
+
+repo_root=$(pwd -P)
+maxi_root=$(cd docs/maxi && pwd -P)
+[[ "$maxi_root" == "$repo_root/docs/maxi" ]] \
+  || die "docs/maxi resolves outside the project root"
+
+stage_dir=$(mktemp -d "$maxi_root/.specs-migration.XXXXXX")
+cleanup_stage() {
+  [ -z "${stage_dir:-}" ] || rm -rf "$stage_dir"
+}
+trap cleanup_stage EXIT
+mkdir "$stage_dir/specs"
 
 # Status counters
 cnt_done=0; cnt_tasked=0; cnt_planned=0; cnt_specified=0; cnt_other=0
@@ -186,7 +209,7 @@ cnt_done=0; cnt_tasked=0; cnt_planned=0; cnt_specified=0; cnt_other=0
 for i in "${!slugs[@]}"; do
   sl="${slugs[$i]}"
   src="specs/$sl"
-  dst="docs/maxi/specs/$sl"
+  dst="$stage_dir/specs/$sl"
   created="${created_dates[$i]}"
   st="${statuses[$i]}"
 
@@ -201,7 +224,7 @@ for i in "${!slugs[@]}"; do
   feature_name=$(grep -m1 '^# ' "$spec_file" | sed 's/^#[[:space:]]*//' || echo "$sl")
 
   # Rewrite spec.md: prepend YAML frontmatter, strip spec-kit inline header lines
-  tmp=$(mktemp)
+  tmp=$(mktemp "$dst/.spec.md.XXXXXX")
   {
     printf -- '---\nslug: %s\ncreated: %s\nupdated: %s\nstatus: %s\n---\n\n' \
       "$sl" "$created" "$TODAY" "$st"
@@ -235,7 +258,7 @@ for i in "${!slugs[@]}"; do
 
   # Add frontmatter to plan.md if present and not already fronted
   if [[ -f "$plan_file" ]] && ! head -1 "$plan_file" | grep -q '^---'; then
-    tmp=$(mktemp)
+    tmp=$(mktemp "$dst/.plan.md.XXXXXX")
     {
       printf -- '---\nslug: %s\nspec_slug: %s\ncreated: %s\nupdated: %s\n---\n\n' \
         "$sl" "$sl" "$created" "$TODAY"
@@ -246,10 +269,11 @@ for i in "${!slugs[@]}"; do
 
   # Add frontmatter to tasks.md if present and not already fronted
   if [[ -f "$tasks_file" ]] && ! head -1 "$tasks_file" | grep -q '^---'; then
-    tmp=$(mktemp)
+    tmp=$(mktemp "$dst/.tasks.md.XXXXXX")
+    description=$(yaml_single_quote "Tasks: $feature_name")
     {
-      printf -- '---\ndescription: "Tasks: %s"\nslug: %s\nspec_slug: %s\ncreated: %s\nupdated: %s\n---\n\n' \
-        "$feature_name" "$sl" "$sl" "$created" "$TODAY"
+      printf -- '---\ndescription: %s\nslug: %s\nspec_slug: %s\ncreated: %s\nupdated: %s\n---\n\n' \
+        "$description" "$sl" "$sl" "$created" "$TODAY"
       cat "$tasks_file"
     } > "$tmp"
     mv "$tmp" "$tasks_file"
@@ -264,6 +288,18 @@ for i in "${!slugs[@]}"; do
     *)         cnt_other=$((cnt_other + 1)) ;;
   esac
 done
+
+# Constitution is copied only once every spec has been transformed in staging.
+if [[ "$const_action" == "COPY" ]]; then
+  cp "$CONST_SRC" "$CONST_DST"
+fi
+
+if [ -d docs/maxi/specs ]; then
+  rmdir docs/maxi/specs || die "docs/maxi/specs must be empty before install"
+fi
+mv "$stage_dir/specs" docs/maxi/specs
+rmdir "$stage_dir"
+stage_dir=""
 
 echo ""
 echo "Migration complete."

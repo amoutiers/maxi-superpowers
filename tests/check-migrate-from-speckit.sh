@@ -146,4 +146,137 @@ else
   echo "OK  [idempotency: second apply correctly refused]"
 fi
 
+# ---------------------------------------------------------------------------
+# YAML descriptions quote arbitrary feature headings safely
+# ---------------------------------------------------------------------------
+quote_case="$TMP/quote-case"
+mkdir -p "$quote_case"
+cp -r "$FIXTURE/." "$quote_case/"
+sed -i.bak 's|^# Feature Specification:.*$|# Feature "alpha" and O'"'"'Brien|' \
+  "$quote_case/specs/001-shipped-feature/spec.md"
+rm "$quote_case/specs/001-shipped-feature/spec.md.bak"
+(cd "$quote_case" && bash "$SCRIPT" --apply --yes >/dev/null)
+assert_grep \
+  "$quote_case/docs/maxi/specs/001-shipped-feature/tasks.md" \
+  "^description: 'Tasks: Feature \"alpha\" and O''Brien'$" \
+  "tasks description is a valid escaped YAML scalar"
+
+# ---------------------------------------------------------------------------
+# Invalid source metadata must fail in both modes before creating docs/
+# ---------------------------------------------------------------------------
+bad_slug_case="$TMP/bad-slug-case"
+cp -r "$FIXTURE/." "$bad_slug_case/"
+mv "$bad_slug_case/specs/002-draft-feature" "$bad_slug_case/specs/003-bad_slug"
+for mode in --preview --apply; do
+  if (cd "$bad_slug_case" && bash "$SCRIPT" "$mode" --yes >/dev/null 2>&1); then
+    echo "FAIL [invalid slug: $mode should fail]" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [invalid slug: $mode refused before mutation]"
+  fi
+done
+if [[ -e "$bad_slug_case/docs" ]]; then
+  echo "FAIL [invalid slug: docs/ must not be created]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [invalid slug: docs/ absent]"
+fi
+
+bad_date_case="$TMP/bad-date-case"
+cp -r "$FIXTURE/." "$bad_date_case/"
+sed -i.bak 's|^\*\*Created\*\*:.*$|**Created**: 2026-08-30: injected|' \
+  "$bad_date_case/specs/001-shipped-feature/spec.md"
+rm "$bad_date_case/specs/001-shipped-feature/spec.md.bak"
+for mode in --preview --apply; do
+  if (cd "$bad_date_case" && bash "$SCRIPT" "$mode" --yes >/dev/null 2>&1); then
+    echo "FAIL [invalid Created date: $mode should fail]" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [invalid Created date: $mode refused before mutation]"
+  fi
+done
+if [[ -e "$bad_date_case/docs" ]]; then
+  echo "FAIL [invalid Created date: docs/ must not be created]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [invalid Created date: docs/ absent]"
+fi
+
+# ---------------------------------------------------------------------------
+# Existing destination safety and symlink rejection
+# ---------------------------------------------------------------------------
+symlink_case="$TMP/symlink-case"
+outside="$TMP/outside-sentinel"
+cp -r "$FIXTURE/." "$symlink_case/"
+mkdir "$outside"
+ln -s "$outside" "$symlink_case/docs"
+if (cd "$symlink_case" && bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
+  echo "FAIL [symlinked docs: apply should fail]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [symlinked docs: apply refused]"
+fi
+if [[ -e "$outside/maxi" ]]; then
+  echo "FAIL [symlinked docs: outside sentinel was modified]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [symlinked docs: outside sentinel untouched]"
+fi
+
+nonempty_case="$TMP/nonempty-case"
+cp -r "$FIXTURE/." "$nonempty_case/"
+mkdir -p "$nonempty_case/docs/maxi/specs"
+printf 'keep\n' > "$nonempty_case/docs/maxi/specs/sentinel"
+if (cd "$nonempty_case" && bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
+  echo "FAIL [non-empty destination: apply should fail]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [non-empty destination: apply refused]"
+fi
+assert_grep "$nonempty_case/docs/maxi/specs/sentinel" '^keep$' \
+  "non-empty destination is unchanged"
+
+# ---------------------------------------------------------------------------
+# Failed copies leave no installed specs or staging directory, and rerun works
+# ---------------------------------------------------------------------------
+cp_case="$TMP/cp-failure-case"
+cp_wrapper="$TMP/cp-wrapper"
+cp_count="$TMP/cp-count"
+cp -r "$FIXTURE/." "$cp_case/"
+mkdir "$cp_wrapper"
+REAL_CP=$(command -v cp)
+export REAL_CP
+export CP_COUNT_FILE="$cp_count"
+cat > "$cp_wrapper/cp" <<'EOF'
+#!/usr/bin/env bash
+count=$(sed -n '1p' "$CP_COUNT_FILE" 2>/dev/null || true)
+count=${count:-0}
+count=$((count + 1))
+printf '%s\n' "$count" > "$CP_COUNT_FILE"
+[ "$count" -ne 2 ] || exit 77
+exec "$REAL_CP" "$@"
+EOF
+chmod +x "$cp_wrapper/cp"
+if (cd "$cp_case" && PATH="$cp_wrapper:$PATH" bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
+  echo "FAIL [copy failure: apply should fail]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [copy failure: apply failed]"
+fi
+if [[ -e "$cp_case/docs/maxi/specs" ]]; then
+  echo "FAIL [copy failure: final specs directory must not exist]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [copy failure: final specs directory absent]"
+fi
+if find "$cp_case/docs/maxi" -maxdepth 1 -name '.specs-migration.*' -print | grep -q .; then
+  echo "FAIL [copy failure: staging directory was not cleaned]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [copy failure: staging directory cleaned]"
+fi
+(cd "$cp_case" && bash "$SCRIPT" --apply --yes >/dev/null)
+assert_file_exists "$cp_case/docs/maxi/specs/001-shipped-feature/spec.md" \
+  "copy failure: normal rerun succeeds"
+
 summary_and_exit "migrate-from-speckit checks"
