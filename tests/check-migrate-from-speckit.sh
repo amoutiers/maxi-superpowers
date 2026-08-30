@@ -234,6 +234,69 @@ else
   failures=$((failures + 1))
 fi
 
+# Nested source symlinks must fail before preview or apply mutation.
+nested_symlink_case="$TMP/nested-symlink-case"
+nested_symlink_outside="$TMP/nested-symlink-outside.md"
+cp -r "$FIXTURE/." "$nested_symlink_case/"
+printf 'external plan\n' > "$nested_symlink_outside"
+rm "$nested_symlink_case/specs/001-shipped-feature/plan.md"
+ln -s "$nested_symlink_outside" "$nested_symlink_case/specs/001-shipped-feature/plan.md"
+for mode in --preview --apply; do
+  if (cd "$nested_symlink_case" && bash "$SCRIPT" "$mode" --yes >/dev/null 2>&1); then
+    echo "FAIL [nested source symlink: $mode should fail]" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [nested source symlink: $mode refused before mutation]"
+  fi
+done
+assert_grep "$nested_symlink_outside" '^external plan$' \
+  "nested source symlink: external bytes unchanged"
+if [[ -e "$nested_symlink_case/docs" ]]; then
+  echo "FAIL [nested source symlink: docs/ must not be created]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [nested source symlink: docs/ absent]"
+fi
+
+# A symlink introduced by copy must be rejected from staging before transforms.
+staged_symlink_case="$TMP/staged-symlink-case"
+staged_symlink_wrapper="$TMP/staged-symlink-wrapper"
+staged_symlink_outside="$TMP/staged-symlink-outside.md"
+cp -r "$FIXTURE/." "$staged_symlink_case/"
+mkdir "$staged_symlink_wrapper"
+printf 'external staged plan\n' > "$staged_symlink_outside"
+STAGED_SYMLINK_REAL_CP=$(command -v cp)
+export STAGED_SYMLINK_REAL_CP STAGED_SYMLINK_OUTSIDE="$staged_symlink_outside"
+cat > "$staged_symlink_wrapper/cp" <<'EOF'
+#!/usr/bin/env bash
+"$STAGED_SYMLINK_REAL_CP" "$@" || exit
+if [ "${1:-}" = -r ] && [ "$(basename "${2:-}")" = 001-shipped-feature ]; then
+  rm -f "$3/plan.md"
+  ln -s "$STAGED_SYMLINK_OUTSIDE" "$3/plan.md"
+fi
+EOF
+chmod +x "$staged_symlink_wrapper/cp"
+if (cd "$staged_symlink_case" && PATH="$staged_symlink_wrapper:$PATH" bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
+  echo "FAIL [staged nested symlink: apply should fail]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [staged nested symlink: apply refused]"
+fi
+assert_grep "$staged_symlink_outside" '^external staged plan$' \
+  "staged nested symlink: external bytes unchanged"
+if [[ -e "$staged_symlink_case/docs/maxi/specs" ]]; then
+  echo "FAIL [staged nested symlink: specs must not be installed]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [staged nested symlink: specs absent]"
+fi
+if find "$staged_symlink_case/docs/maxi" -maxdepth 1 -name '.specs-migration.*' -print | grep -q .; then
+  echo "FAIL [staged nested symlink: staging directory was not cleaned]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [staged nested symlink: staging directory cleaned]"
+fi
+
 # ---------------------------------------------------------------------------
 # Existing destination safety and symlink rejection
 # ---------------------------------------------------------------------------

@@ -31,6 +31,9 @@ spec_structural_sha() {
       print
       next
     }
+    fm && $0 != "" && $0 !~ /^[[:space:]]/ && $0 !~ /^#/ && $0 !~ /^[a-z_][a-z0-9_]*:/ {
+      invalid = 1
+    }
     fm && /^status:/ {
       status_count++
       if ($0 !~ /^status: (drafting|specified|clarified|planned|tasked|analyzed|implementing|done|parked|cancelled)$/) invalid = 1
@@ -61,6 +64,9 @@ tasks_structural_sha() {
       closed = 1
       print
       next
+    }
+    fm && $0 != "" && $0 !~ /^[[:space:]]/ && $0 !~ /^#/ && $0 !~ /^[a-z_][a-z0-9_]*:/ {
+      invalid = 1
     }
     fm && /^updated:/ {
       updated_count++

@@ -16,6 +16,13 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 die() { echo "ERROR: $*" >&2; exit 1; }
 
+require_symlink_free_tree() {
+  local tree="$1" first_link
+  first_link=$(find "$tree" -type l -print -quit) \
+    || die "Could not inspect tree for symlinks: $tree"
+  [[ -z "$first_link" ]] || die "Symlinked entry in migration tree: $first_link"
+}
+
 yaml_single_quote() {
   local escaped
   if LC_ALL=C printf '%s' "$1" | grep -q '[[:cntrl:]]'; then
@@ -88,6 +95,7 @@ for raw_dir in "${spec_dirs[@]}"; do
   src_physical=$(cd "$src_dir" && pwd -P)
   [[ "${src_physical%/*}" == "$specs_root" ]] \
     || die "Source spec directory resolves outside specs/: $src_dir"
+  require_symlink_free_tree "$src_dir"
 
   [[ "$sl" =~ ^[0-9][0-9][0-9]-[a-z0-9]+(-[a-z0-9]+)*$ ]] \
     || die "Invalid spec slug: $sl"
@@ -265,6 +273,7 @@ for i in "${!slugs[@]}"; do
   dst_physical=$(cd "$dst" && pwd -P)
   [[ "${dst_physical%/*}" == "$stage_specs_root" ]] \
     || die "Staged spec directory resolves outside staging: $dst"
+  require_symlink_free_tree "$dst"
 
   spec_file="$dst/spec.md"
   plan_file="$dst/plan.md"

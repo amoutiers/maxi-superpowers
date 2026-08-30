@@ -136,12 +136,21 @@ expect_command_failure() {
 }
 
 expect_invalid_artifact() {
-  local label="$1" name="$2" artifact="$3" program="$4" dir
+  local label="$1" name="$2" artifact="$3" program="$4" dir output status kind
   dir="$(copy_fixture "$name")"
   rewrite "$dir/$artifact" "$program"
   expect_command_failure "$label is rejected by stamp" stamp "$dir" pass 0
   cp "$GOOD/analysis.md" "$dir/analysis.md"
-  expect_verify_failure "$label is rejected by verify" "$dir"
+  kind="${artifact%.md}"
+  set +e
+  output="$(verify "$dir" 2>&1)"
+  status=$?
+  set -e
+  if [ "$status" -ne 0 ] && [ "$output" = "ERROR: invalid $kind frontmatter" ]; then
+    ok "$label is structurally rejected by verify"
+  else
+    fail "$label is structurally rejected by verify" "status=$status output='$output'"
+  fi
 }
 
 GOOD="$(copy_fixture good)"
@@ -190,18 +199,24 @@ expect_invalid_artifact "empty spec status" empty-spec-status spec.md \
   '{ if ($0 == "status: tasked") print "status:"; else print }'
 expect_invalid_artifact "invalid spec status" invalid-spec-status spec.md \
   '{ if ($0 == "status: tasked") print "status: unknown"; else print }'
+expect_invalid_artifact "alternate spec status key" alternate-spec-status spec.md \
+  '{ print; if ($0 == "status: tasked") print "status : done" }'
 expect_invalid_artifact "duplicate spec updated" duplicate-spec-updated spec.md \
   '{ print; if ($0 == "updated: 2026-08-30") print }'
 expect_invalid_artifact "missing spec updated" missing-spec-updated spec.md \
   '$0 != "updated: 2026-08-30" { print }'
 expect_invalid_artifact "malformed spec updated" malformed-spec-updated spec.md \
   '{ if ($0 == "updated: 2026-08-30") print "updated: 2026/08/30"; else print }'
+expect_invalid_artifact "alternate spec updated key" alternate-spec-updated spec.md \
+  '{ print; if ($0 == "updated: 2026-08-30") print "updated : invalid" }'
 expect_invalid_artifact "duplicate tasks updated" duplicate-tasks-updated tasks.md \
   '{ print; if ($0 == "updated: 2026-08-30") print }'
 expect_invalid_artifact "missing tasks updated" missing-tasks-updated tasks.md \
   '$0 != "updated: 2026-08-30" { print }'
 expect_invalid_artifact "malformed tasks updated" malformed-tasks-updated tasks.md \
   '{ if ($0 == "updated: 2026-08-30") print "updated: 30-08-2026"; else print }'
+expect_invalid_artifact "alternate tasks updated key" alternate-tasks-updated tasks.md \
+  '{ print; if ($0 == "updated: 2026-08-30") print "updated : invalid" }'
 expect_invalid_artifact "spec without leading frontmatter" missing-spec-frontmatter spec.md \
   'NR != 1 { print }'
 expect_invalid_artifact "unclosed spec frontmatter" unclosed-spec-frontmatter spec.md \
