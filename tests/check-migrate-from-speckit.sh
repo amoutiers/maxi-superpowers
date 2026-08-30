@@ -223,6 +223,30 @@ else
   echo "OK  [symlinked docs: outside sentinel untouched]"
 fi
 
+constitution_symlink_case="$TMP/constitution-symlink-case"
+outside_constitution="$TMP/outside-constitution.md"
+cp -r "$FIXTURE/." "$constitution_symlink_case/"
+mkdir -p "$constitution_symlink_case/docs/maxi"
+ln -s "$outside_constitution" "$constitution_symlink_case/docs/maxi/constitution.md"
+if (cd "$constitution_symlink_case" && bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
+  echo "FAIL [symlinked constitution: apply should fail]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [symlinked constitution: apply refused]"
+fi
+if [[ -e "$outside_constitution" ]]; then
+  echo "FAIL [symlinked constitution: outside file was written]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [symlinked constitution: outside file absent]"
+fi
+if [[ -e "$constitution_symlink_case/docs/maxi/specs" ]]; then
+  echo "FAIL [symlinked constitution: specs were installed]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [symlinked constitution: specs absent]"
+fi
+
 nonempty_case="$TMP/nonempty-case"
 cp -r "$FIXTURE/." "$nonempty_case/"
 mkdir -p "$nonempty_case/docs/maxi/specs"

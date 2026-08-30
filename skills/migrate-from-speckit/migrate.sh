@@ -53,6 +53,7 @@ shopt -u nullglob
 # ---------------------------------------------------------------------------
 CONST_SRC=".specify/memory/constitution.md"
 CONST_DST="docs/maxi/constitution.md"
+[[ ! -L "$CONST_DST" ]] || die "Symlinked destination component: $CONST_DST"
 if [[ -f "$CONST_SRC" ]] && [[ ! -f "$CONST_DST" ]]; then
   const_action="COPY"
 elif [[ -f "$CONST_SRC" ]] && [[ -f "$CONST_DST" ]]; then
