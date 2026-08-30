@@ -53,11 +53,12 @@ shopt -u nullglob
 # ---------------------------------------------------------------------------
 CONST_SRC=".specify/memory/constitution.md"
 CONST_DST="docs/maxi/constitution.md"
-[[ ! -L "$CONST_DST" ]] || die "Symlinked destination component: $CONST_DST"
-if [[ -f "$CONST_SRC" ]] && [[ ! -f "$CONST_DST" ]]; then
-  const_action="COPY"
-elif [[ -f "$CONST_SRC" ]] && [[ -f "$CONST_DST" ]]; then
+if [[ -e "$CONST_DST" || -L "$CONST_DST" ]]; then
+  [[ -f "$CONST_DST" && ! -L "$CONST_DST" ]] \
+    || die "Invalid constitution destination: $CONST_DST"
   const_action="SKIP (target already exists)"
+elif [[ -f "$CONST_SRC" ]]; then
+  const_action="COPY"
 else
   const_action="SKIP (source missing)"
 fi

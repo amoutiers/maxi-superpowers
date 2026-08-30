@@ -247,6 +247,44 @@ else
   echo "OK  [symlinked constitution: specs absent]"
 fi
 
+constitution_directory_case="$TMP/constitution-directory-case"
+cp -r "$FIXTURE/." "$constitution_directory_case/"
+mkdir -p "$constitution_directory_case/docs/maxi/constitution.md"
+printf 'keep\n' > "$constitution_directory_case/docs/maxi/constitution.md/sentinel"
+if (cd "$constitution_directory_case" && bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
+  echo "FAIL [constitution directory: apply should fail]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [constitution directory: apply refused]"
+fi
+assert_grep "$constitution_directory_case/docs/maxi/constitution.md/sentinel" '^keep$' \
+  "constitution directory is unchanged"
+if [[ -e "$constitution_directory_case/docs/maxi/constitution.md/constitution.md" ]]; then
+  echo "FAIL [constitution directory: source was copied inside destination]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [constitution directory: no nested copy]"
+fi
+if [[ -e "$constitution_directory_case/docs/maxi/specs" ]]; then
+  echo "FAIL [constitution directory: specs were installed]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [constitution directory: specs absent]"
+fi
+
+constitution_source_absent_case="$TMP/constitution-source-absent-case"
+cp -r "$FIXTURE/." "$constitution_source_absent_case/"
+rm "$constitution_source_absent_case/.specify/memory/constitution.md"
+(cd "$constitution_source_absent_case" && bash "$SCRIPT" --apply --yes >/dev/null)
+assert_file_exists "$constitution_source_absent_case/docs/maxi/specs/001-shipped-feature/spec.md" \
+  "missing constitution source: specs are installed"
+if [[ -e "$constitution_source_absent_case/docs/maxi/constitution.md" ]]; then
+  echo "FAIL [missing constitution source: no destination should be created]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [missing constitution source: no destination created]"
+fi
+
 nonempty_case="$TMP/nonempty-case"
 cp -r "$FIXTURE/." "$nonempty_case/"
 mkdir -p "$nonempty_case/docs/maxi/specs"
