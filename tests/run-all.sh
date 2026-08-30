@@ -38,6 +38,7 @@ run_check "$TESTS_DIR/check-spec-fixture.sh"     "Spec fixture and field validat
 run_check "$TESTS_DIR/check-templates.sh"        "Template shape validation"
 run_check "$TESTS_DIR/check-global-constraints.sh" "Durable global constraints"
 run_check "$TESTS_DIR/check-review-boundaries.sh" "Fixed review boundaries"
+run_check "$TESTS_DIR/check-readiness-contract.sh" "Readiness evidence contract"
 run_check "$TESTS_DIR/check-x-develop-adapter.sh" "Maxi SDD task adapter"
 run_check "$TESTS_DIR/check-implement-handoff.sh" "Implement/x-develop handoff"
 run_check "$TESTS_DIR/check-skills-present.sh"   "Maxi-native skills present"
