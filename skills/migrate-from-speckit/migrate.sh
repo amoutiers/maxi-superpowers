@@ -293,7 +293,12 @@ done
 
 # Constitution is copied only once every spec has been transformed in staging.
 if [[ "$const_action" == "COPY" ]]; then
-  cp "$CONST_SRC" "$CONST_DST"
+  const_stage="$stage_dir/constitution.md"
+  cp "$CONST_SRC" "$const_stage"
+  if ! (set -o noclobber; exec 3> "$maxi_root/constitution.md" && cat "$const_stage" >&3); then
+    die "Constitution destination appeared during migration: $CONST_DST"
+  fi
+  rm "$const_stage"
 fi
 
 if [ -d docs/maxi/specs ]; then

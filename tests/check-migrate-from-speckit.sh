@@ -285,6 +285,54 @@ else
   echo "OK  [missing constitution source: no destination created]"
 fi
 
+# ---------------------------------------------------------------------------
+# Constitution copy must not follow a destination created after classification
+# ---------------------------------------------------------------------------
+constitution_race_case="$TMP/constitution-race-case"
+constitution_race_wrapper="$TMP/constitution-race-wrapper"
+constitution_race_outside="$TMP/constitution-race-outside.md"
+constitution_race_marker="$TMP/constitution-race-marker"
+cp -r "$FIXTURE/." "$constitution_race_case/"
+mkdir "$constitution_race_wrapper"
+RACE_REAL_CP=$(command -v cp)
+export RACE_REAL_CP
+export RACE_CONST_DST="docs/maxi/constitution.md"
+export RACE_OUTSIDE="$constitution_race_outside"
+export RACE_MARKER="$constitution_race_marker"
+cat > "$constitution_race_wrapper/cp" <<'EOF'
+#!/usr/bin/env bash
+if [ ! -e "$RACE_MARKER" ]; then
+  : > "$RACE_MARKER"
+  ln -s "$RACE_OUTSIDE" "$RACE_CONST_DST"
+fi
+exec "$RACE_REAL_CP" "$@"
+EOF
+chmod +x "$constitution_race_wrapper/cp"
+if (cd "$constitution_race_case" && PATH="$constitution_race_wrapper:$PATH" bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
+  echo "FAIL [constitution race: apply should fail]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [constitution race: apply refused]"
+fi
+if [[ -e "$constitution_race_outside" ]]; then
+  echo "FAIL [constitution race: outside file was written]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [constitution race: outside file absent]"
+fi
+if [[ -e "$constitution_race_case/docs/maxi/specs" ]]; then
+  echo "FAIL [constitution race: specs were installed]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [constitution race: specs absent]"
+fi
+if find "$constitution_race_case/docs/maxi" -maxdepth 1 -name '.specs-migration.*' -print | grep -q .; then
+  echo "FAIL [constitution race: staging directory was not cleaned]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [constitution race: staging directory cleaned]"
+fi
+
 nonempty_case="$TMP/nonempty-case"
 cp -r "$FIXTURE/." "$nonempty_case/"
 mkdir -p "$nonempty_case/docs/maxi/specs"
