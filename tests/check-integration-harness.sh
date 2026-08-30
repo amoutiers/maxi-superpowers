@@ -6,6 +6,7 @@ ROOT="$(git rev-parse --show-toplevel)"
 source "$ROOT/tests/lib/test-helpers.sh"
 
 HARNESS="$ROOT/tests/integration/run-codex-trigger-test.sh"
+READINESS_HARNESS="$ROOT/tests/integration/run-codex-readiness-test.sh"
 OLD_HARNESS="$ROOT/tests/integration/run-trigger-test.sh"
 RUN_ALL="$ROOT/tests/integration/run-all.sh"
 FAST_RUN_ALL="$ROOT/tests/run-all.sh"
@@ -14,6 +15,7 @@ DEADLINE_RUNNER="$ROOT/tests/integration/run-with-deadline.pl"
 failures=0
 
 assert_file_exists "$HARNESS" "run-codex-trigger-test.sh"
+assert_file_exists "$READINESS_HARNESS" "Codex readiness lifecycle runner"
 assert_file_exists "$RUN_ALL" "integration run-all.sh"
 assert_file_exists "$FAST_RUN_ALL" "fast tier run-all.sh"
 assert_file_exists "$TIMEOUT_TEST" "Codex timeout regression test"
@@ -64,6 +66,21 @@ if [ -f "$HARNESS" ]; then
   assert_grep "$HARNESS" 'tr -d' "run-codex-trigger-test: removes binary prefixes before JSON parsing"
 fi
 
+if [ -f "$READINESS_HARNESS" ]; then
+  assert_grep "$READINESS_HARNESS" 'codex exec.*--sandbox workspace-write' "readiness runner permits fixture writes"
+  assert_grep "$READINESS_HARNESS" 'codex exec.*--cd.*FIXTURE' "readiness runner binds the fixture root"
+  assert_grep "$READINESS_HARNESS" 'git -C.*init' "readiness runner creates an isolated Git fixture"
+  assert_grep "$READINESS_HARNESS" 'readiness-contract.sh.*verify' "readiness runner verifies stamped evidence"
+  assert_grep "$READINESS_HARNESS" 'SOURCE_STATE_BEFORE' "readiness runner snapshots source state"
+  assert_grep "$READINESS_HARNESS" 'SOURCE_STATE_AFTER' "readiness runner verifies source state"
+  if awk '/^SOURCE_STATE_AFTER=/{ after = NR } /^echo "=== Results ==="$/{ results = NR } END { exit !(after && results && after < results) }' "$READINESS_HARNESS"; then
+    echo "OK  [readiness runner snapshots final source state before result checks]"
+  else
+    echo "FAIL [readiness runner snapshots final source state before result checks]" >&2
+    failures=$((failures + 1))
+  fi
+fi
+
 if [ -f "$DEADLINE_RUNNER" ]; then
   assert_grep "$DEADLINE_RUNNER" 'setpgrp(0, 0)' "deadline supervisor: isolates a Codex process group"
   assert_grep "$DEADLINE_RUNNER" 'waitpid(\$child_pid, WNOHANG)' "deadline supervisor: reaps its own child before deadline actions"
@@ -77,6 +94,7 @@ if [ -f "$RUN_ALL" ]; then
   assert_not_grep "$RUN_ALL" '^SKILLS=([^)]' "integration run-all: no non-empty inline hard-coded skill array"
   assert_not_grep "$RUN_ALL" '^  "[[:alnum:]_-]*"$' "integration run-all: no hard-coded skill array entries"
   assert_grep "$RUN_ALL" 'run-codex-trigger-test.sh' "integration run-all: invokes Codex runner"
+  assert_grep "$RUN_ALL" 'run-codex-readiness-test.sh' "integration run-all invokes readiness lifecycle"
   assert_not_grep "$RUN_ALL" 'run-trigger-test.sh' "integration run-all: does not invoke legacy Claude runner"
 fi
 

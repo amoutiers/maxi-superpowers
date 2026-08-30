@@ -42,6 +42,15 @@ for skill in "${SKILLS[@]}"; do
   echo ""
 done
 
+echo "Testing: readiness lifecycle"
+if "$SCRIPT_DIR/run-codex-readiness-test.sh"; then
+  PASSED=$((PASSED + 1))
+  RESULTS+=("PASS: readiness lifecycle")
+else
+  FAILED=$((FAILED + 1))
+  RESULTS+=("FAIL: readiness lifecycle")
+fi
+
 echo ""
 echo "=== Summary ==="
 for result in "${RESULTS[@]}"; do
