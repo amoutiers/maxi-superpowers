@@ -18,7 +18,12 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 
 ## Process
 
-1. **Validate readiness review** — `analysis.md` is the required readiness review of the current design and tasks before code begins. Stop before any write or `/maxi:x-develop` dispatch if it is missing or reports CRITICAL findings.
+1. **Verify readiness review** — `analysis.md` is the required readiness review of the current design and tasks before code begins. Resolve the selected root's canonical `analysis.md`, `spec.md`, `plan.md`, and `tasks.md` paths, then run `readiness-contract.sh` `verify`:
+   ```bash
+   bash skills/analyze/readiness-contract.sh verify \
+     "$analysis_path" "$spec_path" "$plan_path" "$tasks_path"
+   ```
+   Require exit 0 and exactly one stdout line: `READINESS_VERIFIED`. On any failure, stop before any write or `/maxi:x-develop` dispatch, report that the readiness evidence is missing, malformed, blocked, unsupported, or stale, and instruct the user to run `/maxi:analyze`.
 2. **Bind artifacts** — load the selected root's canonical `spec.md`, `plan.md`, and `tasks.md`. Identify `- [ ]` (pending) and `- [x]` (complete) tasks. Pass the exact canonical `spec.md`, `plan.md`, and `tasks.md` paths to `/maxi:x-develop`.
 3. **Transition to implementing** — update spec.md frontmatter `status: → implementing`; also set `updated: [today's ISO date]` on spec.md. Do this before first task begins.
 4. **Delegate to /maxi:x-develop** — **REQUIRED SUB-SKILL.** Pass those three paths. Do NOT implement tasks directly in this session. `x-develop` owns projection, incremental reconciliation, upstream SDD, and the whole-branch review.
@@ -42,7 +47,12 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 ## Resuming Interrupted Implementation
 
 If status is already `implementing`:
-- Re-run the readiness analysis check against the current artifacts; stop if it no longer passes
+- Re-run `readiness-contract.sh` `verify` against the current artifacts:
+  ```bash
+  bash skills/analyze/readiness-contract.sh verify \
+    "$analysis_path" "$spec_path" "$plan_path" "$tasks_path"
+  ```
+  Require exit 0 and exactly one stdout line, `READINESS_VERIFIED`; otherwise stop before any write or `/maxi:x-develop` dispatch and instruct the user to run `/maxi:analyze` because the readiness evidence is missing, malformed, blocked, unsupported, or stale.
 - Read tasks.md to find the first `- [ ]` (unchecked) task
 - Resume from there — skip all `- [x]` tasks
 - Pass the exact artifact paths to `x-develop`, then complete the receipt-gated process normally

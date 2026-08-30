@@ -146,8 +146,8 @@ Full reference for the forward pipeline:
 | `/maxi:plan` | Generate a technical implementation plan from the spec |
 | `/maxi:review` | Explicitly re-review the current `spec.md` and `plan.md` after a correction or stale record |
 | `/maxi:tasks` | Extract a structured checkbox task list from the plan |
-| `/maxi:analyze` | Run a 7-pass quality audit across all artifacts (includes ADR alignment) |
-| `/maxi:implement` | Execute the task list and transition the spec to `done` |
+| `/maxi:analyze` | Run a 7-pass quality audit and stamp its readiness report (includes ADR alignment) |
+| `/maxi:implement` | Require a current readiness contract, execute the task list, and transition the spec to `done` |
 
 > Beyond the forward pipeline there are lifecycle commands (`/maxi:board`, `/maxi:park`, `/maxi:resume`, `/maxi:cancel`, `/maxi:revise`) and the migration utilities covered under [Onboarding an existing project](#onboarding-an-existing-project).
 
@@ -156,6 +156,8 @@ Full reference for the forward pipeline:
 `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 
 The 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
+
+A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v1` and its recorded structural spec/tasks hashes and exact plan hash match the current artifacts; `/maxi:implement` verifies this before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
 
 `/maxi:review` dispatches the dedicated `skills/review/design-reviewer.md` artifact brief with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It writes `reviews/design-review.md` only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure is nonblocking unless the reviewed design itself must change. A missing or stale approval stops `/maxi:tasks` before any write. Corrections stop after their owner write and never start a review or successor phase; request `/maxi:review` to re-review.
 

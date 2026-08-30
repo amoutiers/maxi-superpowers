@@ -152,7 +152,19 @@ If current status was `tasked` and the completed report has zero CRITICAL findin
 If the report has CRITICAL findings, leave status at `tasked` and wait for a new explicit user decision.
 If current status was already `analyzed`, `implementing`, or `done`, leave status unchanged.
 
-### Step 9 — Report
+Set `outcome=pass` only when `critical_count` is zero; otherwise set `outcome=blocked`.
+
+### Step 9 — Stamp and Report
+
+As the final action before reporting success, invoke `readiness-contract.sh` `stamp`:
+
+```bash
+bash skills/analyze/readiness-contract.sh stamp \
+  "$analysis_path" "$spec_path" "$plan_path" "$tasks_path" \
+  "$outcome" "$critical_count"
+```
+
+If `stamp` fails, stop without a success message. An `analyzed` status without a valid stamped report remains blocked and is repaired by rerunning `/maxi:analyze`.
 
 For a passing initial analysis, tell user: *"Analysis complete. Report written to `docs/maxi/specs/NNNN-slug/analysis.md` (status: `analyzed`). 0 critical issues found. This readiness review is complete before implementation."*
 

@@ -128,6 +128,9 @@ assert_file_exists "$ROOT/skills/review/design-reviewer.md" "dedicated design re
 assert_grep "$ROOT/skills/plan/SKILL.md" 'one design review.*spec.md.*plan.md' "plan has one design boundary"
 assert_grep "$ROOT/skills/tasks/SKILL.md" 'missing or stale.*design review.*stop' "tasks require a current design review"
 assert_grep "$ROOT/skills/analyze/SKILL.md" 'readiness review.*before implementation' "analysis is readiness review"
+assert_grep "$ROOT/skills/analyze/SKILL.md" \
+  'readiness-contract.sh` `stamp`' \
+  "analyze stamps readiness evidence"
 assert_not_grep "$ROOT/skills/plan/SKILL.md" 'replay_continuation\|REVIEW_REQUIRED\|x-review' "plan cannot auto-replay"
 assert_path_absent "$ROOT/skills/revise/replay-plan.sh" "obsolete replay planner is absent"
 
@@ -194,14 +197,23 @@ if [ -f "$ROOT/skills/review/design-reviewer.md" ]; then
   assert_grep "$ROOT/skills/review/design-reviewer.md" 'VERDICT: rejected' "reviewer has rejected terminal verdict"
 fi
 
+readiness_sentence='A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v1` and its recorded structural spec/tasks hashes and exact plan hash match the current artifacts; `/maxi:implement` verifies this before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.'
+
 for document in \
   "$ROOT/docs/pipeline-flow.md" \
   "$ROOT/docs/delegation-map.md" \
   "$ROOT/skills/using-maxi/SKILL.md" \
   "$ROOT/AGENTS.md" \
-  "$ROOT/docs/architecture.md"; do
+  "$ROOT/docs/architecture.md" \
+  "$ROOT/README.md"; do
   assert_grep "$document" 'design review' "$(basename "$document") documents the design boundary"
   assert_not_grep "$document" 'bounded replay\|replay_continuation\|x-review' "$(basename "$document") has no replay contract"
+  if grep -Fq "$readiness_sentence" "$document"; then
+    echo "OK  [$(basename "$document") documents current readiness evidence]"
+  else
+    echo "FAIL [$(basename "$document") documents current readiness evidence]: missing canonical readiness sentence" >&2
+    failures=$((failures + 1))
+  fi
 done
 
 summary_and_exit "fixed review boundary checks"

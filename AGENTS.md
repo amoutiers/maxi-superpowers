@@ -48,6 +48,8 @@ Every `spec.md` has a YAML frontmatter `status:` field:
 
 The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. `/maxi:review` dispatches `skills/review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`, then writes `reviews/design-review.md` only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure is nonblocking unless the reviewed design itself must change. A missing or stale approval stops task extraction before any write. Corrections stop after their owner write and never start a review or successor phase. Re-review is an explicit `/maxi:review` request.
 
+A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v1` and its recorded structural spec/tasks hashes and exact plan hash match the current artifacts; `/maxi:implement` verifies this before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
+
 Upstream SDD owns the only whole-branch review. Before final-review work, internal `x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. On Codex it allocates a fresh reviewer for an identity handshake, persists the harness-returned canonical task path, then sends the review through a follow-up to that reviewer. It also owns immutable task projection, ledger reconciliation, byte-exact Git review packages, and the hash-bound terminal receipt. It returns `READY_TO_FINISH` only when all evidence validates. `implement` owns the sole `implementing → done` transition and never dispatches a duplicate final review.
 
 The 19 Maxi-native skills remain in place; the 10-state FSM remains unchanged. `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
@@ -89,6 +91,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-templates.sh` — all 6 maxi templates + 2 fixtures have required fields and body sections, including the single Global Constraints section
 - `check-global-constraints.sh` — fixture-backed durable Global Constraints outcomes and planner guidance remain aligned
 - `check-review-boundaries.sh` — the three fixed review boundaries, explicit re-review, and terminal corrections remain aligned
+- `check-readiness-contract.sh` — versioned readiness stamping and structural/exact hash verification remain fail-closed
 - `check-x-develop-adapter.sh` — immutable task projection, lineage reconciliation, final-review identity/package validation, and terminal receipts remain fail-closed
 - `check-implement-handoff.sh` — `implement`/`x-develop` ownership and Mandatory Sync 5 terminal-gate contracts remain aligned
 - `check-skills-present.sh` — all 19 maxi-native skills and targeted support files exist

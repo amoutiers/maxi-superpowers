@@ -16,6 +16,11 @@ require_literal() {
   grep -Fq "$literal" "$file" || fail_contract "$label"
 }
 
+assert_grep() {
+  local file="$1" pattern="$2" label="$3"
+  grep -q "$pattern" "$file" || fail_contract "$label"
+}
+
 for file in "$IMPLEMENT" "$DEVELOP"; do
   [ -f "$file" ] || fail_contract "missing $(basename "$(dirname "$file")")/SKILL.md"
 done
@@ -27,6 +32,12 @@ require_literal "$IMPLEMENT" 'Do not tick task checkboxes in this skill' 'implem
 require_literal "$IMPLEMENT" 'Do not dispatch another code review' 'implement still owns a duplicate final review'
 require_literal "$IMPLEMENT" 'retain the returned projection lineage and aggregated `Ruling:` lines until branch/worktree completion' 'implement drops returned SDD evidence'
 require_literal "$IMPLEMENT" 'invoke `superpowers:finishing-a-development-branch` only after the `done` write is persisted' 'branch finishing is not after done'
+assert_grep "$ROOT/skills/implement/SKILL.md" \
+  'readiness-contract.sh` `verify`' \
+  "implement verifies readiness evidence"
+assert_grep "$ROOT/skills/implement/SKILL.md" \
+  'before any write or `/maxi:x-develop` dispatch' \
+  "readiness verification is pre-write"
 
 # x-develop owns one projection/ledger/review lifecycle and returns before finishing.
 require_literal "$DEVELOP" '`project-tasks.sh`' 'x-develop does not create or verify a projection'

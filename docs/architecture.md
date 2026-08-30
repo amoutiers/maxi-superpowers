@@ -4,7 +4,7 @@
 
 maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.3.0 harness model: Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. It has two layers:
 
-1. **Spec-driven pipeline**: 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. Each reads artifacts from `docs/maxi/constitution.md` and `docs/maxi/` and refuses to run when prerequisites are missing.
+1. **Spec-driven pipeline**: 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. The forward pipeline reads project artifacts and enforces its documented prerequisites; lifecycle and migration skills use only the prerequisites named by their own contracts.
 2. **Superpowers implementation engine**: vendored superpowers v6.3.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, and others) perform the delegated implementation work.
 
 The result is a reproducible, auditable route from a feature request to shipped code.
@@ -36,6 +36,7 @@ maxi-superpowers/
 │   │   └── design-reviewer.md # dedicated artifact-review brief
 │   ├── tasks/
 │   ├── analyze/
+│   │   └── readiness-contract.sh # readiness evidence stamp/verify
 │   ├── implement/
 │   ├── board/               # maxi-native lifecycle commands
 │   ├── park/
@@ -110,14 +111,16 @@ See [delegation-map.md](delegation-map.md) for the complete mapping and [pipelin
 | `plan` | `/maxi:writing-plans`, then `/maxi:x-adr` for detected architectural choices |
 | `review` | dedicated `review/design-reviewer.md`; writes the design-review record |
 | `tasks` | extraction from `plan.md` |
-| `analyze` | reads artifacts and ADRs, writes `analysis.md` |
-| `implement` | `/maxi:x-develop`, then `/maxi:x-adr` for returned unplanned rulings |
+| `analyze` | reads artifacts and ADRs, writes and stamps `analysis.md` |
+| `implement` | requires a current `maxi-readiness-v1` contract, then `/maxi:x-develop` and `/maxi:x-adr` for returned unplanned rulings |
 | `x-develop` | `superpowers:subagent-driven-development` |
 | `x-adr` | internal ADR creation and active-spec amendment workflow |
 
 Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
 
 The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
+
+A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v1` and its recorded structural spec/tasks hashes and exact plan hash match the current artifacts; `/maxi:implement` verifies this before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
 
 The public `/maxi:review` command dispatches `review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It writes `reviews/design-review.md`, bound to the spec/plan pair, only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure does not block unless the design must change. `/maxi:tasks` stops before any write if that approval is missing or stale. A correction stops after its owner write and never starts a review or successor phase; request `/maxi:review` explicitly when a new design review is wanted.
 
@@ -160,7 +163,7 @@ bash scripts/bump-superpowers.sh <new-tag>
 bash scripts/sync-superpowers.sh
 ```
 
-`sync-superpowers.sh` copies the upstream skills and updates `VENDORED.md`. `check-sync-invariant.sh` rejects a divergence between the vendored tree and copied skills.
+`sync-superpowers.sh` copies the pinned upstream skills; `bump-superpowers.sh` and `_update-vendored-md.sh` own the `VENDORED.md` pin update. `check-sync-invariant.sh` rejects a divergence between the vendored tree and copied skills.
 
 ## Harness Strategy
 
