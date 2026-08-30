@@ -203,10 +203,13 @@ lock_owned=0
 stage_dir=""
 # This serializes cooperating migrate.sh instances, not arbitrary external writers.
 cleanup_migration() {
-  [ -z "${stage_dir:-}" ] || rm -rf "$stage_dir"
+  local exit_status=$?
+  [ -z "${stage_dir:-}" ] || rm -rf "$stage_dir" 2>/dev/null || :
   if [[ "$lock_owned" -eq 1 ]]; then
-    rmdir "$lock_dir" 2>/dev/null || true
+    rmdir "$lock_dir" 2>/dev/null || :
+    lock_owned=0
   fi
+  return "$exit_status"
 }
 release_lock() {
   [[ "$lock_owned" -eq 1 ]] || return

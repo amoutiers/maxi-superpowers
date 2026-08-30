@@ -369,6 +369,12 @@ else
 fi
 assert_file_exists "$lock_case/docs/maxi/specs/001-shipped-feature/spec.md" \
   "migration lock: successful rerun installs specs"
+if [[ -e "$lock_case/docs/maxi/.specs-migration.lock" ]]; then
+  echo "FAIL [migration lock: successful rerun releases lock]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [migration lock: successful rerun releases lock]"
+fi
 
 nonempty_case="$TMP/nonempty-case"
 cp -r "$FIXTURE/." "$nonempty_case/"
@@ -425,5 +431,45 @@ fi
 (cd "$cp_case" && bash "$SCRIPT" --apply --yes >/dev/null)
 assert_file_exists "$cp_case/docs/maxi/specs/001-shipped-feature/spec.md" \
   "copy failure: normal rerun succeeds"
+
+# ---------------------------------------------------------------------------
+# A failed staging cleanup must not prevent owned-lock cleanup
+# ---------------------------------------------------------------------------
+cleanup_case="$TMP/cleanup-failure-case"
+cleanup_wrapper="$TMP/cleanup-wrapper"
+cleanup_count="$TMP/cleanup-cp-count"
+cp -r "$FIXTURE/." "$cleanup_case/"
+mkdir "$cleanup_wrapper"
+CLEANUP_REAL_CP=$(command -v cp)
+CLEANUP_REAL_RM=$(command -v rm)
+export CLEANUP_REAL_CP CLEANUP_REAL_RM
+export CLEANUP_CP_COUNT_FILE="$cleanup_count"
+cat > "$cleanup_wrapper/cp" <<'EOF'
+#!/usr/bin/env bash
+count=$(sed -n '1p' "$CLEANUP_CP_COUNT_FILE" 2>/dev/null || true)
+count=${count:-0}
+count=$((count + 1))
+printf '%s\n' "$count" > "$CLEANUP_CP_COUNT_FILE"
+[ "$count" -ne 2 ] || exit 77
+exec "$CLEANUP_REAL_CP" "$@"
+EOF
+cat > "$cleanup_wrapper/rm" <<'EOF'
+#!/usr/bin/env bash
+[ "$1" != "-rf" ] || exit 88
+exec "$CLEANUP_REAL_RM" "$@"
+EOF
+chmod +x "$cleanup_wrapper/cp" "$cleanup_wrapper/rm"
+if (cd "$cleanup_case" && PATH="$cleanup_wrapper:$PATH" bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
+  echo "FAIL [cleanup failure: apply should fail]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [cleanup failure: apply failed]"
+fi
+if [[ -e "$cleanup_case/docs/maxi/.specs-migration.lock" ]]; then
+  echo "FAIL [cleanup failure: owned lock was not released]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [cleanup failure: owned lock released]"
+fi
 
 summary_and_exit "migrate-from-speckit checks"
