@@ -10,6 +10,54 @@ failures=0
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
+make_attack_fixture() {
+  local dir="$1"
+  git -C "$dir" init -q
+  mkdir -p "$dir/scripts" "$dir/vendor/superpowers/skills/current" "$dir/skills/old"
+  cp "$ROOT/scripts/sync-superpowers.sh" "$dir/scripts/"
+  printf '%s\n' current > "$dir/vendor/superpowers/skills/current/SKILL.md"
+  printf '%s\n' old > "$dir/skills/old/SKILL.md"
+  printf '%s\n' sentinel > "$dir/.git/audit-sentinel"
+}
+
+assert_rejected_ledger() {
+  local label="$1"
+  shift
+  local case_dir="$TMP/$label"
+  mkdir -p "$case_dir"
+  make_attack_fixture "$case_dir"
+  printf '%s\n' "$@" > "$case_dir/vendor/superpowers/.synced-skills"
+  if (cd "$case_dir" && bash scripts/sync-superpowers.sh >/dev/null 2>&1); then
+    echo "FAIL [$label: unsafe ledger accepted]" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [$label: unsafe ledger rejected]"
+  fi
+  assert_file_exists "$case_dir/.git/audit-sentinel" "$label: git sentinel preserved"
+  assert_file_exists "$case_dir/skills/old/SKILL.md" "$label: no prior orphan removal"
+}
+
+assert_rejected_ledger traversal old ../.git
+assert_rejected_ledger absolute old /tmp/escape
+assert_rejected_ledger separator old nested/name
+assert_rejected_ledger dot old .
+assert_rejected_ledger dotdot old ..
+assert_rejected_ledger control old $'bad\tname'
+assert_rejected_ledger duplicate old old
+
+positive_dir="$TMP/positive"
+mkdir -p "$positive_dir"
+git -C "$positive_dir" init -q
+mkdir -p "$positive_dir/scripts" "$positive_dir/vendor/superpowers/skills" "$positive_dir/skills"
+cp "$ROOT/scripts/sync-superpowers.sh" "$positive_dir/scripts/"
+for skill in old test-driven-development using_superpowers.v1; do
+  mkdir -p "$positive_dir/vendor/superpowers/skills/$skill"
+  printf '%s\n' "$skill" > "$positive_dir/vendor/superpowers/skills/$skill/SKILL.md"
+done
+printf '%s\n' old test-driven-development using_superpowers.v1 > "$positive_dir/vendor/superpowers/.synced-skills"
+(cd "$positive_dir" && bash scripts/sync-superpowers.sh >/dev/null)
+assert_file_exists "$positive_dir/skills/using_superpowers.v1/SKILL.md" "positive ledger: portable names accepted"
+
 git -C "$TMP" init -q
 
 mkdir -p "$TMP/scripts"

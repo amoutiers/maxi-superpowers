@@ -17,14 +17,33 @@ shopt -s nullglob
 SYNCED_LIST="$VENDOR_DIR/.synced-skills"
 
 # Remove orphaned vendored skills (skills that were synced before but no longer exist upstream)
+previously_synced=()
 if [ -f "$SYNCED_LIST" ]; then
-  while IFS= read -r orphan; do
+  while IFS= read -r orphan || [ -n "$orphan" ]; do
     [ -z "$orphan" ] && continue
+    if [[ ! "$orphan" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+      echo "ERROR: unsafe synced skill name: $orphan" >&2
+      exit 1
+    fi
+    if [ "${#previously_synced[@]}" -gt 0 ]; then
+      for seen in "${previously_synced[@]}"; do
+        if [ "$seen" = "$orphan" ]; then
+          echo "ERROR: duplicate synced skill name: $orphan" >&2
+          exit 1
+        fi
+      done
+    fi
+    previously_synced+=("$orphan")
+  done < "$SYNCED_LIST"
+fi
+
+if [ "${#previously_synced[@]}" -gt 0 ]; then
+  for orphan in "${previously_synced[@]}"; do
     if [ ! -d "$SRC/$orphan" ] && [ -d "$DST/$orphan" ]; then
       echo "Removing orphaned vendored skill: $orphan"
       rm -rf "$DST/$orphan"
     fi
-  done < "$SYNCED_LIST"
+  done
 fi
 
 synced=0
