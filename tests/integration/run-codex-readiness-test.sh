@@ -32,6 +32,17 @@ if [ ! -f "$USER_CODEX_HOME/auth.json" ]; then
   echo "ERROR: Codex authentication file not found" >&2
   exit 1
 fi
+if ! command -v jq >/dev/null 2>&1; then
+  echo "ERROR: jq is required to verify Codex JSONL output" >&2
+  exit 1
+fi
+
+SOURCE_STATE_BEFORE=$(git -C "$ROOT" status --porcelain=v1 --untracked-files=all)
+if [ -n "$SOURCE_STATE_BEFORE" ]; then
+  echo "ERROR: source worktree must be clean before readiness lifecycle" >&2
+  exit 1
+fi
+SOURCE_HEAD_BEFORE=$(git -C "$ROOT" rev-parse HEAD)
 
 mkdir -p "$SPEC_DIR" "$ISOLATED_CODEX_HOME"
 trap 'rm -rf "$ISOLATED_CODEX_HOME"' EXIT
@@ -131,9 +142,6 @@ if ! cmp -s "$ROOT/skills/analyze/readiness-contract.sh" \
   exit 1
 fi
 
-SOURCE_STATE_BEFORE=$(git -C "$ROOT" status --porcelain=v1 --untracked-files=all)
-SOURCE_HEAD_BEFORE=$(git -C "$ROOT" rev-parse HEAD)
-
 echo "Running codex exec ..."
 : > "$LOG_FILE"
 if run_codex_with_deadline "$LOG_FILE" \
@@ -156,9 +164,11 @@ elif [ "$CODEX_STATUS" -ne 0 ]; then
   echo "FAIL: Codex exited with status $CODEX_STATUS" >&2
   echo "Log: $LOG_FILE"
   exit "$CODEX_STATUS"
-elif ! grep -Fq '"type":"turn.completed"' "$LOG_FILE"; then
+elif ! tr -d '\000' < "$LOG_FILE" | grep -a '^{' | jq -e \
+  'select(.type == "turn.completed")' > /dev/null; then
   echo "FAIL: Codex did not complete its turn" >&2
-elif grep -Fq '"type":"turn.failed"' "$LOG_FILE"; then
+elif tr -d '\000' < "$LOG_FILE" | grep -a '^{' | jq -e \
+  'select(.type == "turn.failed")' > /dev/null; then
   echo "FAIL: Codex reported a failed turn" >&2
 elif grep -Fq 'failed to load plugin' "$LOG_FILE"; then
   echo "FAIL: Codex failed to load the local plugin" >&2

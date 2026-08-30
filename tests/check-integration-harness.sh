@@ -73,6 +73,17 @@ if [ -f "$READINESS_HARNESS" ]; then
   assert_grep "$READINESS_HARNESS" 'readiness-contract.sh.*verify' "readiness runner verifies stamped evidence"
   assert_grep "$READINESS_HARNESS" 'SOURCE_STATE_BEFORE' "readiness runner snapshots source state"
   assert_grep "$READINESS_HARNESS" 'SOURCE_STATE_AFTER' "readiness runner verifies source state"
+  assert_grep "$READINESS_HARNESS" 'command -v jq' "readiness runner requires jq"
+  assert_grep "$READINESS_HARNESS" 'jq -e' "readiness runner parses JSONL structurally"
+  assert_grep "$READINESS_HARNESS" '\.type == "turn.completed"' "readiness runner requires a top-level completed event"
+  assert_grep "$READINESS_HARNESS" '\.type == "turn.failed"' "readiness runner rejects a top-level failed event"
+  assert_not_grep "$READINESS_HARNESS" 'grep .*turn\.completed\|grep .*turn\.failed' "readiness runner does not substring-match terminal events"
+  if awk '/^if \[ -n "\$SOURCE_STATE_BEFORE" \]; then/{ dirty = NR } /^mkdir -p "\$SPEC_DIR"/{ output = NR } /codex exec .*--sandbox workspace-write/{ exec = NR } END { exit !(dirty && output && exec && dirty < output && dirty < exec) }' "$READINESS_HARNESS"; then
+    echo "OK  [readiness runner rejects dirty source before output and Codex]"
+  else
+    echo "FAIL [readiness runner rejects dirty source before output and Codex]" >&2
+    failures=$((failures + 1))
+  fi
   if awk '/^SOURCE_STATE_AFTER=/{ after = NR } /^echo "=== Results ==="$/{ results = NR } END { exit !(after && results && after < results) }' "$READINESS_HARNESS"; then
     echo "OK  [readiness runner snapshots final source state before result checks]"
   else
