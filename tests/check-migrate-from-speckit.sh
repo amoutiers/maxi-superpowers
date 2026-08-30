@@ -360,6 +360,12 @@ if [[ -e "$lock_case/docs/maxi/specs/specs" ]]; then
 else
   echo "OK  [migration lock: no nested specs]"
 fi
+if find "$lock_case/docs/maxi" -maxdepth 1 -name '.specs-migration-owner.*' -print | grep -q .; then
+  echo "FAIL [migration lock: failed acquisition left owner staging]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [migration lock: failed acquisition cleaned owner staging]"
+fi
 rmdir "$lock_case/docs/maxi/.specs-migration.lock"
 if (cd "$lock_case" && bash "$SCRIPT" --apply --yes >/dev/null); then
   echo "OK  [migration lock: rerun succeeds after release]"
@@ -470,6 +476,52 @@ if [[ -e "$cleanup_case/docs/maxi/.specs-migration.lock" ]]; then
   failures=$((failures + 1))
 else
   echo "OK  [cleanup failure: owned lock released]"
+fi
+
+# ---------------------------------------------------------------------------
+# A replacement lock must survive cleanup by the prior lock generation
+# ---------------------------------------------------------------------------
+handoff_case="$TMP/lock-handoff-case"
+handoff_wrapper="$TMP/lock-handoff-wrapper"
+handoff_count="$TMP/lock-handoff-cp-count"
+cp -r "$FIXTURE/." "$handoff_case/"
+mkdir "$handoff_wrapper"
+HANDOFF_REAL_CP=$(command -v cp)
+HANDOFF_REAL_RM=$(command -v rm)
+export HANDOFF_REAL_CP HANDOFF_REAL_RM
+export HANDOFF_CP_COUNT_FILE="$handoff_count"
+HANDOFF_LOCK_PATH="$(cd "$handoff_case" && pwd -P)/docs/maxi/.specs-migration.lock"
+export HANDOFF_LOCK_PATH
+cat > "$handoff_wrapper/cp" <<'EOF'
+#!/usr/bin/env bash
+count=$(sed -n '1p' "$HANDOFF_CP_COUNT_FILE" 2>/dev/null || true)
+count=${count:-0}
+count=$((count + 1))
+printf '%s\n' "$count" > "$HANDOFF_CP_COUNT_FILE"
+[ "$count" -ne 2 ] || exit 77
+exec "$HANDOFF_REAL_CP" "$@"
+EOF
+cat > "$handoff_wrapper/rm" <<'EOF'
+#!/usr/bin/env bash
+if [ "$1" = "$HANDOFF_LOCK_PATH" ]; then
+  "$HANDOFF_REAL_RM" "$HANDOFF_LOCK_PATH"
+  mkdir "$HANDOFF_LOCK_PATH"
+  exit 0
+fi
+exec "$HANDOFF_REAL_RM" "$@"
+EOF
+chmod +x "$handoff_wrapper/cp" "$handoff_wrapper/rm"
+if (cd "$handoff_case" && PATH="$handoff_wrapper:$PATH" bash "$SCRIPT" --apply --yes >/dev/null 2>&1); then
+  echo "FAIL [lock handoff: apply should fail]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [lock handoff: apply failed]"
+fi
+if [[ -d "$handoff_case/docs/maxi/.specs-migration.lock" ]]; then
+  echo "OK  [lock handoff: replacement lock survives prior cleanup]"
+else
+  echo "FAIL [lock handoff: replacement lock was removed]" >&2
+  failures=$((failures + 1))
 fi
 
 summary_and_exit "migrate-from-speckit checks"

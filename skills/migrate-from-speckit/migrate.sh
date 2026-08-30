@@ -198,27 +198,37 @@ maxi_root=$(cd docs/maxi && pwd -P)
 [[ "$maxi_root" == "$repo_root/docs/maxi" ]] \
   || die "docs/maxi resolves outside the project root"
 
-lock_dir="$maxi_root/.specs-migration.lock"
+lock_path="$maxi_root/.specs-migration.lock"
+lock_owner_dir=""
+lock_source=""
 lock_owned=0
 stage_dir=""
 # This serializes cooperating migrate.sh instances, not arbitrary external writers.
 cleanup_migration() {
   local exit_status=$?
   [ -z "${stage_dir:-}" ] || rm -rf "$stage_dir" 2>/dev/null || :
-  if [[ "$lock_owned" -eq 1 ]]; then
-    rmdir "$lock_dir" 2>/dev/null || :
-    lock_owned=0
+  if [[ "$lock_owned" -eq 1 && "$lock_source" -ef "$lock_path" ]]; then
+    rm "$lock_path" 2>/dev/null || :
   fi
+  [ -z "${lock_source:-}" ] || rm "$lock_source" 2>/dev/null || :
+  [ -z "${lock_owner_dir:-}" ] || rmdir "$lock_owner_dir" 2>/dev/null || :
+  lock_owned=0
   return "$exit_status"
 }
 release_lock() {
-  [[ "$lock_owned" -eq 1 ]] || return
-  rmdir "$lock_dir" || die "Could not release migration lock"
+  if [[ "$lock_owned" -eq 1 && "$lock_source" -ef "$lock_path" ]]; then
+    rm "$lock_path" || die "Could not release migration lock"
+  fi
+  rm "$lock_source" || die "Could not release migration lock"
+  rmdir "$lock_owner_dir" || die "Could not release migration lock"
   lock_owned=0
 }
-trap cleanup_migration EXIT
 
-if ! mkdir "$lock_dir"; then
+lock_owner_dir=$(mktemp -d "$maxi_root/.specs-migration-owner.XXXXXX")
+lock_source="$lock_owner_dir/.specs-migration.lock"
+trap cleanup_migration EXIT
+: > "$lock_source"
+if ! ln "$lock_source" "$maxi_root"; then
   die "Another spec migration is in progress"
 fi
 lock_owned=1
