@@ -62,6 +62,10 @@ else
   failures=$((failures + 1))
 fi
 
+assert_not_grep "$PLUGIN" 'const frontmatter = {}' "maxi.js: does not build unused frontmatter"
+assert_not_grep "$PLUGIN" 'frontmatterStr.split' "maxi.js: does not parse unused frontmatter fields"
+assert_grep "$PLUGIN" 'stripFrontmatter' "maxi.js: strips the bootstrap frontmatter"
+
 # Check tool mapping for OpenCode
 if grep -q "Tool Mapping for OpenCode" "$PLUGIN"; then
   echo "OK  [maxi.js: has OpenCode tool mapping]"
