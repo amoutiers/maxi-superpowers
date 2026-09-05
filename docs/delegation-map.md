@@ -15,7 +15,7 @@ This table shows which maxi pipeline skill delegates to which sub-skill, what st
 | `review` | current `spec.md` and `plan.md`; explicit re-review request | dedicated `skills/review/design-reviewer.md` brief with accepted `related_adrs` and one exact terminal verdict | none; writes `reviews/design-review.md` |
 | `tasks` | `planned`; current approved `reviews/design-review.md` | (none — extraction from plan.md) | `planned → tasked` |
 | `analyze` | `tasked`, `analyzed`, `implementing`, or `done` | (none — reads artifacts, writes and stamps `analysis.md`) | `tasked → analyzed` (once; reruns don't change status) |
-| `implement` | `analyzed` or `implementing` (resume), with a current `maxi-readiness-v1` contract | `/maxi:x-develop` | `analyzed → implementing`; `READY_TO_FINISH` receipt gate; then `implementing → done` |
+| `implement` | `analyzed` or `implementing` (resume), with a current `maxi-readiness-v2` contract | `/maxi:x-develop` | `analyzed → implementing`; `READY_TO_FINISH` receipt gate; then `implementing → done` |
 
 Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
 
@@ -37,7 +37,9 @@ Removing an anchored incomplete `TNNN` during structural correction fails before
 
 Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.
 
-A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v1` and its recorded structural spec/tasks hashes and exact plan hash match the current artifacts; `/maxi:implement` verifies this before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
+A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
+
+Design approval uses `maxi-design-review-v1` with exact spec/plan hashes and the same decision-input digest: exact constitution bytes and names/bytes of every direct ADR Markdown file except generated README.md, regardless of status. Owners capture original hashes before reading, review the complete decision-input snapshot, and compare before report/status writes. Candidate-based stamping atomically publishes only after comparing the original supplied digest; failure preserves prior evidence. Tasks and implement resolve verifiers from loaded installed skills, never client fallbacks; legacy evidence requires a new actual review or analysis. Only `DESIGN_REVIEW_VERIFIED` permits extraction, and only `READINESS_VERIFIED` permits new/resumed implementation.
 
 ### Fixed Review Boundaries
 

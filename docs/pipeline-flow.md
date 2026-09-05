@@ -50,7 +50,7 @@ flowchart TD
     PLAN ==>|"planned; one design review"| DESIGN_REVIEW
     DESIGN_REVIEW ==>|"approved current spec + plan"| TASKS
     TASKS ==>|"tasked → analyzed"| ANALYZE
-    ANALYZE ==>|"maxi-readiness-v1 verified"| IMPLEMENT
+    ANALYZE ==>|"maxi-readiness-v2 verified"| IMPLEMENT
     IMPLEMENT ==>|"delegates execution"| DEVELOP
     DEVELOP ==>|"hash-bound terminal evidence"| READY
     READY ==>|"implement persists done"| DONE
@@ -96,7 +96,9 @@ flowchart TD
 - `/maxi:constitution` has no status prerequisite — it can run at any time.
 - Every forward phase is mandatory and must run in order — no phase may be skipped.
 - `/maxi:analyze` is non-destructive and can be re-run at any status from `tasked` onward; status does not change after the first run.
-- A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v1` and its recorded structural spec/tasks hashes and exact plan hash match the current artifacts; `/maxi:implement` verifies this before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
+- A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
+
+Design approval uses `maxi-design-review-v1` with exact spec/plan hashes and the same decision-input digest: exact constitution bytes and names/bytes of every direct ADR Markdown file except generated README.md, regardless of status. Owners capture original hashes before reading, review the complete decision-input snapshot, and compare before report/status writes. Candidate-based stamping atomically publishes only after comparing the original supplied digest; failure preserves prior evidence. Tasks and implement resolve verifiers from loaded installed skills, never client fallbacks; legacy evidence requires a new actual review or analysis. Only `DESIGN_REVIEW_VERIFIED` permits extraction, and only `READINESS_VERIFIED` permits new/resumed implementation.
 - `x-adr` is internal and is never invoked directly by the user. Every new ADR records its creating spec through a direct `spec` link or uses `spec: null`. During an initial active lifecycle (`drafting` through `implementing`) that lacks the monotone `reopened_from: done` watermark, a detected change to an accepted ADR linked to the current spec triggers an agent-proposed active-spec amendment: `x-adr` shows the full amended ADR and exact diff, then writes only after explicit approval. Missing or null links, specs at `done`, `parked`, or `cancelled`, and reopened specs marked `reopened_from: done` use closed-spec supersession instead. This cross-cutting route does not add a status or transition.
 - The initial design review is invoked once by `/maxi:plan` after its first normal write. `/maxi:review` is only for an explicit re-review after a correction or stale record. It dispatches the dedicated `skills/review/design-reviewer.md` artifact brief with the exact current `spec.md`, `plan.md`, and accepted ADRs named by `related_adrs`, then writes `reviews/design-review.md` only for one exact terminal verdict; `/maxi:tasks` stops without writing when that approval is missing or stale. Task `Files` lists are expected primary edits, not implementation allowlists, so mechanical closure is nonblocking unless the reviewed design itself must change.
 - Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.

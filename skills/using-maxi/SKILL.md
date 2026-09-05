@@ -47,12 +47,14 @@ The 10-state FSM remains unchanged. The three fixed review boundaries are design
 | `/maxi:plan` | `clarified` | `planned`, then one design review |
 | `/maxi:review` | current `spec.md` and `plan.md`; explicit re-review request | `reviews/design-review.md` |
 | `/maxi:tasks` | `planned` plus current approved `reviews/design-review.md` | `tasked` |
-| `/maxi:analyze` | `tasked`+ | `analyzed` plus stamped `maxi-readiness-v1` report |
-| `/maxi:implement` | `analyzed` or `implementing`; current `maxi-readiness-v1` contract | `done` after `READY_TO_FINISH` |
+| `/maxi:analyze` | `tasked`+ | `analyzed` plus stamped `maxi-readiness-v2` report |
+| `/maxi:implement` | `analyzed` or `implementing`; current `maxi-readiness-v2` contract | `done` after `READY_TO_FINISH` |
 
 The design review uses `skills/review/design-reviewer.md` and supplies the complete current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It records SHA-256 values for the spec/plan pair and writes only after one exact terminal verdict. Task `Files` lists identify expected primary edits, not implementation allowlists. Mechanical callers, module declarations, registrations, fixtures, manifests, generated metadata, and lockfiles are nonblocking when they only implement the reviewed owning task without changing requirements, behavior beyond that task, feasibility, architecture, public contracts, task decomposition, dependency order, safety, or verification. A missing or stale approval stops `/maxi:tasks` before any write. Corrections stop after their owner write and never start a review or successor phase; request `/maxi:review` when a re-review is wanted.
 
-A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v1` and its recorded structural spec/tasks hashes and exact plan hash match the current artifacts; `/maxi:implement` verifies this before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
+A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
+
+Design approval uses `maxi-design-review-v1` with exact spec/plan hashes and the same decision-input digest: exact constitution bytes and names/bytes of every direct ADR Markdown file except generated README.md, regardless of status. Owners capture original hashes before reading, review the complete decision-input snapshot, and compare before report/status writes. Candidate-based stamping atomically publishes only after comparing the original supplied digest; failure preserves prior evidence. Tasks and implement resolve verifiers from loaded installed skills, never client fallbacks; legacy evidence requires a new actual review or analysis. Only `DESIGN_REVIEW_VERIFIED` permits extraction, and only `READINESS_VERIFIED` permits new/resumed implementation.
 
 ## SDD Final Review
 

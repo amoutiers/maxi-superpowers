@@ -4,10 +4,12 @@ set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
 CONTRACT="$ROOT/skills/analyze/readiness-contract.sh"
+INPUTS="$ROOT/skills/review/review-inputs.sh"
 source "$ROOT/tests/lib/test-helpers.sh"
 
 failures=0
-TMP="$(mktemp -d)"
+TMP_RAW="$(mktemp -d)"
+TMP="$(cd "$TMP_RAW" && pwd -P)"
 trap 'rm -rf "$TMP"' EXIT
 BASE="$TMP/base"
 mkdir -p "$BASE"
@@ -67,8 +69,9 @@ fail() {
 
 copy_fixture() {
   local name="$1" target
-  target="$TMP/$name"
+  target="$TMP/$name/docs/maxi/specs/0001-readiness-fixture"
   mkdir -p "$target"
+  printf "# Constitution\nStable rule.\n" > "$TMP/$name/docs/maxi/constitution.md"
   cp "$BASE"/*.md "$target/"
   printf '%s\n' "$target"
 }
@@ -82,15 +85,17 @@ rewrite() {
 
 stamp() {
   local dir="$1" outcome="$2" count="$3"
-  bash "$CONTRACT" stamp \
+  local candidate="$dir/.candidate" project_root="${dir%/docs/maxi/specs/*}"
+  cp "$BASE/analysis.md" "$candidate"
+  bash "$CONTRACT" stamp "$candidate" \
     "$dir/analysis.md" "$dir/spec.md" "$dir/plan.md" "$dir/tasks.md" \
-    "$outcome" "$count"
+    "$outcome" "$count" "$project_root" "$(bash "$INPUTS" hash "$project_root")"
 }
 
 verify() {
   local dir="$1"
   bash "$CONTRACT" verify \
-    "$dir/analysis.md" "$dir/spec.md" "$dir/plan.md" "$dir/tasks.md"
+    "$dir/analysis.md" "$dir/spec.md" "$dir/plan.md" "$dir/tasks.md" "${dir%/docs/maxi/specs/*}"
 }
 
 expect_verify_success() {
@@ -168,10 +173,10 @@ else
   fail "stamp preserves the existing report body"
 fi
 
-case "$(sed -n '1,8p' "$GOOD/analysis.md")" in
-  $'---\nreadiness_contract: maxi-readiness-v1\noutcome: pass\ncritical_issues: 0\nspec_structural_sha256: '????????????????????????????????????????????????????????????????$'\nplan_sha256: '????????????????????????????????????????????????????????????????$'\ntasks_structural_sha256: '????????????????????????????????????????????????????????????????$'\n---')
-    ok "stamp writes the exact six-field envelope" ;;
-  *) fail "stamp writes the exact six-field envelope" ;;
+case "$(sed -n '1,9p' "$GOOD/analysis.md")" in
+  $'---\nreadiness_contract: maxi-readiness-v2\noutcome: pass\ncritical_issues: 0\nspec_structural_sha256: '????????????????????????????????????????????????????????????????$'\nplan_sha256: '????????????????????????????????????????????????????????????????$'\ntasks_structural_sha256: '????????????????????????????????????????????????????????????????$'\nreview_inputs_sha256: '????????????????????????????????????????????????????????????????$'\n---')
+    ok "stamp writes the exact seven-field envelope" ;;
+  *) fail "stamp writes the exact seven-field envelope" ;;
 esac
 
 case_dir="$(copy_fixture spec-metadata)"
@@ -256,7 +261,7 @@ expect_verify_failure "unknown contract field is rejected" "$case_dir"
 case_dir="$(copy_fixture malformed-hash)"; cp "$GOOD/analysis.md" "$case_dir/analysis.md"; rewrite "$case_dir/analysis.md" '{ if ($0 ~ /^plan_sha256:/) print "plan_sha256: ABC"; else print }'
 expect_verify_failure "malformed hash is rejected" "$case_dir"
 
-case_dir="$(copy_fixture unsupported-version)"; cp "$GOOD/analysis.md" "$case_dir/analysis.md"; rewrite "$case_dir/analysis.md" '{ if ($0 ~ /^readiness_contract:/) print "readiness_contract: maxi-readiness-v2"; else print }'
+case_dir="$(copy_fixture unsupported-version)"; cp "$GOOD/analysis.md" "$case_dir/analysis.md"; rewrite "$case_dir/analysis.md" '{ if ($0 ~ /^readiness_contract:/) print "readiness_contract: maxi-readiness-v1"; else print }'
 expect_verify_failure "unsupported contract version is rejected" "$case_dir"
 
 case_dir="$(copy_fixture blocked-outcome)"; cp "$GOOD/analysis.md" "$case_dir/analysis.md"; rewrite "$case_dir/analysis.md" '{ if ($0 == "outcome: pass") print "outcome: blocked"; else print }'
@@ -285,12 +290,14 @@ case_dir="$(copy_fixture symlink-file)"; cp "$GOOD/analysis.md" "$case_dir/analy
 expect_verify_failure "symlinked input file is rejected" "$case_dir"
 
 case_dir="$(copy_fixture wrong-basename)"; cp "$GOOD/analysis.md" "$case_dir/analysis.md"; mv "$case_dir/plan.md" "$case_dir/design.md"
-expect_command_failure "wrong input basename is rejected" bash "$CONTRACT" verify "$case_dir/analysis.md" "$case_dir/spec.md" "$case_dir/design.md" "$case_dir/tasks.md"
+expect_command_failure "wrong input basename is rejected" bash "$CONTRACT" verify "$case_dir/analysis.md" "$case_dir/spec.md" "$case_dir/design.md" "$case_dir/tasks.md" "${case_dir%/docs/maxi/specs/*}"
 
 case_dir="$(copy_fixture split-directory)"; cp "$GOOD/analysis.md" "$case_dir/analysis.md"; mkdir "$case_dir/other"; mv "$case_dir/tasks.md" "$case_dir/other/tasks.md"
-expect_command_failure "inputs from different physical directories are rejected" bash "$CONTRACT" verify "$case_dir/analysis.md" "$case_dir/spec.md" "$case_dir/plan.md" "$case_dir/other/tasks.md"
+expect_command_failure "inputs from different physical directories are rejected" bash "$CONTRACT" verify "$case_dir/analysis.md" "$case_dir/spec.md" "$case_dir/plan.md" "$case_dir/other/tasks.md" "${case_dir%/docs/maxi/specs/*}"
 
 expect_command_failure "unknown mode is rejected" bash "$CONTRACT" inspect
 expect_command_failure "verify arity is exact" bash "$CONTRACT" verify "$GOOD/analysis.md"
 
+GATE=readiness
+source "$ROOT/tests/lib/approval-cases.sh"
 summary_and_exit "readiness contract checks"

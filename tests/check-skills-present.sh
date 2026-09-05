@@ -28,4 +28,6 @@ assert_file_exists "$SKILLS_DIR/review/design-reviewer.md" "dedicated design rev
 assert_executable "$SKILLS_DIR/review/review-inputs.sh" "decision-input digest helper"
 assert_not_grep "$SKILLS_DIR/review/SKILL.md" 'x-review\|bounded replay\|replay_continuation' "review has no obsolete handoff contract"
 
+assert_file_exists "$ROOT/skills/review/design-contract.sh" "design envelope helper"
+assert_file_exists "$ROOT/skills/analyze/readiness-contract.sh" "readiness envelope helper"
 summary_and_exit "maxi-native skill checks"

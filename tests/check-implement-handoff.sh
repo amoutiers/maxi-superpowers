@@ -48,6 +48,11 @@ if grep -Fq 'bash skills/analyze/readiness-contract.sh' "$IMPLEMENT"; then
   fail_contract 'implement retains a project-relative verifier fallback'
 fi
 
+if [ "$(grep -Fc '"$analysis_path" "$spec_path" "$plan_path" "$tasks_path" "$project_root"' "$IMPLEMENT")" -ne 2 ]; then
+  fail_contract 'every new/resumed verification must pass the explicit project root'
+fi
+require_literal "$IMPLEMENT" 'Legacy v1 evidence and constitution/ADR changes require a new actual' 'implement may upgrade stale evidence'
+
 # x-develop owns one projection/ledger/review lifecycle and returns before finishing.
 require_literal "$DEVELOP" '`project-tasks.sh`' 'x-develop does not create or verify a projection'
 require_literal "$DEVELOP" '`reconcile-tasks.sh`' 'x-develop does not reconcile checkboxes'

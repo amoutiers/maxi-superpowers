@@ -395,7 +395,7 @@ if [ -f "$ROOT/skills/review/design-reviewer.md" ]; then
   assert_grep "$ROOT/skills/review/design-reviewer.md" 'VERDICT: rejected' "reviewer has rejected terminal verdict"
 fi
 
-readiness_sentence='A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v1` and its recorded structural spec/tasks hashes and exact plan hash match the current artifacts; `/maxi:implement` verifies this before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.'
+readiness_sentence='A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.'
 
 for document in \
   "$ROOT/docs/pipeline-flow.md" \
@@ -414,4 +414,6 @@ for document in \
   fi
 done
 
+GATE=design
+source "$ROOT/tests/lib/approval-cases.sh"
 summary_and_exit "fixed review boundary checks"

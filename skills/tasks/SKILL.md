@@ -17,7 +17,12 @@ Extract or explicitly correct a structured `tasks.md` from an existing `plan.md`
 
 ## Process
 
-1. **Read inputs and gate extraction** — load `plan.md` as primary source; also load `spec.md`, `research.md`, `data-model.md`, and `contracts/` if they exist alongside it in `docs/maxi/specs/NNNN-slug/`. Compute SHA-256 for the exact current bytes of `spec.md` and `plan.md`, then read `reviews/design-review.md`. Accept only `verdict: approved` with both `reviewed_spec_sha256` and `reviewed_plan_sha256` equal to those current hashes. On a missing or stale design review, stop with no write and direct the user to `/maxi:review`; never invoke that skill itself.
+1. **Read inputs and gate extraction** — load `plan.md` as primary source; also load `spec.md`, `research.md`, `data-model.md`, and `contracts/` if they exist alongside it in `docs/maxi/specs/NNNN-slug/`. Before extraction or any write, load `review` support by its registered skill name without executing its review workflow. Use the exact loaded `review/SKILL.md` directory to resolve the canonical absolute `design_contract` path to adjacent `design-contract.sh`, requiring a regular, non-symlink file. Never search the client project for helpers or fall back to a local skills directory. Run:
+   ```bash
+   bash "$design_contract" verify "$review_path" "$spec_path" "$plan_path" "$project_root"
+   ```
+   Require exit 0 and exactly `DESIGN_REVIEW_VERIFIED`. This verifies `reviews/design-review.md` against exact spec/plan bytes and all decision inputs. On a missing or stale design review, malformed metadata, legacy unstamped approval, or verifier failure, stop with no write and direct the user to `/maxi:review`; never invoke that workflow itself or restamp old evidence.
+
 2. **Map tasks to user stories** — for each user story in `spec.md`, collect the tasks from `plan.md` that implement it. Tag each task with `[US1]`, `[US2]`, etc.
 3. **Identify parallel tasks** — mark with `[P]` any task that touches different files from all other tasks in the same phase (no shared-file writes, no dependency on concurrent tasks)
 4. **Assign sequential IDs and source mappings** — number all tasks `T001`, `T002`, ... in phase order. Preserve exactly one terminal `(plan Task <positive integer>)` mapping on every extracted item, naming the source `plan.md` `Task N` heading. Require a bijection between `plan.md` executable `Task N` headings and those mappings. No letters, no "Task N" IDs, and no "Step N" IDs.

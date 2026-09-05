@@ -91,4 +91,9 @@ done
 
 assert_grep "$ROOT/README.md" 'direct `spec` link equals the current active spec slug' "README.md routes amendments through the current active spec slug"
 
+for doc in "$ROOT/AGENTS.md" "$ROOT/docs/pipeline-flow.md" "$ROOT/docs/delegation-map.md" "$ROOT/docs/architecture.md" "$ROOT/skills/using-maxi/SKILL.md"; do
+  assert_grep "$doc" 'maxi-design-review-v1' "$(basename "$doc"): versioned design approval"
+  assert_grep "$doc" 'review_inputs_sha256' "$(basename "$doc"): decision-input bound gates"
+  assert_grep "$doc" 'Candidate-based stamping' "$(basename "$doc"): atomic candidate publication"
+done
 summary_and_exit "skill-count consistency checks"

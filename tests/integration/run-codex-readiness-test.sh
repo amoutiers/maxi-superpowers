@@ -144,12 +144,22 @@ if ! cmp -s "$ROOT/skills/analyze/readiness-contract.sh" \
   exit 1
 fi
 
+INSTALLED_REVIEW_INPUTS="$(cd "$INSTALLED_ANALYZE_DIR/../review" && pwd -P)/review-inputs.sh"
+if [ ! -f "$INSTALLED_REVIEW_INPUTS" ] || [ -L "$INSTALLED_REVIEW_INPUTS" ] || \
+   ! cmp -s "$ROOT/skills/review/review-inputs.sh" "$INSTALLED_REVIEW_INPUTS"; then
+  echo "ERROR: installed decision-input helper differs from this worktree" >&2
+  exit 1
+fi
+mkdir "$OUTPUT_DIR/verified-helpers"
+cp "$INSTALLED_READINESS_CONTRACT" "$INSTALLED_REVIEW_INPUTS" "$OUTPUT_DIR/verified-helpers/"
+echo "PASS: installed analyze skill, readiness verifier and decision-input helper match source bytes"
+
 FIXTURE_HEAD_BEFORE=$(git -C "$FIXTURE" rev-parse HEAD)
 echo "Running codex exec ..."
 : > "$LOG_FILE"
 if run_codex_with_deadline "$LOG_FILE" \
   codex exec --ephemeral --json --sandbox workspace-write --cd "$FIXTURE" \
-  "Run /maxi:analyze for 0001-readiness-integration. Complete the readiness review and its allowed status transition. Do not implement or commit anything. After /maxi:analyze, run one separate shell command containing only: bash \"$INSTALLED_READINESS_CONTRACT\" verify \"$SPEC_DIR/analysis.md\" \"$SPEC_DIR/spec.md\" \"$SPEC_DIR/plan.md\" \"$SPEC_DIR/tasks.md\". Do not combine that verifier command with stamp or any other command."; then
+  "Run /maxi:analyze for 0001-readiness-integration. Complete the readiness review and its allowed status transition. Do not implement or commit anything. After /maxi:analyze, run one separate shell command containing only: bash \"$INSTALLED_READINESS_CONTRACT\" verify \"$SPEC_DIR/analysis.md\" \"$SPEC_DIR/spec.md\" \"$SPEC_DIR/plan.md\" \"$SPEC_DIR/tasks.md\" \"$FIXTURE\". Do not combine that verifier command with stamp or any other command."; then
   CODEX_STATUS=0
 else
   CODEX_STATUS=$?
@@ -183,7 +193,8 @@ elif ! tr -d '\000' < "$LOG_FILE" | grep -a '^{' | jq -s -e \
   --arg analysis "$SPEC_DIR/analysis.md" \
   --arg spec "$SPEC_DIR/spec.md" \
   --arg plan "$SPEC_DIR/plan.md" \
-  --arg tasks "$SPEC_DIR/tasks.md" '
+  --arg tasks "$SPEC_DIR/tasks.md" \
+  --arg project_root "$FIXTURE" '
   def shell_words:
     [scan("[^[:space:]]+")
       | sub("^[\"\u0027();]+"; "")
@@ -196,7 +207,7 @@ elif ! tr -d '\000' < "$LOG_FILE" | grep -a '^{' | jq -s -e \
       .item.status == "completed" and
       ((.item.command | shell_words) as $words |
         $words == ["/bin/zsh", "-lc", "bash",
-          $verifier, "verify", $analysis, $spec, $plan, $tasks]) and
+          $verifier, "verify", $analysis, $spec, $plan, $tasks, $project_root]) and
       (.item.aggregated_output == "READINESS_VERIFIED" or
        .item.aggregated_output == "READINESS_VERIFIED\n")
     )
@@ -209,7 +220,7 @@ elif ! bash "$INSTALLED_READINESS_CONTRACT" verify \
   "$SPEC_DIR/analysis.md" \
   "$SPEC_DIR/spec.md" \
   "$SPEC_DIR/plan.md" \
-  "$SPEC_DIR/tasks.md"; then
+  "$SPEC_DIR/tasks.md" "$FIXTURE"; then
   echo "FAIL: installed readiness verifier rejected analysis.md" >&2
 else
   echo "PASS: readiness lifecycle"
