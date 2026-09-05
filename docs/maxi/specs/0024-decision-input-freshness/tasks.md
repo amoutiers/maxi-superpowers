@@ -20,7 +20,7 @@ Reuse existing native scripts and test harnesses. No setup-only task.
 
 ## Phase 2: Foundational (blocks both stories)
 
-- [ ] T001 [US1] [US2] Implement canonical decision-input digest in skills/review/review-inputs.sh with tests/check-review-boundaries.sh, tests/check-skills-present.sh and docs/architecture.md coverage (plan Task 1)
+- [x] T001 [US1] [US2] Implement canonical decision-input digest in skills/review/review-inputs.sh with tests/check-review-boundaries.sh, tests/check-skills-present.sh and docs/architecture.md coverage (plan Task 1)
 
 **Checkpoint**: Deterministic input identity and fail-closed validation are independently tested.
 
