@@ -33,7 +33,8 @@ maxi-superpowers/
 │   ├── clarify/
 │   ├── plan/
 │   ├── review/              # explicit design-review owner
-│   │   └── design-reviewer.md # dedicated artifact-review brief
+│   │   ├── design-reviewer.md # dedicated artifact-review brief
+│   │   └── review-inputs.sh # canonical decision-input digest
 │   ├── tasks/
 │   ├── analyze/
 │   │   └── readiness-contract.sh # readiness evidence stamp/verify
