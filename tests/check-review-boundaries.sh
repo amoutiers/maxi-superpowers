@@ -220,6 +220,10 @@ relocated="$DIGEST_TMP/relocated"
 cp -R "$case_a" "$relocated"
 assert_digest_equal "$(digest "$case_a")" "$(digest "$relocated")" "unchanged relocation preserves digest"
 
+backslash_relocated="$DIGEST_TMP/back\\slash"
+cp -R "$case_a" "$backslash_relocated"
+assert_digest_equal "$(digest "$case_a")" "$(digest "$backslash_relocated")" "backslash relocation preserves digest"
+
 glob_root="$DIGEST_TMP/case*"
 make_digest_case "$glob_root"
 mkdir "$DIGEST_TMP/case-other"

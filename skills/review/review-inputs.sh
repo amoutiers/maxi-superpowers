@@ -8,7 +8,7 @@ die() {
 }
 
 sha256() {
-  shasum -a 256 "$1" | awk '{print $1}'
+  shasum -a 256 < "$1" | awk '{print $1}'
 }
 
 reject_symlinked_components() {
