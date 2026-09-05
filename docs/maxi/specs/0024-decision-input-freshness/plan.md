@@ -71,7 +71,7 @@ Spec and plan live in this directory. Design review, tasks and analysis are prod
 
 ## Decisions
 
-No new ADR recorded yet. Proposed ADR-0028 supersedes [0026-hash-bound-readiness-evidence](../../adr/0026-hash-bound-readiness-evidence.md), because it replaces readiness v1 with v2. It complements [0022-fixed-review-boundaries](../../adr/0022-fixed-review-boundaries.md) and [0023-dedicated-design-review-contract](../../adr/0023-dedicated-design-review-contract.md): exact spec/plan and independent verdict rules remain.
+Accepted [0028-decision-input-freshness](../../adr/0028-decision-input-freshness.md) supersedes [0026-hash-bound-readiness-evidence](../../adr/0026-hash-bound-readiness-evidence.md), because it replaces readiness v1 with v2. It complements [0022-fixed-review-boundaries](../../adr/0022-fixed-review-boundaries.md) and [0023-dedicated-design-review-contract](../../adr/0023-dedicated-design-review-contract.md): exact spec/plan and independent verdict rules remain.
 
 ## Complexity Tracking
 

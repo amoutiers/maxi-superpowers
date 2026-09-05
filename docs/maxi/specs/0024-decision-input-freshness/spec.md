@@ -2,9 +2,9 @@
 slug: 0024-decision-input-freshness
 created: 2026-09-05
 updated: 2026-09-05
-status: clarified
+status: planned
 parked_from: null
-related_adrs: []
+related_adrs: [0028-decision-input-freshness]
 ---
 
 # Feature Specification: Decision Input Freshness

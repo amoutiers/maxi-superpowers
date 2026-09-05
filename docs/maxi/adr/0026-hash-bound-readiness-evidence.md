@@ -2,12 +2,12 @@
 adr: 0026
 slug: 0026-hash-bound-readiness-evidence
 spec: null
-status: accepted
+status: superseded
 created: 2026-08-30
 updated: 2026-08-30
 decider: "Antoine Moutiers"
 supersedes: null
-superseded_by: null
+superseded_by: 0028
 ---
 
 # ADR-0026: Hash-Bound Readiness Evidence
