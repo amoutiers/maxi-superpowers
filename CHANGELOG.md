@@ -1,4 +1,50 @@
 
+## [2.6.0] - 2026-09-05
+
+### Features
+
+- Add hash-bound readiness evidence contract
+- Enforce current readiness evidence before implementation
+- Hash canonical decision inputs
+- Bind approval gates to reviewed decision inputs
+
+### Bug Fixes
+
+- Validate synced skill names before deletion
+- Make spec-kit migration atomic and yaml-safe
+- Reject symlinked migration constitution target
+- Validate migration constitution destination type
+- Prevent constitution copy race during migration
+- Serialize atomic spec-kit migration install
+- Always release owned migration lock
+- Make migration lock generation-safe
+- Harden codex readiness evidence checks
+- Bind readiness checks to installed verifier
+- Close migration and readiness validation gaps
+- Reject nested migration symlinks and ambiguous metadata
+- Preserve complete SDD task handoffs and secure v1 upgrades
+- Hash review inputs without filenames
+
+### Documentation
+
+- Close verified SDD handoff remediation
+- Specify and plan decision input freshness
+- Record decision freshness ADR and design review
+- Preserve prior evidence during approval publication
+- Approve and ready decision freshness implementation
+- Record reviewed decision digest completion
+- Complete decision input freshness
+
+### Refactoring
+
+- Remove unused opencode frontmatter parsing
+- Share approval validation guard
+
+### Testing
+
+- Exercise the codex readiness lifecycle
+
+
 ## [2.5.0] - 2026-08-23
 
 ### Features

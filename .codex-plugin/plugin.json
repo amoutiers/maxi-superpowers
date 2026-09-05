@@ -1,6 +1,6 @@
 {
   "name": "maxi",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Spec-driven development pipeline for Codex: constitution -> specify -> clarify -> plan -> tasks -> analyze -> implement",
   "author": {
     "name": "maxi-superpowers contributors"
