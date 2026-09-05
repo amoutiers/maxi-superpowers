@@ -2,7 +2,7 @@
 slug: 0023-sdd-handoff-remediation
 created: 2026-09-05
 updated: 2026-09-05
-status: implementing
+status: done
 parked_from: null
 related_adrs: [0027-complete-sdd-task-projections]
 ---
