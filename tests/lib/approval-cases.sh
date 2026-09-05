@@ -190,4 +190,10 @@ mv "$APPROVAL_TMP/plugin/skills/review/review-inputs.sh" "$APPROVAL_TMP/saved-he
 approval_reject 'missing installed helper fails closed' approval_verify
 ln -s "$APPROVAL_TMP/saved-helper" "$APPROVAL_TMP/plugin/skills/review/review-inputs.sh"
 approval_reject 'symlinked installed helper fails closed' approval_verify
+rm "$APPROVAL_TMP/plugin/skills/review/review-inputs.sh"
+cp "$APPROVAL_TMP/saved-helper" "$APPROVAL_TMP/plugin/skills/review/review-inputs.sh"
+mv "$APPROVAL_TMP/plugin/skills/review/approval-guard.sh" "$APPROVAL_TMP/saved-guard"
+approval_reject 'missing installed approval guard fails closed' approval_verify
+ln -s "$APPROVAL_TMP/saved-guard" "$APPROVAL_TMP/plugin/skills/review/approval-guard.sh"
+approval_reject 'symlinked installed approval guard fails closed' approval_verify
 rm -rf "$APPROVAL_TMP"

@@ -35,6 +35,7 @@ maxi-superpowers/
 │   ├── review/              # explicit design-review owner
 │   │   ├── design-reviewer.md # dedicated artifact-review brief
 │   │   ├── design-contract.sh # candidate-based design stamp/verify
+│   │   ├── approval-guard.sh # shared approval path and alias validation
 │   │   └── review-inputs.sh # canonical decision-input digest
 │   ├── tasks/
 │   ├── analyze/

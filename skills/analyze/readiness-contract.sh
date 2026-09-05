@@ -80,74 +80,6 @@ tasks_structural_sha() {
   ' "$1" | shasum -a 256 | awk '{print $1}'
 }
 
-# Reject symlink components before physical resolution, including lexical .. paths.
-physical_path() {
-  local path="$1" current part rest parent
-  [ -n "$path" ] || return 1
-  case "$path" in /*) current=/; rest="${path#/}" ;; *) current="$PWD"; rest="$path" ;; esac
-  while [ -n "$rest" ]; do
-    part="${rest%%/*}"
-    if [ "$rest" = "$part" ]; then rest=''; else rest="${rest#*/}"; fi
-    case "$part" in
-      ''|.) continue ;;
-      ..) current="$(cd "$current/.." && pwd -P)" || return 1; continue ;;
-    esac
-    [ ! -L "$current/$part" ] || return 1
-    current="$current/$part"
-  done
-  parent="$(cd "$(dirname "$path")" 2>/dev/null && pwd -P)" || return 1
-  printf '%s/%s\n' "$parent" "$(basename "$path")"
-}
-
-input_file() {
-  local path expected="$2"
-  path="$(physical_path "$1")" || return 1
-  [ "${path##*/}" = "$expected" ] && [ -f "$path" ] && [ -r "$path" ] || return 1
-  case "$path" in "$PROJECT_ROOT"/*) ;; *) return 1 ;; esac
-  printf '%s\n' "$path"
-}
-
-resolve_root() {
-  physical_path "$1/." >/dev/null || die 'project root contains symlinked components'
-  PROJECT_ROOT="$(cd "$1" 2>/dev/null && pwd -P)" || die 'invalid project root'
-  CURRENT_INPUTS="$(bash "$REVIEW_INPUTS" hash "$PROJECT_ROOT")" || die 'invalid decision inputs'
-}
-
-resolve_destination() {
-  local supplied="$1" canonical="$2" mode="$3"
-  DESTINATION="$(physical_path "$supplied")" || die 'invalid evidence path'
-  [ "$DESTINATION" = "$canonical" ] || die 'evidence must have its canonical name and parent'
-  if [ -e "$DESTINATION" ]; then
-    [ -f "$DESTINATION" ] && [ -r "$DESTINATION" ] || die 'evidence is not a readable regular file'
-    reject_input_alias "$DESTINATION"
-  else
-    [ "$mode" = stamp ] || die 'evidence is missing'
-  fi
-}
-
-reject_input_alias() {
-  local file="$1" input
-  for input in "$SPEC" "$PLAN" "${TASKS:-$(dirname "$SPEC")/tasks.md}" "$PROJECT_ROOT/docs/maxi/constitution.md" "$PROJECT_ROOT/docs/maxi/adr/"*.md "$PROJECT_ROOT/docs/maxi/adr/".*.md; do
-    [ -e "$input" ] || continue
-    [ ! "$file" -ef "$input" ] || die 'evidence or candidate aliases a reviewed input'
-  done
-}
-
-resolve_candidate() {
-  CANDIDATE="$(physical_path "$1")" || die 'candidate has symlinked components or missing parent'
-  [ -f "$CANDIDATE" ] && [ -r "$CANDIDATE" ] || die 'candidate is not a readable regular file'
-  [ "$(dirname "$CANDIDATE")" = "$(dirname "$DESTINATION")" ] || die 'candidate must be beside destination'
-  [ "$CANDIDATE" != "$DESTINATION" ] && [ ! "$CANDIDATE" -ef "$DESTINATION" ] || die 'candidate aliases destination'
-  reject_input_alias "$CANDIDATE"
-  [ "$(head -n 1 "$CANDIDATE")" != --- ] || die 'candidate must be an unstamped report body'
-}
-
-check_expected_inputs() {
-  valid_hash "$1" || die 'malformed expected decision-input digest'
-  CURRENT_INPUTS="$(bash "$REVIEW_INPUTS" hash "$PROJECT_ROOT")" || die 'invalid decision inputs'
-  [ "$1" = "$CURRENT_INPUTS" ] || die 'decision inputs changed during review'
-}
-
 resolve_inputs() {
   local analysis="$1" spec="$2" plan="$3" tasks="$4" root="$5" mode="$6" directory
   resolve_root "$root"
@@ -269,8 +201,12 @@ verify() {
 }
 
 LOADED_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || die 'cannot resolve installed analyze directory'
-REVIEW_INPUTS="$(cd "$LOADED_DIR/../review" && pwd -P)/review-inputs.sh" || die 'installed review directory missing'
+LOADED_REVIEW_DIR="$(cd "$LOADED_DIR/../review" && pwd -P)" || die 'installed review directory missing'
+REVIEW_INPUTS="$LOADED_REVIEW_DIR/review-inputs.sh"
 [ -f "$REVIEW_INPUTS" ] && [ ! -L "$REVIEW_INPUTS" ] || die 'installed decision-input helper missing or symlinked'
+APPROVAL_GUARD="$LOADED_REVIEW_DIR/approval-guard.sh"
+[ -f "$APPROVAL_GUARD" ] && [ ! -L "$APPROVAL_GUARD" ] || die 'installed approval guard missing or symlinked'
+source "$APPROVAL_GUARD"
 
 case "${1:-}" in
   stamp)

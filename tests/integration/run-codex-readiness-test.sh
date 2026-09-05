@@ -150,9 +150,15 @@ if [ ! -f "$INSTALLED_REVIEW_INPUTS" ] || [ -L "$INSTALLED_REVIEW_INPUTS" ] || \
   echo "ERROR: installed decision-input helper differs from this worktree" >&2
   exit 1
 fi
+INSTALLED_APPROVAL_GUARD="$(dirname "$INSTALLED_REVIEW_INPUTS")/approval-guard.sh"
+if [ ! -f "$INSTALLED_APPROVAL_GUARD" ] || [ -L "$INSTALLED_APPROVAL_GUARD" ] || \
+   ! cmp -s "$ROOT/skills/review/approval-guard.sh" "$INSTALLED_APPROVAL_GUARD"; then
+  echo "ERROR: installed approval guard differs from this worktree" >&2
+  exit 1
+fi
 mkdir "$OUTPUT_DIR/verified-helpers"
-cp "$INSTALLED_READINESS_CONTRACT" "$INSTALLED_REVIEW_INPUTS" "$OUTPUT_DIR/verified-helpers/"
-echo "PASS: installed analyze skill, readiness verifier and decision-input helper match source bytes"
+cp "$INSTALLED_READINESS_CONTRACT" "$INSTALLED_REVIEW_INPUTS" "$INSTALLED_APPROVAL_GUARD" "$OUTPUT_DIR/verified-helpers/"
+echo "PASS: installed analyze skill, readiness verifier and review helpers match source bytes"
 
 FIXTURE_HEAD_BEFORE=$(git -C "$FIXTURE" rev-parse HEAD)
 echo "Running codex exec ..."
