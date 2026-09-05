@@ -29,7 +29,7 @@ Reuse existing native scripts and test harnesses. No setup-only task.
 **Goal**: Bind both gates to reviewed decision inputs.
 **Independent Test**: Mutation, candidate publication, legacy, progress and installed readiness cases.
 
-- [ ] T002 [US1] [US2] Bind candidate-based design and readiness envelopes and installed consumers in skills/review/design-contract.sh, skills/analyze/readiness-contract.sh and native skills, with tests, readiness integration and Mandatory Sync 5 (depends on T001) (plan Task 2)
+- [x] T002 [US1] [US2] Bind candidate-based design and readiness envelopes and installed consumers in skills/review/design-contract.sh, skills/analyze/readiness-contract.sh and native skills, with tests, readiness integration and Mandatory Sync 5 (depends on T001) (plan Task 2)
 
 **Checkpoint**: Both boundaries reject stale inputs without replacing historical evidence.
 
