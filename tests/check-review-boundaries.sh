@@ -123,6 +123,189 @@ assert_path_absent() {
   fi
 }
 
+INPUTS="$ROOT/skills/review/review-inputs.sh"
+DIGEST_TMP_RAW="$(mktemp -d)"
+DIGEST_TMP="$(cd "$DIGEST_TMP_RAW" && pwd -P)"
+trap 'rm -rf "$DIGEST_TMP"' EXIT
+
+make_digest_case() {
+  local path="$1"
+  mkdir -p "$path/docs/maxi"
+  printf '# Constitution\n\nStable rule.\n' > "$path/docs/maxi/constitution.md"
+}
+
+digest() {
+  bash "$INPUTS" hash "$1"
+}
+
+assert_digest_equal() {
+  local left="$1" right="$2" label="$3"
+  if [ "$left" = "$right" ]; then
+    echo "OK  [$label]"
+  else
+    echo "FAIL [$label]: digests differ" >&2
+    failures=$((failures + 1))
+  fi
+}
+
+assert_digest_changed() {
+  local before="$1" after="$2" label="$3"
+  if [ "$before" != "$after" ]; then
+    echo "OK  [$label]"
+  else
+    echo "FAIL [$label]: digest did not change" >&2
+    failures=$((failures + 1))
+  fi
+}
+
+expect_digest_rejection() {
+  local case_root="$1" label="$2" stdout="$DIGEST_TMP/stdout" stderr="$DIGEST_TMP/stderr" status
+  local constitution_before constitution_after
+  constitution_before="missing"
+  if [ -f "$case_root/docs/maxi/constitution.md" ] && [ ! -L "$case_root/docs/maxi/constitution.md" ] && [ -r "$case_root/docs/maxi/constitution.md" ]; then
+    constitution_before="$(shasum -a 256 "$case_root/docs/maxi/constitution.md" | awk '{print $1}')"
+  fi
+  : > "$stdout"
+  : > "$stderr"
+  set +e
+  bash "$INPUTS" hash "$case_root" >"$stdout" 2>"$stderr"
+  status=$?
+  set -e
+  constitution_after="missing"
+  if [ -f "$case_root/docs/maxi/constitution.md" ] && [ ! -L "$case_root/docs/maxi/constitution.md" ] && [ -r "$case_root/docs/maxi/constitution.md" ]; then
+    constitution_after="$(shasum -a 256 "$case_root/docs/maxi/constitution.md" | awk '{print $1}')"
+  fi
+  if [ "$status" -eq 2 ] && [ ! -s "$stdout" ] && [ -s "$stderr" ] && [ "$constitution_before" = "$constitution_after" ]; then
+    echo "OK  [$label]"
+  else
+    echo "FAIL [$label]: expected exit 2, stderr only, and unchanged source; got $status" >&2
+    failures=$((failures + 1))
+  fi
+}
+
+assert_file_exists "$INPUTS" "decision-input digest helper"
+
+case_a="$DIGEST_TMP/case-a"
+case_b="$DIGEST_TMP/case-b"
+make_digest_case "$case_a"
+make_digest_case "$case_b"
+mkdir "$case_a/docs/maxi/adr" "$case_b/docs/maxi/adr"
+printf '%s\n' 'status: accepted' > "$case_a/docs/maxi/adr/0002-beta.md"
+printf '%s\n' 'status: superseded' > "$case_a/docs/maxi/adr/0001-alpha.md"
+printf '%s\n' 'status: superseded' > "$case_b/docs/maxi/adr/0001-alpha.md"
+printf '%s\n' 'status: accepted' > "$case_b/docs/maxi/adr/0002-beta.md"
+digest_a="$(digest "$case_a")"
+digest_b="$(digest "$case_b")"
+assert_digest_equal "$digest_a" "$digest_b" "ADR creation order does not affect digest"
+if printf '%s\n' "$digest_a" | grep -Eq '^[0-9a-f]{64}$'; then
+  echo "OK  [digest output is one lowercase SHA-256 line]"
+else
+  echo "FAIL [digest output is one lowercase SHA-256 line]" >&2
+  failures=$((failures + 1))
+fi
+
+absent="$DIGEST_TMP/absent"
+empty="$DIGEST_TMP/empty"
+make_digest_case "$absent"
+make_digest_case "$empty"
+mkdir "$empty/docs/maxi/adr"
+assert_digest_equal "$(digest "$absent")" "$(digest "$empty")" "absent and empty ADR directories are equivalent"
+
+before="$(digest "$case_a")"
+printf 'generated index\n' > "$case_a/docs/maxi/adr/README.md"
+printf 'ignored note\n' > "$case_a/docs/maxi/adr/notes.txt"
+assert_digest_equal "$before" "$(digest "$case_a")" "generated README and regular non-Markdown files are ignored"
+
+relocated="$DIGEST_TMP/relocated"
+cp -R "$case_a" "$relocated"
+assert_digest_equal "$(digest "$case_a")" "$(digest "$relocated")" "unchanged relocation preserves digest"
+
+backslash_relocated="$DIGEST_TMP/back\\slash"
+cp -R "$case_a" "$backslash_relocated"
+assert_digest_equal "$(digest "$case_a")" "$(digest "$backslash_relocated")" "backslash relocation preserves digest"
+
+glob_root="$DIGEST_TMP/case*"
+make_digest_case "$glob_root"
+mkdir "$DIGEST_TMP/case-other"
+assert_digest_equal "$(digest "$glob_root")" "$(cd "$DIGEST_TMP" && bash "$INPUTS" hash 'case*')" "literal glob characters in supplied root are not expanded"
+
+mutation="$DIGEST_TMP/mutation"
+cp -R "$case_a" "$mutation"
+before="$(digest "$mutation")"
+printf '\nChanged rule.\n' >> "$mutation/docs/maxi/constitution.md"
+after="$(digest "$mutation")"
+assert_digest_changed "$before" "$after" "constitution mutation changes digest"
+
+for operation in add remove rename status content; do
+  rm -rf "$mutation"
+  cp -R "$case_a" "$mutation"
+  before="$(digest "$mutation")"
+  case "$operation" in
+    add) printf 'status: deprecated\n' > "$mutation/docs/maxi/adr/0003-gamma.md" ;;
+    remove) rm "$mutation/docs/maxi/adr/0002-beta.md" ;;
+    rename) mv "$mutation/docs/maxi/adr/0002-beta.md" "$mutation/docs/maxi/adr/0002-renamed.md" ;;
+    status) printf 'status: deprecated\n' > "$mutation/docs/maxi/adr/0002-beta.md" ;;
+    content) printf '\nChanged decision.\n' >> "$mutation/docs/maxi/adr/0002-beta.md" ;;
+  esac
+  after="$(digest "$mutation")"
+  assert_digest_changed "$before" "$after" "ADR $operation changes digest"
+done
+
+missing="$DIGEST_TMP/missing"
+mkdir -p "$missing/docs/maxi"
+expect_digest_rejection "$missing" "missing constitution is rejected"
+
+outside="$DIGEST_TMP/outside"
+make_digest_case "$outside"
+root_link="$DIGEST_TMP/root-link"
+ln -s "$outside" "$root_link"
+expect_digest_rejection "$root_link" "symlinked supplied root is rejected"
+
+for component in docs maxi constitution; do
+  unsafe="$DIGEST_TMP/symlink-$component"
+  mkdir -p "$unsafe"
+  case "$component" in
+    docs) ln -s "$outside/docs" "$unsafe/docs" ;;
+    maxi) mkdir "$unsafe/docs"; ln -s "$outside/docs/maxi" "$unsafe/docs/maxi" ;;
+    constitution) mkdir -p "$unsafe/docs/maxi"; ln -s "$outside/docs/maxi/constitution.md" "$unsafe/docs/maxi/constitution.md" ;;
+  esac
+  expect_digest_rejection "$unsafe" "symlinked $component input is rejected"
+done
+
+for kind in file_symlink directory fifo control; do
+  unsafe="$DIGEST_TMP/adr-$kind"
+  make_digest_case "$unsafe"
+  mkdir "$unsafe/docs/maxi/adr"
+  case "$kind" in
+    file_symlink) ln -s "$outside/docs/maxi/constitution.md" "$unsafe/docs/maxi/adr/external.md" ;;
+    directory) mkdir "$unsafe/docs/maxi/adr/nested.md" ;;
+    fifo) mkfifo "$unsafe/docs/maxi/adr/pipe.md" ;;
+    control) printf 'bad\n' > "$unsafe/docs/maxi/adr/$(printf 'bad\nname.md')" ;;
+  esac
+  expect_digest_rejection "$unsafe" "ADR $kind entry is rejected"
+done
+
+unreadable="$DIGEST_TMP/unreadable"
+make_digest_case "$unreadable"
+chmod 000 "$unreadable/docs/maxi/constitution.md"
+if [ ! -r "$unreadable/docs/maxi/constitution.md" ]; then
+  expect_digest_rejection "$unreadable" "unreadable constitution is rejected"
+else
+  echo "OK  [unreadable constitution check skipped: platform still reports readable]"
+fi
+chmod 600 "$unreadable/docs/maxi/constitution.md"
+
+unreadable_adr="$DIGEST_TMP/unreadable-adr"
+make_digest_case "$unreadable_adr"
+mkdir "$unreadable_adr/docs/maxi/adr"
+chmod 000 "$unreadable_adr/docs/maxi/adr"
+if [ ! -r "$unreadable_adr/docs/maxi/adr" ] || [ ! -x "$unreadable_adr/docs/maxi/adr" ]; then
+  expect_digest_rejection "$unreadable_adr" "unreadable ADR directory is rejected"
+else
+  echo "OK  [unreadable ADR directory check skipped: platform still reports readable]"
+fi
+chmod 700 "$unreadable_adr/docs/maxi/adr"
+
 assert_file_exists "$ROOT/skills/review/SKILL.md" "public design review skill"
 assert_file_exists "$ROOT/skills/review/design-reviewer.md" "dedicated design reviewer brief"
 assert_grep "$ROOT/skills/plan/SKILL.md" 'one design review.*spec.md.*plan.md' "plan has one design boundary"
@@ -212,7 +395,7 @@ if [ -f "$ROOT/skills/review/design-reviewer.md" ]; then
   assert_grep "$ROOT/skills/review/design-reviewer.md" 'VERDICT: rejected' "reviewer has rejected terminal verdict"
 fi
 
-readiness_sentence='A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v1` and its recorded structural spec/tasks hashes and exact plan hash match the current artifacts; `/maxi:implement` verifies this before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.'
+readiness_sentence='A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.'
 
 for document in \
   "$ROOT/docs/pipeline-flow.md" \
@@ -231,4 +414,6 @@ for document in \
   fi
 done
 
+GATE=design
+source "$ROOT/tests/lib/approval-cases.sh"
 summary_and_exit "fixed review boundary checks"

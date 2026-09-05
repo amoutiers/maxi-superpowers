@@ -20,10 +20,12 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 
 1. **Verify readiness review** — first resolve the verifier from the installed plugin snapshot. Load `analyze` by its registered skill name and take the exact loaded `analyze/SKILL.md` path reported by the skill loader. Canonicalize its containing directory to a physical absolute path and set the canonical absolute `readiness_contract` path to the adjacent `readiness-contract.sh`. Require it to resolve to a regular, non-symlink file (`-f` and not `-L`); otherwise stop before any write or `/maxi:x-develop` dispatch. Do not search from the project root or use a project-relative fallback.
 
+   Bind the explicit physical `project_root`. The installed verifier resolves its sibling review-input helper; missing or symlinked helpers fail closed. Legacy v1 evidence and constitution/ADR changes require a new actual `/maxi:analyze`, never restamping old evidence.
+
    `analysis.md` is the required readiness review of the current design and tasks before code begins. Resolve the selected root's canonical `analysis.md`, `spec.md`, `plan.md`, and `tasks.md` paths, then run the bound verifier:
    ```bash
    bash "$readiness_contract" verify \
-     "$analysis_path" "$spec_path" "$plan_path" "$tasks_path"
+     "$analysis_path" "$spec_path" "$plan_path" "$tasks_path" "$project_root"
    ```
    Require exit 0 and exactly one stdout line: `READINESS_VERIFIED`. On any failure, stop before any write or `/maxi:x-develop` dispatch, report that the readiness evidence is missing, malformed, blocked, unsupported, or stale, and instruct the user to run `/maxi:analyze`.
 2. **Bind artifacts** — load the selected root's canonical `spec.md`, `plan.md`, and `tasks.md`. Identify `- [ ]` (pending) and `- [x]` (complete) tasks. Pass the exact canonical `spec.md`, `plan.md`, and `tasks.md` paths to `/maxi:x-develop`.
@@ -52,7 +54,7 @@ If status is already `implementing`:
 - Re-run `readiness-contract.sh` `verify` against the current artifacts:
   ```bash
   bash "$readiness_contract" verify \
-    "$analysis_path" "$spec_path" "$plan_path" "$tasks_path"
+    "$analysis_path" "$spec_path" "$plan_path" "$tasks_path" "$project_root"
   ```
   Require exit 0 and exactly one stdout line, `READINESS_VERIFIED`; otherwise stop before any write or `/maxi:x-develop` dispatch and instruct the user to run `/maxi:analyze` because the readiness evidence is missing, malformed, blocked, unsupported, or stale.
 - Read tasks.md to find the first `- [ ]` (unchecked) task

@@ -7,6 +7,7 @@ export LC_ALL
 
 SCRIPT_DIR="$(cd -P "$(dirname "$0")" && pwd)"
 PROJECT_HELPER="$SCRIPT_DIR/project-tasks.sh"
+projection_headings() { awk -f "$SCRIPT_DIR/projection-headings.awk" "$1"; }
 [ -f "$PROJECT_HELPER" ] || { echo 'ERROR: projection helper is missing' >&2; exit 2; }
 
 die() { echo "ERROR: $*" >&2; exit 2; }
@@ -77,7 +78,7 @@ TASKS="$(canonical_file "$TASKS")" || die 'tasks is missing or symlinked'
 
 IFS= read -r first < "$LEDGER" || die 'empty ledger'
 [ "$first" = "# SDD ledger — plan: $PROJECTION" ] || die 'ledger projection identity mismatch'
-[ "$(field "$PROJECTION" sdd_projection 2>/dev/null)" = maxi-v1 ] || die 'invalid projection contract'
+[ "$(field "$PROJECTION" sdd_projection 2>/dev/null)" = maxi-v2 ] || die 'current execution requires v2; run ordinary projection to upgrade v1'
 SPEC="$(field "$PROJECTION" source_spec 2>/dev/null)" || die 'projection has no source spec'
 SPEC="$(canonical_file "$SPEC")" || die 'projection source spec is missing or noncanonical'
 PLAN="$(field "$PROJECTION" source_plan 2>/dev/null)" || die 'projection has no source plan'
@@ -110,7 +111,7 @@ verified_projection="$(cd "$ROOT" && bash "$PROJECT_HELPER" --spec "$SPEC" --pla
 TMP="$(mktemp -d "$(dirname "$TASKS")/.reconcile.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 MAP="$TMP/map"
-sed -n 's/^### Task \([1-9][0-9]*\): \(T[0-9][0-9][0-9]\) .*/\1|\2/p' "$PROJECTION" > "$MAP"
+projection_headings "$PROJECTION" > "$MAP"
 map_count="$(wc -l < "$MAP" | tr -d ' ')"
 [ "$(cut -d'|' -f1 "$MAP" | sort -u | wc -l | tr -d ' ')" -eq "$map_count" ] || die 'duplicate projected task number'
 [ "$(cut -d'|' -f2 "$MAP" | sort -u | wc -l | tr -d ' ')" -eq "$map_count" ] || die 'duplicate projected Maxi id'

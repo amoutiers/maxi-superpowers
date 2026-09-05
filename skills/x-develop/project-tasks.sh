@@ -5,6 +5,9 @@ set -euo pipefail
 LC_ALL=C
 export LC_ALL
 
+SCRIPT_DIR="$(cd -P "$(dirname "$0")" && pwd)"
+projection_headings() { awk -f "$SCRIPT_DIR/projection-headings.awk" "$1"; }
+
 die() { echo "ERROR: $*" >&2; exit 2; }
 sha() { shasum -a 256 "$1" | awk '{print $1}'; }
 
@@ -92,18 +95,19 @@ canonical_projection() {
 
 verify_projection() {
   local file="$1" expected_slug="$2" stored_body actual_body plan_hash tasks_hash
-  local expected_basename execution_mode task_sections
+  local expected_basename execution_mode task_sections version version_suffix
   canonical_projection "$file" >/dev/null || return 1
-  [ "$(projection_field "$file" sdd_projection 2>/dev/null)" = maxi-v1 ] || return 1
+  version="$(projection_field "$file" sdd_projection 2>/dev/null)" || return 1
+  case "$version" in maxi-v1) version_suffix='' ;; maxi-v2) version_suffix=-v2 ;; *) return 1 ;; esac
   [ "$(projection_field "$file" slug 2>/dev/null)" = "$expected_slug" ] || return 1
   plan_hash="$(projection_field "$file" source_plan_sha256 2>/dev/null)" || return 1
   tasks_hash="$(projection_field "$file" tasks_structural_sha256 2>/dev/null)" || return 1
   case "$plan_hash:$tasks_hash" in *[!0-9a-f:]*|*:|:*) return 1 ;; esac
   [ "${#plan_hash}" -eq 64 ] && [ "${#tasks_hash}" -eq 64 ] || return 1
-  expected_basename="$expected_slug-p-$(printf '%s' "$plan_hash" | cut -c1-12)-t-$(printf '%s' "$tasks_hash" | cut -c1-12)-sdd.md"
+  expected_basename="$expected_slug$version_suffix-p-$(printf '%s' "$plan_hash" | cut -c1-12)-t-$(printf '%s' "$tasks_hash" | cut -c1-12)-sdd.md"
   [ "$(basename "$file")" = "$expected_basename" ] || return 1
   execution_mode="$(projection_field "$file" execution_mode 2>/dev/null)" || return 1
-  task_sections="$(grep -c '^### Task [1-9][0-9]*: T[0-9][0-9][0-9] ' "$file" || true)"
+  task_sections="$(projection_headings "$file" | wc -l | tr -d ' ')"
   case "$execution_mode" in
     ordinary) [ "$task_sections" -gt 0 ] || return 1 ;;
     final-review-only) [ "$task_sections" -eq 0 ] || return 1 ;;
@@ -159,7 +163,7 @@ ledger_completes_projection() {
   while IFS= read -r number; do
     [ -n "$number" ] || continue
     grep -Fqx -- "$number" "${anchored}.completions" || return 1
-  done < <(sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$projection")
+  done < <(projection_headings "$projection" | cut -d'|' -f1)
 }
 
 lineage_completed_ids() {
@@ -201,10 +205,10 @@ validate_selection_anchor() {
     [ "$(sort -u "$output" | wc -l | tr -d ' ')" -eq "$(wc -l < "$output" | tr -d ' ')" ] || return 1
   fi
   headings="${output}.headings"
-  sed -n 's/^### Task [1-9][0-9]*: \(T[0-9][0-9][0-9]\) .*/\1/p' "$projection" > "$headings"
+  projection_headings "$projection" | cut -d'|' -f2 > "$headings"
   cmp -s "$output" "$headings" || return 1
   numbers="${output}.numbers"
-  sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$projection" > "$numbers"
+  projection_headings "$projection" | cut -d'|' -f1 > "$numbers"
   validate_ledger_completions "$ledger" "$numbers" "${output}.completions"
 }
 
@@ -247,11 +251,23 @@ under "$SPEC" "$ROOT" && under "$PLAN" "$ROOT" && under "$TASKS" "$ROOT" || die 
 SLUG="$(frontmatter_value "$SPEC" slug 2>/dev/null)" || die 'spec slug is missing or duplicated'
 case "$SLUG" in ''|*[!A-Za-z0-9._-]*|.|..) die 'invalid spec slug' ;; esac
 
+[ "$(tail -c 1 "$PLAN" | wc -l | tr -d ' ')" -eq 1 ] || die 'plan.md must end with a newline (LF); add it so task-brief preserves the final payload line'
+
 PLAN_HASH="$(sha "$PLAN")"
 TASKS_HASH="$(tasks_structural_sha "$TASKS")"
 PLAN12="$(printf '%s' "$PLAN_HASH" | cut -c1-12)"
 TASKS12="$(printf '%s' "$TASKS_HASH" | cut -c1-12)"
-BASENAME="$SLUG-p-$PLAN12-t-$TASKS12-sdd.md"
+BASENAME="$SLUG-v2-p-$PLAN12-t-$TASKS12-sdd.md"
+
+for component in "$ROOT/.superpowers" "$ROOT/.superpowers/sdd"; do
+  [ ! -L "$component" ] || die 'SDD base component is a symlink'
+  [ ! -e "$component" ] || [ -d "$component" ] || die 'SDD base component is not a directory'
+  if [ ! -d "$component" ]; then
+    [ "$VERIFY_ONLY" -eq 0 ] || die 'verify-only requires existing v2 evidence; run ordinary projection first'
+    mkdir "$component" || die 'cannot create SDD base'
+  fi
+  [ "$(cd -P "$component" && pwd)" = "$component" ] || die 'SDD base escapes physical worktree'
+done
 
 [ ! -L "$OUTPUT" ] || die 'output final component is a symlink'
 OUTPUT_PARENT_INPUT="$(dirname "$OUTPUT")"
@@ -259,6 +275,7 @@ if [ ! -e "$OUTPUT_PARENT_INPUT" ] && [ ! -L "$OUTPUT_PARENT_INPUT" ]; then
   SDD_PARENT="$(cd -P "$ROOT/.superpowers/sdd" 2>/dev/null && pwd)" || die 'output parent is missing'
   [ "$SDD_PARENT" = "$ROOT/.superpowers/sdd" ] || die 'output parent escapes the physical SDD root'
   [ "$OUTPUT_PARENT_INPUT" = "$SDD_PARENT/projections" ] || die 'output parent is missing'
+  [ "$VERIFY_ONLY" -eq 0 ] || die 'verify-only requires existing v2 evidence; run ordinary projection first'
   mkdir "$OUTPUT_PARENT_INPUT" || die 'cannot create canonical projections directory'
 fi
 OUT_PARENT="$(cd -P "$(dirname "$OUTPUT")" 2>/dev/null && pwd)" || die 'output parent is missing'
@@ -279,8 +296,10 @@ if [ ! -e "$STATE" ]; then
     [ -e "$orphan" ] || [ -L "$orphan" ] || continue
     orphan_name="$(basename "$orphan")"
     case "$orphan_name" in
-      "$SLUG"-p-*)
-        orphan_identity="${orphan_name#"$SLUG-p-"}"
+      "$SLUG"-p-*|"$SLUG"-v2-p-*)
+        orphan_identity="${orphan_name#"$SLUG-"}"
+        orphan_identity="${orphan_identity#v2-}"
+        orphan_identity="${orphan_identity#p-}"
         printf '%s\n' "$orphan_identity" | grep -Eq '^[0-9a-f]{12}-t-[0-9a-f]{12}-sdd\.md$' && die 'orphan projection or workspace exists without active pointer'
         ;;
     esac
@@ -289,8 +308,10 @@ if [ ! -e "$STATE" ]; then
     [ -e "$orphan" ] || [ -L "$orphan" ] || continue
     orphan_name="$(basename "$orphan")"
     case "$orphan_name" in
-      "$SLUG"-p-*)
-        orphan_identity="${orphan_name#"$SLUG-p-"}"
+      "$SLUG"-p-*|"$SLUG"-v2-p-*)
+        orphan_identity="${orphan_name#"$SLUG-"}"
+        orphan_identity="${orphan_identity#v2-}"
+        orphan_identity="${orphan_identity#p-}"
         printf '%s\n' "$orphan_identity" | grep -Eq '^[0-9a-f]{12}-t-[0-9a-f]{12}-sdd$' && die 'orphan projection or workspace exists without active pointer'
         ;;
     esac
@@ -308,7 +329,13 @@ if [ -e "$STATE" ]; then
   validate_lineage "$PREDECESSOR" "$SLUG" "$SPEC" "$ROOT" || die 'active projection lineage is invalid'
 fi
 
-TMPDIR_LOCAL="$(mktemp -d "$OUT_PARENT/.project-tasks.XXXXXX")"
+if [ "$VERIFY_ONLY" -eq 1 ]; then
+  [ "$PREDECESSOR" != null ] && [ "$(projection_field "$PREDECESSOR" sdd_projection)" = maxi-v2 ] || die 'verify-only requires current v2 evidence; run ordinary projection to upgrade v1'
+  [ "$PREDECESSOR" = "$FINAL" ] && [ -f "$FINAL" ] || die 'verify-only requires the existing current v2 identity; run ordinary projection first'
+fi
+
+# Scratch reconstruction is outside the project, including during verification.
+TMPDIR_LOCAL="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_LOCAL"' EXIT
 TASK_META="$TMPDIR_LOCAL/tasks.meta"
 
@@ -321,7 +348,14 @@ awk '
     if (seen[id]++) invalid("duplicate task id: " id)
     line = $0
     sub(/^- \[[ xX]\]/, "- [ ]", line)
-    print state "\t" id "\tordinary\t" line
+    annotation = line
+    occurrences = gsub(/\(plan Task /, "", annotation)
+    if (occurrences != 1 || line !~ /\(plan Task [1-9][0-9]*\)$/) invalid("task requires exactly one terminal (plan Task N) mapping: " id)
+    mapping = line
+    sub(/^.*\(plan Task /, "", mapping)
+    sub(/\)$/, "", mapping)
+    if (mapped[mapping]++) invalid("duplicate plan task mapping: " mapping)
+    print state "\t" id "\t" mapping "\t" line
     count++
   }
   END { if (count == 0) invalid("no canonical tasks"); if (bad) exit 2 }
@@ -339,54 +373,93 @@ done
 PLAN_PARTS="$TMPDIR_LOCAL/plan"
 mkdir "$PLAN_PARTS"
 awk -v dir="$PLAN_PARTS" '
-  function fence_kind(line) {
-    if (line ~ /^[[:space:]]*```/) return "backtick"
-    if (line ~ /^[[:space:]]*~~~/) return "tilde"
-    return ""
-  }
-  function task_number(line, value) {
-    value = line
-    sub(/^#+[[:space:]]+Task[[:space:]]+/, "", value)
-    sub(/[^0-9].*$/, "", value)
-    return value
-  }
-  {
-    kind = fence_kind($0)
-    if (kind != "") {
-      if (fence == "") fence = kind
-      else if (fence == kind) fence = ""
+  function invalid(message) { print "plan line " NR ": " message > "/dev/stderr"; bad = 1; exit 2 }
+  function emit(line) {
+    if (section == 0) {
+      print line > (dir "/preamble")
+      print $0 > (dir "/preamble-v1")
     }
-    if (fence == "" && $0 ~ /^#+[[:space:]]+Task[[:space:]]+[1-9][0-9]*([^0-9]|$)/) {
+    else print line > (dir "/body-" section)
+  }
+  BEGIN { printf "%s", "" > (dir "/preamble"); printf "%s", "" > (dir "/preamble-v1") }
+  {
+    line = $0
+    delimiter = line
+    sub(/^[[:space:]]*/, "", delimiter)
+    kind = substr(delimiter, 1, 3)
+    if (kind == "```" || kind == "~~~") {
+      tail = substr(delimiter, 4)
+      if (substr(tail, 1, 1) == substr(kind, 1, 1)) invalid("use closed three-character fences, not longer delimiters")
+      if (fence == "") {
+        if (tail ~ /```/) invalid("fence info cannot contain triple backticks; simplify the payload")
+        fence = kind
+        emit("```" tail)
+        next
+      }
+      if (fence == kind) {
+        if (tail !~ /^[[:space:]]*$/) invalid("closing fence must contain only its delimiter and whitespace")
+        fence = ""
+        emit("```" tail)
+        next
+      }
+      if (line ~ /^```/) invalid("payload would toggle upstream backtick state; simplify the nested fence")
+    }
+    if (fence == "" && line ~ /^#+[[:space:]]+Task[[:space:]]+[0-9]+/) {
+      number = line
+      sub(/^#+[[:space:]]+Task[[:space:]]+/, "", number)
+      sub(/[^0-9].*$/, "", number)
+      if (number !~ /^[1-9][0-9]*$/) invalid("executable Task headings require positive numbers without leading zeroes")
+      if (seen[number]++) invalid("duplicate executable Task " number)
       section++
-      number = task_number($0)
       print number > (dir "/order")
-      print $0 > (dir "/heading-" section)
+      printf "%s", "" > (dir "/body-" section)
       next
     }
-    if (section == 0) print > (dir "/preamble")
-    else print > (dir "/body-" section)
+    emit(line)
   }
-  END { if (section == 0) exit 2 }
-' "$PLAN" || die 'plan has no executable Task heading'
+  END {
+    if (fence != "" && !bad) { print "plan has an unclosed fence; close it before projection" > "/dev/stderr"; bad = 1 }
+    if (section == 0 || bad) exit 2
+  }
+' "$PLAN" || die 'plan cannot be represented for upstream task-brief; correct its Task headings or fences'
+
+while IFS=$'\t' read -r state id mapping line; do
+  grep -Fqx -- "$mapping" "$PLAN_PARTS/order" || die "unknown plan Task $mapping mapped by $id; correct tasks.md"
+done < "$TASK_META"
+while IFS= read -r number; do
+  cut -f3 "$TASK_META" | grep -Fqx -- "$number" || die "unmapped executable plan Task $number; correct tasks.md"
+done < "$PLAN_PARTS/order"
 
 render_body() {
-  local selected="$1" output="$2" projected=0 state id mapping line description
+  local selected="$1" output="$2" projected=0 state id mapping line description prefix section
+  local version="${3:-maxi-v2}"
   : > "$output"
-  cat "$PLAN_PARTS/preamble" >> "$output"
+  if [ "$version" = maxi-v1 ]; then
+    cat "$PLAN_PARTS/preamble-v1" >> "$output"
+  else
+    cat "$PLAN_PARTS/preamble" >> "$output"
+  fi
   while IFS=$'\t' read -r state id mapping line; do
     grep -Fqx -- "$id" "$selected" || continue
     projected=$((projected + 1))
-    description="${line#- [ ] $id }"
+    prefix="- [ ] $id "
+    description="${line#"$prefix"}"
+    # The historical unquoted prefix pattern left the whole checkbox line.
+    [ "$version" != maxi-v1 ] || description="$line"
     printf '\n### Task %s: %s %s\n\n%s\n' "$projected" "$id" "$description" "$line" >> "$output"
+    [ "$version" != maxi-v1 ] || continue
+    section="$(awk -v task="$mapping" '$0 == task { print NR }' "$PLAN_PARTS/order")"
+    [ -n "$section" ] || die 'missing mapped plan section'
+    cat "$PLAN_PARTS/body-$section" >> "$output"
   done < "$TASK_META"
 }
 
 write_expected_projection() {
-  local output="$1" body="$2" execution_mode="$3" predecessor="$4" body_hash
+  local output="$1" body="$2" execution_mode="$3" predecessor="$4" version="${5:-maxi-v2}" body_hash
   body_hash="$(sha "$body")"
   {
     echo '---'
-    echo 'sdd_projection: maxi-v1'
+    echo "sdd_projection: $version"
     echo "slug: $SLUG"
     echo "execution_mode: $execution_mode"
     echo "source_spec: $SPEC"
@@ -399,6 +472,23 @@ write_expected_projection() {
     cat "$body"
   } > "$output"
 }
+
+# Matching historical sources retain the original v1 canonical-byte check.
+# Changed-source predecessors remain validated by their immutable lineage anchors.
+legacy_projection="$PREDECESSOR"
+while [ "$legacy_projection" != null ]; do
+  if [ "$(projection_field "$legacy_projection" sdd_projection)" = maxi-v1 ] &&
+    [ "$(projection_field "$legacy_projection" source_plan_sha256)" = "$PLAN_HASH" ] &&
+    [ "$(projection_field "$legacy_projection" tasks_structural_sha256)" = "$TASKS_HASH" ]; then
+    validate_selection_anchor "$legacy_projection" "$ROOT" "$TMPDIR_LOCAL/v1-selected" || die 'legacy selection anchor is invalid'
+    render_body "$TMPDIR_LOCAL/v1-selected" "$TMPDIR_LOCAL/v1-body" maxi-v1
+    write_expected_projection "$TMPDIR_LOCAL/v1-expected" "$TMPDIR_LOCAL/v1-body" \
+      "$(projection_field "$legacy_projection" execution_mode)" \
+      "$(projection_field "$legacy_projection" predecessor_projection)" maxi-v1
+    cmp -s "$TMPDIR_LOCAL/v1-expected" "$legacy_projection" || die 'legacy projection differs from canonical v1 source reconstruction'
+  fi
+  legacy_projection="$(projection_field "$legacy_projection" predecessor_projection)"
+done
 
 unchecked="$(awk -F '\t' '$1 == " " { count++ } END { print count + 0 }' "$TASK_META")"
 SELECTED_IDS="$TMPDIR_LOCAL/selected"
@@ -472,7 +562,11 @@ else
   done < "$TASK_META"
   selected_count="$(wc -l < "$SELECTED_IDS" | tr -d ' ')"
   if [ "$selected_count" -eq 0 ]; then
-    [ "$PROJECT_PREDECESSOR" = null ] || die 'all-checked structural correction cannot skip review evidence'
+    if [ "$PROJECT_PREDECESSOR" != null ]; then
+      [ "$(projection_field "$PROJECT_PREDECESSOR" sdd_projection)" = maxi-v1 ] &&
+        [ "$(projection_field "$PROJECT_PREDECESSOR" source_plan_sha256)" = "$PLAN_HASH" ] &&
+        [ "$(projection_field "$PROJECT_PREDECESSOR" tasks_structural_sha256)" = "$TASKS_HASH" ] || die 'all-checked structural correction cannot skip review evidence'
+    fi
     EXECUTION_MODE=final-review-only
   else
     EXECUTION_MODE=ordinary

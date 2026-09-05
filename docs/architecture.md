@@ -33,7 +33,10 @@ maxi-superpowers/
 │   ├── clarify/
 │   ├── plan/
 │   ├── review/              # explicit design-review owner
-│   │   └── design-reviewer.md # dedicated artifact-review brief
+│   │   ├── design-reviewer.md # dedicated artifact-review brief
+│   │   ├── design-contract.sh # candidate-based design stamp/verify
+│   │   ├── approval-guard.sh # shared approval path and alias validation
+│   │   └── review-inputs.sh # canonical decision-input digest
 │   ├── tasks/
 │   ├── analyze/
 │   │   └── readiness-contract.sh # readiness evidence stamp/verify
@@ -46,6 +49,7 @@ maxi-superpowers/
 │   ├── x-adr/               # internal ADR creation, amendment, and supersession skill
 │   ├── x-develop/           # internal SDD adapter (invoked by implement)
 │   │   ├── project-tasks.sh # immutable TNNN → Task N projection
+│   │   ├── projection-headings.awk # version-aware native heading map
 │   │   ├── reconcile-tasks.sh # upstream ledger → Maxi checkbox reconciliation
 │   │   ├── record-terminal.sh # hash-bound terminal receipt writer
 │   │   └── result-contract.sh # READY_TO_FINISH validation gate
@@ -112,7 +116,7 @@ See [delegation-map.md](delegation-map.md) for the complete mapping and [pipelin
 | `review` | dedicated `review/design-reviewer.md`; writes the design-review record |
 | `tasks` | extraction from `plan.md` |
 | `analyze` | reads artifacts and ADRs, writes and stamps `analysis.md` |
-| `implement` | requires a current `maxi-readiness-v1` contract, then `/maxi:x-develop` and `/maxi:x-adr` for returned unplanned rulings |
+| `implement` | requires a current `maxi-readiness-v2` contract, then `/maxi:x-develop` and `/maxi:x-adr` for returned unplanned rulings |
 | `x-develop` | `superpowers:subagent-driven-development` |
 | `x-adr` | internal ADR creation and active-spec amendment workflow |
 
@@ -120,13 +124,17 @@ Every newly written `plan.md` carries exactly one `Global Constraints` section c
 
 The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
 
-A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v1` and its recorded structural spec/tasks hashes and exact plan hash match the current artifacts; `/maxi:implement` verifies this before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
+A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
+
+Design approval uses `maxi-design-review-v1` with exact spec/plan hashes and the same decision-input digest: exact constitution bytes and names/bytes of every direct ADR Markdown file except generated README.md, regardless of status. Owners capture original hashes before reading, review the complete decision-input snapshot, and compare before report/status writes. Candidate-based stamping atomically publishes only after comparing the original supplied digest; failure preserves prior evidence. Tasks and implement resolve verifiers from loaded installed skills, never client fallbacks; legacy evidence requires a new actual review or analysis. Only `DESIGN_REVIEW_VERIFIED` permits extraction, and only `READINESS_VERIFIED` permits new/resumed implementation.
 
 The public `/maxi:review` command dispatches `review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It writes `reviews/design-review.md`, bound to the spec/plan pair, only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure does not block unless the design must change. `/maxi:tasks` stops before any write if that approval is missing or stale. A correction stops after its owner write and never starts a review or successor phase; request `/maxi:review` explicitly when a new design review is wanted.
 
 `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 
 Upstream SDD owns the only whole-branch review. Before final-review work, `x-develop` persists the immutable initial task-selection anchor in the ordinary SDD ledger. On Codex it allocates a fresh reviewer for an identity handshake, persists the harness-returned canonical task path, then sends the review through a follow-up to that reviewer. It adapts canonical Maxi tasks into an immutable SDD projection, reconciles exact ledger completions, binds the reviewer identity, regenerates review packages from their Git ranges, and returns `READY_TO_FINISH` only after the hash-bound receipt validates. `implement` is the sole owner of the later `done` write and does not dispatch a second final review.
+
+Current execution uses complete-body `maxi-v2` projections; immutable `maxi-v1` files remain verifiable historical predecessors. New projections retain the preamble and render each selected TNNN heading, canonical checkbox line, and complete mapped plan-task body in tasks-file order. Every canonical task, including checked tasks, requires exactly one terminal `(plan Task N)` mapping, bijective with the positive executable plan headings; missing, duplicate, non-positive, unknown, or unmapped entries require owner correction before publication. Plans must end with LF so extraction preserves the final payload line. Closed three-character backtick or tilde fences, optionally indented, normalize to column-zero triple backticks in the preamble and task bodies while preserving payload bytes. Longer or unclosed delimiters and payload lines that would toggle upstream fence state reject; fenced Task-like headings never enter native selection or completion maps. A validated active v1 projection upgrades only through an ordinary projection call to a new `<slug>-v2-p-<plan12>-t-<tasks12>-sdd.md` successor; its file and ledger remain unchanged. `--verify-only` requires an existing current v2 identity and never creates project directories, evidence, or upgrades. Only an unchanged-source v1 upgrade completed by validated ledgers may create an empty successor, which still requires a fresh final review; all-completed structural changes reject.
 
 Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The accepted annotations are `review clean` or a positive `K parked`, with exactly two seven-hex commit IDs.
 
