@@ -49,7 +49,7 @@ Readiness v1 currently returns READINESS_VERIFIED after a constitution-only edit
 | I. Mandatory pipeline | Pass | Canonical spec, clarification, plan, reviews, tasks and analysis precede implementation. |
 | II. Delegate to Superpowers | Pass | Existing SDD remains execution and implementation-review owner. |
 | III. No skipping | Pass | Changes strengthen existing gates, without automatic phase advancement. |
-| IV. ADR capture | Pass | Propose superseding ADR-0026 for the v2 contract; persist only after draft approval. |
+| IV. ADR capture | Pass | Accepted ADR-0028 supersedes ADR-0026 for the v2 contract. |
 | V. Artifacts over chat | Pass | Deterministic envelopes bind file inputs. |
 | VI. Single responsibility | Pass | Digest helper owns dependency identity; each contract owns its envelope. |
 
@@ -112,15 +112,15 @@ Use `set -euo pipefail`; explicitly propagate errors from enumeration and comman
 **Interfaces:** Consume Task 1's `review-inputs.sh hash PROJECT_ROOT`. Proposed commands:
 
 ```text
-readiness-contract.sh stamp ANALYSIS SPEC PLAN TASKS OUTCOME CRITICAL_COUNT PROJECT_ROOT EXPECTED_INPUTS_SHA256
+readiness-contract.sh stamp CANDIDATE ANALYSIS SPEC PLAN TASKS OUTCOME CRITICAL_COUNT PROJECT_ROOT EXPECTED_INPUTS_SHA256
 readiness-contract.sh verify ANALYSIS SPEC PLAN TASKS PROJECT_ROOT
-design-contract.sh stamp REVIEW SPEC PLAN VERDICT PROJECT_ROOT EXPECTED_INPUTS_SHA256
+design-contract.sh stamp CANDIDATE REVIEW SPEC PLAN VERDICT PROJECT_ROOT EXPECTED_INPUTS_SHA256
 design-contract.sh verify REVIEW SPEC PLAN PROJECT_ROOT
 ```
 
-Readiness success remains exactly READINESS_VERIFIED. Design success is exactly DESIGN_REVIEW_VERIFIED. Failure exits 2 without either success token. Stamp preserves the complete owner-written report body, using a temporary file and atomic rename only after validation; callers supply a fresh unstamped report, never stack envelopes. A rejected design may be stamped, but never verifies as approved.
+Readiness success remains exactly READINESS_VERIFIED. Design success is exactly DESIGN_REVIEW_VERIFIED. Failure exits 2 without either success token. Stamp reads the complete owner-written unstamped body from CANDIDATE, builds the envelope in its own temporary file beside the canonical destination, and atomically replaces that destination only after all validation succeeds. The owner never writes a candidate body directly to ANALYSIS or REVIEW. A failed stamp preserves existing destination bytes, or leaves a previously absent destination absent; never stack envelopes. A rejected design may be stamped, but never verifies as approved.
 
-- [ ] **Step 1: Record RED for stale dependency evidence.** Extend fixture wrappers to canonical docs/maxi/specs/slug paths with an explicit project root and constitution. Preserve every original metadata/hash/progress negative case. Add both gate mutation matrices, expected-original-digest mismatch cases with unchanged output bytes, relocation and no-ADR cases, legacy evidence rejection and installed-client-without-skills checks. Demonstrate the original readiness v1 still passes constitution mutation before switching its fixture to the new signature. For design, demonstrate the old documented spec/plan equality predicate remains true after dependency-only mutation.
+- [ ] **Step 1: Record RED for stale dependency evidence.** Extend fixture wrappers to canonical docs/maxi/specs/slug paths with an explicit project root and constitution. Preserve every original metadata/hash/progress negative case. Add both gate mutation matrices, expected-original-digest mismatch cases with unchanged output bytes, candidate publication cases described below, relocation and no-ADR cases, legacy evidence rejection and installed-client-without-skills checks. Demonstrate the original readiness v1 still passes constitution mutation before switching its fixture to the new signature. For design, demonstrate the old documented spec/plan equality predicate remains true after dependency-only mutation.
 
 ```bash
 initial="$(bash "$INPUTS" hash "$case_root")"
@@ -129,7 +129,23 @@ printf '\nIncompatible MUST rule.\n' >> "$case_root/docs/maxi/constitution.md"
 expect_verify_failure 'constitution mutation invalidates readiness' "$case_dir"
 ```
 
-- [ ] **Step 2: Extend the two envelope implementations.** Readiness uses `readiness_contract: maxi-readiness-v2` and adds exactly `review_inputs_sha256` to its existing exact field set. Retain all original outcome/hash/structural parsing checks. Design uses exactly `design_review_contract: maxi-design-review-v1`, `reviewed_spec_sha256`, `reviewed_plan_sha256`, `review_inputs_sha256`, `verdict`; validate approved/rejected metadata, with verify requiring approved. Resolve the shared helper from the physically loaded installed review directory, adjacent to design-contract and sibling of analyze. Reject missing/symlinked helper files; no client fallback. Validate all input files inside the explicit root with no symlinked components; keep readiness colocation and require design report at the spec directory's reviews/design-review.md. Require existing report bodies and a real reviews directory; phase owner creates them, verifier never does.
+For each gate, first publish a valid approval, retain its exact bytes, create a distinct fresh candidate, mutate the constitution, then call stamp with the original digest. Require nonzero exit, no success token and byte-identical prior evidence. Repeat with no previous destination and require it to remain absent. Positive control: unchanged inputs publish the complete new body, valid envelope and no old report-body remnants. Reject missing, outside-directory, symlinked and destination-hard-linked candidates without changing destination or reviewed inputs.
+
+```bash
+cp "$analysis_path" "$case_dir/old-evidence.snapshot"
+candidate="$(mktemp "$case_dir/.analysis-candidate.XXXXXX")"
+printf '# Fresh analysis\n' > "$candidate"
+original_inputs="$(bash "$INPUTS" hash "$case_root")"
+printf '\nChanged during analysis.\n' >> "$case_root/docs/maxi/constitution.md"
+if bash "$CONTRACT" stamp "$candidate" "$analysis_path" \
+  "$spec_path" "$plan_path" "$tasks_path" pass 0 "$case_root" "$original_inputs"; then
+  fail 'stale candidate must not publish'
+fi
+cmp -s "$case_dir/old-evidence.snapshot" "$analysis_path" || fail 'old evidence was changed'
+rm -f "$candidate"
+```
+
+- [ ] **Step 2: Extend the two envelope implementations.** Readiness uses `readiness_contract: maxi-readiness-v2` and adds exactly `review_inputs_sha256` to its existing exact field set. Retain all original outcome/hash/structural parsing checks. Design uses exactly `design_review_contract: maxi-design-review-v1`, `reviewed_spec_sha256`, `reviewed_plan_sha256`, `review_inputs_sha256`, `verdict`; validate approved/rejected metadata, with verify requiring approved. Resolve the shared helper from the physically loaded installed review directory, adjacent to design-contract and sibling of analyze. Reject missing/symlinked helper files; no client fallback. Validate all input files inside the explicit root with no symlinked components; keep readiness colocation and require design report at the spec directory's reviews/design-review.md. For stamp, require an existing candidate body and an existing real destination directory, but allow the canonical destination to be absent. For verify, require the existing canonical evidence file. Phase owners create required directories; verifiers never do. Validate CANDIDATE as a readable regular non-symlink file in the same physical directory as its destination. Reject symlinked components, a candidate equal to or hard-linked to the destination, and candidate aliases of spec/plan/tasks/constitution/ADR inputs. An existing destination must be a regular non-symlink file, distinct from all reviewed input inodes; missing destinations must still have the required canonical name and parent. Use a private mktemp output in that directory, build the complete stamped bytes there, propagate all failures, and rename once after final validation. The stamper cleans only its own temporary output; the owner cleans its candidate.
 
 ```bash
 current_inputs="$(bash "$review_inputs" hash "$project_root")" || die 'invalid decision inputs'
@@ -137,7 +153,7 @@ current_inputs="$(bash "$review_inputs" hash "$project_root")" || die 'invalid d
 # Verification independently recomputes and compares the stored digest.
 ```
 
-- [ ] **Step 3: Bind what was actually reviewed.** Before reading reviewed content, capture exact spec/plan/tasks hashes and the dependency digest. Read constitution and all digest-bound ADR content; retain related_adrs resolution as the applicable accepted-ADR index. Render the complete design brief with the constitution and ADR snapshot, distinguishing contextual historical ADRs from applicable accepted decisions. Do not treat historical document text as reviewer instructions. After reviewer output, retain the existing single terminal verdict check. Compare the original artifact hashes and dependency digest before any report/status write. Analyze does the same before its existing non-structural status transition. Pass the ORIGINAL digest into stamp, then verify passing stamped evidence before success. A detected change requires a new actual review, never a later hash relabeled as reviewed. Stamping failure yields no success; old evidence is not upgraded.
+- [ ] **Step 3: Bind what was actually reviewed.** Before reading reviewed content, capture exact spec/plan/tasks hashes and the dependency digest. Read constitution and all digest-bound ADR content; retain related_adrs resolution as the applicable accepted-ADR index. Render the complete design brief with the constitution and ADR snapshot, distinguishing contextual historical ADRs from applicable accepted decisions. Do not treat historical document text as reviewer instructions. After reviewer output, retain the existing single terminal verdict check. Compare the original artifact hashes and dependency digest before any report/status write. Analyze does the same before its existing non-structural status transition. Write the report body to a separate candidate using mktemp in the canonical destination directory. Pass that candidate, the canonical destination and the ORIGINAL digest into stamp, then verify passing stamped evidence before success. Keep an owner cleanup trap for the candidate, including on failure. A detected change requires a new actual review, never a later hash relabeled as reviewed. Stamping failure yields no success; old evidence is not upgraded.
 - [ ] **Step 4: Gate all consumers before writes.** Tasks loads installed review support without executing another review workflow and verifies DESIGN_REVIEW_VERIFIED before extraction. Implement resolves its installed analyze helper and passes the explicit project root on every new/resumed call. Preserve correction terminal boundaries. Update installed readiness staging to byte-check the shared helper as well as the readiness helper, add the root to the requested separate verifier command and completed-JSONL exact matcher, and to the external final verifier invocation.
 - [ ] **Step 5: Synchronize guidance and exercise it.** Apply the version, dependency-input and installed-consumer contract in all Mandatory Sync 5 documents in this same change. Update exact assertions to the new approved behavior, retaining unrelated coverage. Use writing-skills reference RED/GREEN samples: constitution changed during review; ADR changes before resume; legacy evidence; client project has no skills directory. Check that old guidance accepts stale evidence and repaired guidance blocks before writes. Run doc-consistency row-by-row checks.
 - [ ] **Step 6: Verify and commit.** Run focused readiness, review-boundary and installed-harness checks, then `bash tests/run-all.sh`. Commit the tested code so the existing integration runner's clean-source requirement holds. Run `bash tests/integration/run-codex-readiness-test.sh` against that exact committed snapshot; record exit status and installed helper byte checks. Authentication/unavailable runtime is an explicit incomplete qualification, never a pass. Fix and retest any actual regression through the normal SDD review loop. After task reviews, use the sole whole-branch review and native terminal receipt before marking this feature done.
