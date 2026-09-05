@@ -53,7 +53,7 @@ require_literal "$DEVELOP" '`project-tasks.sh`' 'x-develop does not create or ve
 require_literal "$DEVELOP" '`reconcile-tasks.sh`' 'x-develop does not reconcile checkboxes'
 require_literal "$DEVELOP" '`record-terminal.sh`' 'x-develop does not persist the terminal receipt'
 require_literal "$DEVELOP" '`result-contract.sh`' 'x-develop does not validate the terminal result'
-require_literal "$DEVELOP" 'Project each canonical `TNNN` once in tasks-file order for every root, ignoring replay metadata and historical plan annotations.' 'ordinary task projection is not universal'
+require_literal "$DEVELOP" 'Project each selected canonical `TNNN` once in tasks-file order, followed by its canonical checkbox line and the complete mapped plan-task body.' 'ordinary task projection is not universal'
 require_literal "$DEVELOP" 'Recover a predecessor only from the validated active-projection pointer.' 'predecessor recovery is not fail closed'
 require_literal "$DEVELOP" 'Reconcile the existing ledger before any resumed dispatch.' 'resume reconciliation is missing'
 require_literal "$DEVELOP" 'Pass the printed canonical absolute projection path verbatim to every upstream SDD helper.' 'canonical projection identity is not preserved'
@@ -71,7 +71,7 @@ require_literal "$DEVELOP" 'A missing, malformed, duplicate, or mismatched selec
 require_literal "$DEVELOP" "Every projection's exact distributed bytes are SHA-256-bound by its ordinary SDD ledger" 'projection bytes are not anchored outside the projection'
 require_literal "$DEVELOP" 'Removing an anchored incomplete `TNNN` during structural correction fails before successor creation and leaves the active-projection pointer unchanged.' 'structural correction can erase an incomplete anchored task'
 require_literal "$DEVELOP" 'Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.' 'ruling evidence is not preserved and hash-bound'
-require_literal "$DEVELOP" 'normalize every accepted backtick fence delimiter to column zero' 'projection does not preserve upstream task-brief extraction'
+require_literal "$DEVELOP" 'normalize to column-zero triple backticks in the preamble and task bodies while preserving payload bytes' 'projection does not preserve upstream task-brief extraction'
 require_literal "$DEVELOP" "Regenerate each review package with upstream's \`review-package\` helper" 'review packages are not compared with their Git ranges'
 require_literal "$DEVELOP" 'Before final-review work is dispatched, persist the harness-issued reviewer context' 'reviewer dispatch identity is not persisted before dispatch'
 require_literal "$DEVELOP" 'For Codex, first allocate a fresh reviewer for an identity handshake only' 'Codex reviewer handshake is missing'
@@ -91,6 +91,10 @@ for doc in \
   "$ROOT/skills/using-maxi/SKILL.md" \
   "$ROOT/AGENTS.md" \
   "$ROOT/docs/architecture.md"; do
+  require_literal "$doc" 'Current execution uses complete-body `maxi-v2` projections; immutable `maxi-v1` files remain verifiable historical predecessors.' "$(basename "$doc") omits versioned full-body projection"
+  require_literal "$doc" 'Every canonical task, including checked tasks, requires exactly one terminal `(plan Task N)` mapping' "$(basename "$doc") omits strict mappings"
+  require_literal "$doc" '`--verify-only` requires an existing current v2 identity and never creates project directories, evidence, or upgrades.' "$(basename "$doc") omits verification without writes"
+  require_literal "$doc" 'fenced Task-like headings never enter native selection or completion maps.' "$(basename "$doc") omits fence-aware native consumption"
   require_literal "$doc" 'READY_TO_FINISH' "$(basename "$doc") omits the terminal receipt gate"
   require_literal "$doc" 'Upstream SDD owns the only whole-branch review' "$(basename "$doc") keeps ambiguous final-review ownership"
   require_literal "$doc" 'immutable initial task-selection anchor' "$(basename "$doc") omits the selection anchor gate"

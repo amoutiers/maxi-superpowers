@@ -22,19 +22,22 @@ Receive the exact canonical `spec.md`, `plan.md`, and `tasks.md` paths from
    `.superpowers/sdd/projections/`, and the selected spec's one
    `.superpowers/sdd/active-<slug>` pointer. Use only the canonical absolute
    projection path printed by the command.
-2. Project each canonical `TNNN` once in tasks-file order for every root, ignoring replay metadata and historical plan annotations.
-3. Create an immutable projection once, or verify and reuse it when its plan
+2. Project each selected canonical `TNNN` once in tasks-file order, followed by its canonical checkbox line and the complete mapped plan-task body. Retain the plan preamble.
+   Every canonical task, including checked tasks, requires exactly one terminal `(plan Task N)` mapping, bijective with the positive executable plan headings; missing, duplicate, non-positive, unknown, or unmapped entries require owner correction before publication.
+3. Current execution uses complete-body `maxi-v2` projections; immutable `maxi-v1` files remain verifiable historical predecessors. Create an immutable v2 projection once, or verify and reuse it when its plan
    and tasks structural identity is unchanged. An owner-managed structural
    correction starts a successor projection and workspace. Link that
    successor to the prior projection. Recover a predecessor only from the validated active-projection pointer.
 
 Before any task dispatch, persist the exact initial selected-TNNN set in the ordinary SDD ledger as the immutable initial task-selection anchor. Write that anchor once from the source selection; do not create a sidecar. Every projection's exact distributed bytes are SHA-256-bound by its ordinary SDD ledger; missing, duplicate, malformed, or mismatched projection-byte anchors fail closed across the current and predecessor lineage. On every projection reuse and reconciliation, combine both anchors with the bound sources and validated lineage to distinguish tasks that were initially pre-checked from tasks completed later. A missing, malformed, duplicate, or mismatched selection anchor fails closed.
 
-Reconstruct the canonical projection bytes from the bound spec, plan, tasks, and validated selection/lineage ledgers whenever an existing projection is reused. Compare those reconstructed bytes exactly; the projection's stored body hash can detect damage but can never attest its own rewritten content. While projecting task bodies, normalize every accepted backtick fence delimiter to column zero so upstream `task-brief` retains the complete body.
+Reconstruct the canonical projection bytes from the bound spec, plan, tasks, and validated selection/lineage ledgers whenever an existing projection is reused. Compare those reconstructed bytes exactly; the projection's stored body hash can detect damage but can never attest its own rewritten content. Plans must end with LF so extraction preserves the final payload line. Closed three-character backtick or tilde fences, optionally indented, normalize to column-zero triple backticks in the preamble and task bodies while preserving payload bytes. Longer or unclosed delimiters and payload lines that would toggle upstream fence state reject; fenced Task-like headings never enter native selection or completion maps.
 
 Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed. The two accepted forms are exactly `Task N: complete (commits <7hex>..<7hex>, review clean)` and `Task N: complete (commits <7hex>..<7hex>, <positive K> parked)`. Reject duplicate records, unknown or non-positive task numbers, non-lowercase or non-seven-hex commit IDs, zero parked findings, free-form annotations, and suffixes.
 
 For a successor, only one such record in the validated predecessor ledger acquits the corresponding `TNNN`. A checkbox alone never acquits a lineage task. Project every other `TNNN`, including an item whose Maxi checkbox is already checked.
+
+A validated active v1 projection upgrades only through an ordinary projection call to a new `<slug>-v2-p-<plan12>-t-<tasks12>-sdd.md` successor; its file and ledger remain unchanged. `--verify-only` requires an existing current v2 identity and never creates project directories, evidence, or upgrades. Only an unchanged-source v1 upgrade completed by validated ledgers may create an empty successor, which still requires a fresh final review; all-completed structural changes reject.
 
 Never infer a predecessor from chat, directory order, a historical annotation,
 or an arbitrary ledger.

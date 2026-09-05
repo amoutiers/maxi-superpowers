@@ -95,6 +95,164 @@ assert_rejected_without_projection() {
   fi
 }
 
+# Strict v2 mappings and representable fences reject before publishing evidence.
+for invalid in missing duplicate non-positive unknown extra-mapping unmapped-plan duplicate-plan long-fence unclosed-fence nested-backtick preamble-fence unterminated-payload; do
+  BAD="$WORK/v2-$invalid"
+  init_repo "$BAD"
+  seed_case "$BAD"
+  bad_tasks="$BAD/docs/maxi/specs/adapter-sample/tasks.md"
+  bad_plan="$BAD/docs/maxi/specs/adapter-sample/plan.md"
+  case "$invalid" in
+    missing) sed 's/ (plan Task 1)//' "$bad_tasks" > "$BAD/change"; mv "$BAD/change" "$bad_tasks" ;;
+    duplicate) sed 's/(plan Task 2)/(plan Task 1)/' "$bad_tasks" > "$BAD/change"; mv "$BAD/change" "$bad_tasks" ;;
+    non-positive) sed 's/(plan Task 2)/(plan Task 0)/' "$bad_tasks" > "$BAD/change"; mv "$BAD/change" "$bad_tasks" ;;
+    unknown) sed 's/(plan Task 2)/(plan Task 77)/' "$bad_tasks" > "$BAD/change"; mv "$BAD/change" "$bad_tasks" ;;
+    extra-mapping) sed 's/(plan Task 2)/(plan Task 1) (plan Task 2)/' "$bad_tasks" > "$BAD/change"; mv "$BAD/change" "$bad_tasks" ;;
+    unmapped-plan) printf '\n### Task 77: Unmapped\n' >> "$bad_plan" ;;
+    duplicate-plan) printf '\n### Task 1: Duplicate\n' >> "$bad_plan" ;;
+    unterminated-payload) printf 'Unterminated final payload line' >> "$bad_plan" ;;
+    long-fence) printf '\n````text\nx\n````\n' >> "$bad_plan" ;;
+    unclosed-fence) printf '\n```text\nunclosed\n' >> "$bad_plan" ;;
+    nested-backtick) printf '\n~~~text\n```payload\n~~~\n' >> "$bad_plan" ;;
+    preamble-fence) sed '/^# Adapter sample/i\
+~~~text\
+```payload\
+~~~
+' "$bad_plan" > "$BAD/change"; mv "$BAD/change" "$bad_plan" ;;
+  esac
+  assert_rejected_without_projection "$BAD" "$invalid v2 input"
+done
+
+run_verify() {
+  local repo="$1" dir="$1/docs/maxi/specs/adapter-sample"
+  set +e
+  VERIFY_OUTPUT="$(bash "$PROJECT" --spec "$dir/spec.md" --plan "$dir/plan.md" --tasks "$dir/tasks.md" --output "$repo/.superpowers/sdd/projections/requested.md" --state-file "$repo/.superpowers/sdd/active-adapter-sample" --verify-only 2>&1)"
+  VERIFY_STATUS=$?
+  set -e
+}
+
+# Source numbers are identities, not section positions; normalize preamble fences too.
+SPARSE="$WORK/sparse-plan-numbers"
+init_repo "$SPARSE"
+seed_case "$SPARSE"
+sparse_dir="$SPARSE/docs/maxi/specs/adapter-sample"
+sed 's/^### Task 3:/### Task 17:/' "$sparse_dir/plan.md" > "$SPARSE/change"
+mv "$SPARSE/change" "$sparse_dir/plan.md"
+sed 's/(plan Task 3)/(plan Task 17)/' "$sparse_dir/tasks.md" > "$SPARSE/change"
+mv "$SPARSE/change" "$sparse_dir/tasks.md"
+run_project "$SPARSE"
+assert_eq "$PROJECT_STATUS" 0 'non-positional positive source task numbers succeed'
+if [ "$PROJECT_STATUS" -eq 0 ]; then
+  bash "$TASK_BRIEF" "$PROJECT_OUTPUT" 1 "$WORK/sparse-brief" >/dev/null
+  assert_has "$WORK/sparse-brief" 'src/three.txt' 'source Task 17 maps its third-section body'
+  assert_has "$PROJECT_OUTPUT" '### Task 1: T003 [US1]' 'v2 heading strips the literal checkbox prefix'
+fi
+
+PREAMBLE="$WORK/preamble-fence"
+init_repo "$PREAMBLE"
+seed_case "$PREAMBLE"
+preamble_plan="$PREAMBLE/docs/maxi/specs/adapter-sample/plan.md"
+awk '/^### Task 1:/ { print "  ~~~markdown"; print "### Task 99: T099 Example"; print "  ~~~"; print "Keep preamble tail." } { print }' "$preamble_plan" > "$PREAMBLE/change"
+mv "$PREAMBLE/change" "$preamble_plan"
+run_project "$PREAMBLE"
+assert_eq "$PROJECT_STATUS" 0 'preamble fence normalizes without corrupting selection'
+if [ "$PROJECT_STATUS" -eq 0 ]; then
+  bash "$TASK_BRIEF" "$PROJECT_OUTPUT" 1 "$WORK/preamble-brief" >/dev/null
+  assert_has "$WORK/preamble-brief" 'src/three.txt' 'preamble fence does not corrupt upstream brief state'
+  assert_has "$PROJECT_OUTPUT" 'Keep preamble tail.' 'preamble retains prose after fenced example'
+fi
+
+# Verification may not bootstrap, publish or upgrade evidence.
+VERIFY_FRESH="$WORK/verify-fresh"
+init_repo "$VERIFY_FRESH"
+seed_case "$VERIFY_FRESH"
+rmdir "$VERIFY_FRESH/.superpowers/sdd/projections" "$VERIFY_FRESH/.superpowers/sdd" "$VERIFY_FRESH/.superpowers"
+run_verify "$VERIFY_FRESH"
+[ "$VERIFY_STATUS" -ne 0 ] && ok 'verify-only rejects fresh execution' || fail 'verify-only rejects fresh execution'
+[ ! -e "$VERIFY_FRESH/.superpowers" ] && ok 'verify-only creates no SDD base' || fail 'verify-only creates no SDD base'
+
+for legacy_case in partial raw-preamble complete malformed tampered rehashed missing-anchor omitted-pending structural-complete; do
+  LEGACY="$WORK/legacy-$legacy_case"
+  init_repo "$LEGACY"
+  seed_case "$LEGACY"
+  legacy_dir="$LEGACY/docs/maxi/specs/adapter-sample"
+  if [ "$legacy_case" = malformed ]; then
+    sed 's/ (plan Task 1)//' "$legacy_dir/tasks.md" > "$LEGACY/change"
+    mv "$LEGACY/change" "$legacy_dir/tasks.md"
+  fi
+  if [ "$legacy_case" = raw-preamble ]; then
+    awk '/^### Task 1:/ { print "  ~~~markdown"; print "## Raw legacy tilde example"; print "  ~~~"; print "    ```text"; print "raw legacy backtick example"; print "    ```" } { print }' "$legacy_dir/plan.md" > "$LEGACY/change"
+    mv "$LEGACY/change" "$legacy_dir/plan.md"
+  fi
+  legacy_projection="$(bash "$FIXTURES/emit-v1.sh" "$LEGACY")"
+  legacy_ledger="$LEGACY/.superpowers/sdd/$(basename "$legacy_projection" .md)/progress.md"
+  printf '%s\n' "$COMPLETE_1_CLEAN" >> "$legacy_ledger"
+  case "$legacy_case" in
+    complete|structural-complete)
+      printf '%s\n%s\n' "$COMPLETE_2_PARKED" "$COMPLETE_3_CLEAN" >> "$legacy_ledger"
+      sed 's/- \[ \]/- [x]/' "$legacy_dir/tasks.md" > "$LEGACY/change"; mv "$LEGACY/change" "$legacy_dir/tasks.md"
+      if [ "$legacy_case" = structural-complete ]; then printf '\nChanged plan\n' >> "$legacy_dir/plan.md"; fi
+      ;;
+    partial) # Even checked T002 stays selected without a ledger completion.
+      sed 's/- \[ \] T002/- [x] T002/' "$legacy_dir/tasks.md" > "$LEGACY/change"; mv "$LEGACY/change" "$legacy_dir/tasks.md" ;;
+    rehashed)
+      sed 's/Write the third file/Forge the third file/' "$legacy_projection" > "$LEGACY/change"; mv "$LEGACY/change" "$legacy_projection"
+      rehashed_body="$(awk 'NR == 1 && $0 == "---" { fm = 1; next } fm && $0 == "---" { fm = 0; next } !fm { print }' "$legacy_projection" | shasum -a 256 | awk '{print $1}')"
+      sed "s/^projection_body_sha256: .*/projection_body_sha256: $rehashed_body/" "$legacy_projection" > "$LEGACY/change"; mv "$LEGACY/change" "$legacy_projection"
+      sed "s/^Maxi projection SHA256: .*/Maxi projection SHA256: $(sha "$legacy_projection")/" "$legacy_ledger" > "$LEGACY/change"; mv "$LEGACY/change" "$legacy_ledger"
+      ;;
+    tampered) printf '\nforged\n' >> "$legacy_projection" ;;
+    missing-anchor) sed '/^Maxi selection:/d' "$legacy_ledger" > "$LEGACY/change"; mv "$LEGACY/change" "$legacy_ledger" ;;
+    omitted-pending)
+      sed '/^- \[ \] T002 /d' "$legacy_dir/tasks.md" > "$LEGACY/change"; mv "$LEGACY/change" "$legacy_dir/tasks.md"
+      awk '/^### Task 2: Normalize/ { skip=1 } /^### Task 3: / { skip=0 } !skip { print }' "$legacy_dir/plan.md" > "$LEGACY/change"; mv "$LEGACY/change" "$legacy_dir/plan.md" ;;
+  esac
+  legacy_bytes="$(sha "$legacy_projection")"
+  legacy_ledger_bytes="$(sha "$legacy_ledger")"
+  run_verify "$LEGACY"
+  [ "$VERIFY_STATUS" -ne 0 ] && ok "$legacy_case verify-only rejects v1" || fail "$legacy_case verify-only rejects v1"
+  assert_eq "$(cat "$LEGACY/.superpowers/sdd/active-adapter-sample")" "$legacy_projection" "$legacy_case verification preserves v1 pointer"
+  assert_eq "$(find "$LEGACY/.superpowers/sdd/projections" -name '*-sdd.md' | wc -l | tr -d ' ')" 1 "$legacy_case verification creates no successor"
+  run_project "$LEGACY"
+  case "$legacy_case" in
+    partial|raw-preamble|complete)
+      assert_eq "$PROJECT_STATUS" 0 "$legacy_case v1 upgrades"
+      if [ "$PROJECT_STATUS" -eq 0 ]; then
+        assert_has "$PROJECT_OUTPUT" 'sdd_projection: maxi-v2' "$legacy_case upgrade uses v2"
+        assert_has "$PROJECT_OUTPUT" "predecessor_projection: $legacy_projection" "$legacy_case upgrade links immutable v1"
+        if [ "$legacy_case" != complete ]; then
+          assert_has "$PROJECT_OUTPUT" '### Task 1: T001 ' 'v1 upgrade retains pending first task'
+          assert_has "$PROJECT_OUTPUT" '### Task 2: T002 ' 'v1 upgrade ignores checkbox-only completion'
+          assert_not_has "$PROJECT_OUTPUT" '### Task 1: T003 ' 'v1 upgrade carries validated completion'
+        else
+          assert_has "$PROJECT_OUTPUT" 'execution_mode: final-review-only' 'completed v1 upgrade still requires fresh final review'
+        fi
+        v2_projection="$PROJECT_OUTPUT"
+        run_verify "$LEGACY"
+        assert_eq "$VERIFY_STATUS" 0 "$legacy_case upgraded v2 verifies"
+        assert_eq "$VERIFY_OUTPUT" "$v2_projection" "$legacy_case verify returns existing v2 identity"
+      fi
+      ;;
+    *)
+      [ "$PROJECT_STATUS" -ne 0 ] && ok "$legacy_case upgrade rejects" || fail "$legacy_case upgrade rejects"
+      assert_eq "$(cat "$LEGACY/.superpowers/sdd/active-adapter-sample")" "$legacy_projection" "$legacy_case upgrade preserves pointer"
+      assert_eq "$(find "$LEGACY/.superpowers/sdd/projections" -name '*-sdd.md' | wc -l | tr -d ' ')" 1 "$legacy_case upgrade creates no successor"
+      ;;
+  esac
+  assert_eq "$(sha "$legacy_projection")" "$legacy_bytes" "$legacy_case keeps v1 bytes immutable"
+  assert_eq "$(sha "$legacy_ledger")" "$legacy_ledger_bytes" "$legacy_case keeps v1 ledger immutable"
+done
+
+V1_ORPHAN="$WORK/v1-orphan"
+init_repo "$V1_ORPHAN"
+seed_case "$V1_ORPHAN"
+v1_orphan_projection="$(bash "$FIXTURES/emit-v1.sh" "$V1_ORPHAN")"
+mv "$V1_ORPHAN/.superpowers/sdd/active-adapter-sample" "$V1_ORPHAN/pointer.saved"
+run_project "$V1_ORPHAN"
+[ "$PROJECT_STATUS" -ne 0 ] && ok 'historical v1 orphan blocks fresh v2 publication' || fail 'historical v1 orphan blocks fresh v2 publication'
+[ ! -e "$V1_ORPHAN/.superpowers/sdd/active-adapter-sample" ] && ok 'v1 orphan leaves pointer absent' || fail 'v1 orphan leaves pointer absent'
+assert_eq "$(find "$V1_ORPHAN/.superpowers/sdd/projections" -name '*-sdd.md' | wc -l | tr -d ' ')" 1 'v1 orphan creates no v2 successor'
+
 # The documented first invocation creates its canonical projections parent.
 FIRST_RUN="$WORK/first-run"
 init_repo "$FIRST_RUN"
@@ -110,6 +268,51 @@ if [ "$PROJECT_STATUS" -eq 0 ]; then
 else
   fail 'first run creates the canonical projections directory' "$PROJECT_OUTPUT"
 fi
+
+# A truly fresh project has no SDD base yet.
+FRESH="$WORK/no-sdd-base"
+init_repo "$FRESH"
+seed_case "$FRESH"
+rmdir "$FRESH/.superpowers/sdd/projections"
+rmdir "$FRESH/.superpowers/sdd"
+rmdir "$FRESH/.superpowers"
+run_project "$FRESH"
+assert_eq "$PROJECT_STATUS" 0 'first invocation without any SDD base'
+
+# Neither canonical SDD base component may be a file or a symlink.
+for component in superpowers sdd; do
+  for kind in file external-symlink dangling-symlink; do
+    UNSAFE_BASE="$WORK/unsafe-$component-$kind"
+    init_repo "$UNSAFE_BASE"
+    seed_case "$UNSAFE_BASE"
+    rmdir "$UNSAFE_BASE/.superpowers/sdd/projections"
+    rmdir "$UNSAFE_BASE/.superpowers/sdd"
+    if [ "$component" = superpowers ]; then
+      rmdir "$UNSAFE_BASE/.superpowers"
+      UNSAFE_COMPONENT="$UNSAFE_BASE/.superpowers"
+    else
+      UNSAFE_COMPONENT="$UNSAFE_BASE/.superpowers/sdd"
+    fi
+
+    case "$kind" in
+      file) printf 'unsafe\n' > "$UNSAFE_COMPONENT" ;;
+      external-symlink)
+        EXTERNAL_BASE="$WORK/external-$component"
+        mkdir -p "$EXTERNAL_BASE"
+        printf 'unchanged\n' > "$EXTERNAL_BASE/sentinel"
+        ln -s "$EXTERNAL_BASE" "$UNSAFE_COMPONENT"
+        ;;
+      dangling-symlink) ln -s "$WORK/missing-$component" "$UNSAFE_COMPONENT" ;;
+    esac
+
+    run_project "$UNSAFE_BASE"
+    [ "$PROJECT_STATUS" -ne 0 ] && ok "$component $kind base rejects" || fail "$component $kind base rejects" 'command succeeded'
+    if [ "$kind" = external-symlink ]; then
+      assert_eq "$(cat "$EXTERNAL_BASE/sentinel")" unchanged "$component external symlink leaves sentinel unchanged"
+      [ ! -e "$EXTERNAL_BASE/projections" ] && ok "$component external symlink creates no external projections" || fail "$component external symlink creates no external projections"
+    fi
+  done
+done
 
 REPO="$WORK/projection-repo"
 init_repo "$REPO"
@@ -129,7 +332,7 @@ assert_eq "$PROJECT_STATUS" 0 'canonical projection succeeds'
 PROJECTION="$PROJECT_OUTPUT"
 [ "$PROJECTION" = "$(cd -P "$(dirname "$PROJECTION")" && pwd)/$(basename "$PROJECTION")" ] && ok 'projection path is canonical absolute' || fail 'projection path is canonical absolute'
 case "$(basename "$PROJECTION")" in
-  adapter-sample-p-????????????-t-????????????-sdd.md) ok 'ordinary basename exact form' ;;
+  adapter-sample-v2-p-????????????-t-????????????-sdd.md) ok 'ordinary basename exact form' ;;
   *) fail 'ordinary basename exact form' "$(basename "$PROJECTION")" ;;
 esac
 assert_eq "$(sha "$PLAN")" "$plan_before" 'plan bytes stay immutable'
@@ -143,7 +346,8 @@ line_t1="$(grep -n '^### Task 2: T001 ' "$PROJECTION" | cut -d: -f1)"
 line_t2="$(grep -n '^### Task 3: T002 ' "$PROJECTION" | cut -d: -f1)"
 [ "$line_t3" -lt "$line_t1" ] && [ "$line_t1" -lt "$line_t2" ] && ok 'ordinary projection follows tasks-file order' || fail 'ordinary projection follows tasks-file order'
 assert_has "$PROJECTION" '- [ ] T003 [US1] Write the third file (plan Task 3)' 'ordinary projection retains the task line'
-assert_not_has "$PROJECTION" '### Task 99: This fenced heading is not executable' 'ordinary projection does not copy plan bodies'
+# v2 intentionally replaces the former body-omission contract.
+assert_has "$PROJECTION" '### Task 99: T099 Example' 'ordinary projection retains fenced payload'
 if grep -q '^mode:' "$PROJECTION"; then
   fail 'ordinary projection has no mode branch' 'projection retained a mode field'
 else
@@ -195,16 +399,16 @@ ORPHAN_OLD_LEDGER="$ORPHAN_OTHER_IDENTITY/.superpowers/sdd/$(basename "$ORPHAN_O
 ORPHAN_OTHER_STATE="$ORPHAN_OTHER_IDENTITY/.superpowers/sdd/active-adapter-sample"
 orphan_old_projection_before="$(sha "$ORPHAN_OLD_PROJECTION")"
 orphan_old_ledger_before="$(sha "$ORPHAN_OLD_LEDGER")"
-orphan_projection_count_before="$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd/projections" -mindepth 1 -maxdepth 1 -name 'adapter-sample-p-*-sdd.md' | wc -l | tr -d ' ')"
-orphan_workspace_count_before="$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd" -mindepth 1 -maxdepth 1 -name 'adapter-sample-p-*-sdd' | wc -l | tr -d ' ')"
+orphan_projection_count_before="$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd/projections" -mindepth 1 -maxdepth 1 -name 'adapter-sample-v2-p-*-sdd.md' | wc -l | tr -d ' ')"
+orphan_workspace_count_before="$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd" -mindepth 1 -maxdepth 1 -name 'adapter-sample-v2-p-*-sdd' | wc -l | tr -d ' ')"
 mv "$ORPHAN_OTHER_STATE" "$ORPHAN_OTHER_IDENTITY/pointer.saved"
 sed 's/Write the second file/Write the structurally changed second file/' "$ORPHAN_OTHER_IDENTITY/docs/maxi/specs/adapter-sample/tasks.md" > "$ORPHAN_OTHER_IDENTITY/change"
 mv "$ORPHAN_OTHER_IDENTITY/change" "$ORPHAN_OTHER_IDENTITY/docs/maxi/specs/adapter-sample/tasks.md"
 run_project "$ORPHAN_OTHER_IDENTITY"
 [ "$PROJECT_STATUS" -ne 0 ] && ok 'different-digest same-slug orphan rejects without active pointer' || fail 'different-digest same-slug orphan rejects without active pointer' 'a successor identity and pointer were created'
 [ ! -e "$ORPHAN_OTHER_STATE" ] && ok 'different-digest orphan leaves pointer absent' || fail 'different-digest orphan leaves pointer absent' 'pointer was recreated'
-assert_eq "$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd/projections" -mindepth 1 -maxdepth 1 -name 'adapter-sample-p-*-sdd.md' | wc -l | tr -d ' ')" "$orphan_projection_count_before" 'different-digest orphan creates no projection'
-assert_eq "$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd" -mindepth 1 -maxdepth 1 -name 'adapter-sample-p-*-sdd' | wc -l | tr -d ' ')" "$orphan_workspace_count_before" 'different-digest orphan creates no workspace'
+assert_eq "$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd/projections" -mindepth 1 -maxdepth 1 -name 'adapter-sample-v2-p-*-sdd.md' | wc -l | tr -d ' ')" "$orphan_projection_count_before" 'different-digest orphan creates no projection'
+assert_eq "$(find "$ORPHAN_OTHER_IDENTITY/.superpowers/sdd" -mindepth 1 -maxdepth 1 -name 'adapter-sample-v2-p-*-sdd' | wc -l | tr -d ' ')" "$orphan_workspace_count_before" 'different-digest orphan creates no workspace'
 assert_eq "$(sha "$ORPHAN_OLD_PROJECTION")" "$orphan_old_projection_before" 'different-digest orphan preserves old projection bytes'
 assert_eq "$(sha "$ORPHAN_OLD_LEDGER")" "$orphan_old_ledger_before" 'different-digest orphan preserves old ledger bytes'
 
@@ -213,13 +417,13 @@ assert_eq "$(sha "$ORPHAN_OLD_LEDGER")" "$orphan_old_ledger_before" 'different-d
 ORPHAN_SYMLINK="$WORK/orphan-symlink"
 init_repo "$ORPHAN_SYMLINK"
 seed_case "$ORPHAN_SYMLINK"
-ORPHAN_LINK="$ORPHAN_SYMLINK/.superpowers/sdd/projections/adapter-sample-p-aaaaaaaaaaaa-t-bbbbbbbbbbbb-sdd.md"
+ORPHAN_LINK="$ORPHAN_SYMLINK/.superpowers/sdd/projections/adapter-sample-v2-p-aaaaaaaaaaaa-t-bbbbbbbbbbbb-sdd.md"
 ln -s "$ORPHAN_SYMLINK/missing" "$ORPHAN_LINK"
 run_project "$ORPHAN_SYMLINK"
 [ "$PROJECT_STATUS" -ne 0 ] && ok 'same-slug orphan symlink rejects without active pointer' || fail 'same-slug orphan symlink rejects without active pointer' 'a fresh projection and pointer were created'
 [ -L "$ORPHAN_LINK" ] && ok 'same-slug orphan symlink stays unchanged' || fail 'same-slug orphan symlink stays unchanged'
 [ ! -e "$ORPHAN_SYMLINK/.superpowers/sdd/active-adapter-sample" ] && ok 'same-slug orphan symlink leaves pointer absent' || fail 'same-slug orphan symlink leaves pointer absent'
-assert_eq "$(find "$ORPHAN_SYMLINK/.superpowers/sdd/projections" -mindepth 1 -maxdepth 1 -type f -name 'adapter-sample-p-*-sdd.md' | wc -l | tr -d ' ')" 0 'same-slug orphan symlink creates no regular projection'
+assert_eq "$(find "$ORPHAN_SYMLINK/.superpowers/sdd/projections" -mindepth 1 -maxdepth 1 -type f -name 'adapter-sample-v2-p-*-sdd.md' | wc -l | tr -d ' ')" 0 'same-slug orphan symlink creates no regular projection'
 
 ORPHAN_WORKSPACE="$WORK/orphan-workspace"
 init_repo "$ORPHAN_WORKSPACE"
@@ -261,6 +465,12 @@ assert_has "$WORK/task-2-brief.md" '- [ ] T001 [P] [US1] Write the first file (p
 assert_not_has "$WORK/task-2-brief.md" '### Task 3: T002 ' 'Task 2 brief stops at Task 3'
 assert_has "$WORK/task-3-brief.md" '- [ ] T002 [US1] Write the second file (depends on T001) (plan Task 2)' 'Task 3 brief retains ordinary task line'
 
+assert_has "$WORK/task-1-brief.md" 'src/three.txt' 'brief retains third-task file'
+assert_has "$WORK/task-1-brief.md" 'Write the complete third task body through end of file.' 'brief retains implementation detail'
+assert_has "$WORK/task-2-brief.md" 'Keep this line after the backtick fence.' 'brief survives fenced heading'
+assert_has "$WORK/task-2-brief.md" '### Task 99: T099 Example' 'brief retains native-shaped fenced heading'
+assert_has "$WORK/task-3-brief.md" 'Keep this line after the tilde fence.' 'brief survives tilde fence'
+
 projection_hash="$(sha "$PROJECTION")"
 sed 's/- \[ \] T001/- [x] T001/' "$TASKS" > "$TASKS.tmp" && mv "$TASKS.tmp" "$TASKS"
 sed 's/^updated: .*/updated: 2026-08-20/' "$TASKS" > "$TASKS.tmp" && mv "$TASKS.tmp" "$TASKS"
@@ -268,6 +478,22 @@ run_project "$REPO"
 assert_eq "$PROJECT_STATUS" 0 'checkbox and updated-only resume succeeds'
 assert_eq "$PROJECT_OUTPUT" "$PROJECTION" 'checkbox and updated-only change preserves workspace identity'
 assert_eq "$(sha "$PROJECTION")" "$projection_hash" 'existing projection bytes are never regenerated'
+
+run_verify "$REPO"
+assert_eq "$VERIFY_STATUS" 0 'existing v2 verification succeeds'
+assert_eq "$VERIFY_OUTPUT" "$PROJECTION" 'existing v2 verification returns identical path'
+assert_eq "$(sha "$PROJECTION")" "$projection_hash" 'verification preserves exact v2 bytes'
+assert_eq "$(cat "$STATE")" "$PROJECTION" 'verification preserves active pointer'
+VERIFY_STALE="$WORK/verify-stale"
+init_repo "$VERIFY_STALE"
+seed_case "$VERIFY_STALE"
+run_project "$VERIFY_STALE"
+verify_stale_projection="$PROJECT_OUTPUT"
+printf '\nSource correction\n' >> "$VERIFY_STALE/docs/maxi/specs/adapter-sample/plan.md"
+run_verify "$VERIFY_STALE"
+[ "$VERIFY_STATUS" -ne 0 ] && ok 'verification rejects a missing current v2 identity' || fail 'verification rejects a missing current v2 identity'
+assert_eq "$(cat "$VERIFY_STALE/.superpowers/sdd/active-adapter-sample")" "$verify_stale_projection" 'stale verification leaves predecessor active'
+assert_eq "$(find "$VERIFY_STALE/.superpowers/sdd/projections" -name '*-sdd.md' | wc -l | tr -d ' ')" 1 'stale verification creates no successor'
 
 # A projection cannot attest a rewritten body by updating its own stored hash.
 TAMPERED="$WORK/tampered-projection"
@@ -417,7 +643,7 @@ for projection_anchor_case in absent malformed duplicate mismatch; do
 done
 
 # Any completion-like current-ledger record must use one exact upstream form.
-for completion_case in bare duplicate wrong-number bad-sha free-annotation zero-parked suffix; do
+for completion_case in bare duplicate wrong-number fenced-number bad-sha free-annotation zero-parked suffix; do
   COMPLETION_REPO="$WORK/completion-$completion_case"
   init_repo "$COMPLETION_REPO"
   seed_case "$COMPLETION_REPO"
@@ -427,6 +653,7 @@ for completion_case in bare duplicate wrong-number bad-sha free-annotation zero-
   case "$completion_case" in
     bare) printf 'Task 1: complete\n' >> "$COMPLETION_LEDGER" ;;
     duplicate) printf '%s\n%s\n' "$COMPLETE_1_CLEAN" "$COMPLETE_1_CLEAN" >> "$COMPLETION_LEDGER" ;;
+    fenced-number) printf 'Task 99: complete (commits 1111111..2222222, review clean)\n' >> "$COMPLETION_LEDGER" ;;
     wrong-number) printf 'Task 4: complete (commits 1111111..2222222, review clean)\n' >> "$COMPLETION_LEDGER" ;;
     bad-sha) printf 'Task 1: complete (commits 111111..2222222, review clean)\n' >> "$COMPLETION_LEDGER" ;;
     free-annotation) printf 'Task 1: complete (commits 1111111..2222222, locally approved)\n' >> "$COMPLETION_LEDGER" ;;
@@ -538,29 +765,14 @@ run_project "$DELETED_SELECTED"
 [ "$PROJECT_STATUS" -ne 0 ] && ok 'successor rejects deleted anchored T003' || fail 'successor rejects deleted anchored T003' 'structural successor silently discarded T003'
 assert_eq "$(cat "$DELETED_SELECTED/.superpowers/sdd/active-adapter-sample")" "$DELETED_PREDECESSOR" 'deleted anchored task keeps predecessor active'
 
-# Marker-bearing roots ignore historical annotations and use tasks-file order exactly once.
+# v2 requires a terminal mapping even for roots with historical metadata.
 MARKER="$WORK/marker-repo"
 init_repo "$MARKER"
 seed_case "$MARKER"
-MARKER_SPEC="$MARKER/docs/maxi/specs/adapter-sample/spec.md"
 MARKER_TASKS="$MARKER/docs/maxi/specs/adapter-sample/tasks.md"
-awk '{ print } /^status: analyzed$/ { print "replay_contract: bounded-v1" }' "$MARKER_SPEC" > "$MARKER/change"
-mv "$MARKER/change" "$MARKER_SPEC"
-sed 's/ (plan Task 3)/ (plan Task 900, Steps 1-3)/; s/ (plan Task 1)/ legacy note/; s/ (plan Task 2)/ (plan unknown historical syntax)/' "$MARKER_TASKS" > "$MARKER/change"
+sed 's/ (plan Task 1)/ legacy note/' "$MARKER_TASKS" > "$MARKER/change"
 mv "$MARKER/change" "$MARKER_TASKS"
-run_project "$MARKER"
-assert_eq "$PROJECT_STATUS" 0 'marker-bearing projection ignores historical annotation parsing'
-case "$(basename "$PROJECT_OUTPUT")" in
-  adapter-sample-p-????????????-t-????????????-sdd.md) ok 'marker-bearing root uses ordinary basename' ;;
-  *) fail 'marker-bearing root uses ordinary basename' "$(basename "$PROJECT_OUTPUT")" ;;
-esac
-marker_t3="$(grep -n '^### Task 1: T003 ' "$PROJECT_OUTPUT" | cut -d: -f1)"
-marker_t1="$(grep -n '^### Task 2: T001 ' "$PROJECT_OUTPUT" | cut -d: -f1)"
-marker_t2="$(grep -n '^### Task 3: T002 ' "$PROJECT_OUTPUT" | cut -d: -f1)"
-[ "$marker_t3" -lt "$marker_t1" ] && [ "$marker_t1" -lt "$marker_t2" ] && ok 'marker-bearing projection follows tasks-file order' || fail 'marker-bearing projection follows tasks-file order'
-assert_eq "$(grep -c '^### Task [0-9][0-9]*: T001 ' "$PROJECT_OUTPUT")" 1 'marker-bearing T001 projected once'
-assert_eq "$(grep -c '^### Task [0-9][0-9]*: T002 ' "$PROJECT_OUTPUT")" 1 'marker-bearing T002 projected once'
-assert_eq "$(grep -c '^### Task [0-9][0-9]*: T003 ' "$PROJECT_OUTPUT")" 1 'marker-bearing T003 projected once'
+assert_rejected_without_projection "$MARKER" 'missing historical mapping requires owner correction'
 
 # Indented task-like checkboxes fail closed, while ordinary nested checklist
 # content remains body text.
@@ -812,12 +1024,13 @@ printf 'base\n' > "$TERM/app.txt"
 git -C "$TERM" add .gitignore app.txt docs
 git -C "$TERM" commit -qm 'base'
 MERGE_BASE="$(git -C "$TERM" rev-parse HEAD)"
-run_project "$TERM"
-TERM_OLD="$PROJECT_OUTPUT"
+TERM_OLD="$(bash "$FIXTURES/emit-v1.sh" "$TERM")"
 TERM_OLD_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_OLD" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_OLD_LEDGER")"
 printf '# SDD ledger — plan: %s\nMaxi selection: T003 T001 T002\nMaxi projection SHA256: %s\n%s\nTask 1: parked — deferred option — Ruling: first workspace ruling\n' "$TERM_OLD" "$(sha "$TERM_OLD")" "$COMPLETE_1_CLEAN" > "$TERM_OLD_LEDGER"
-bash "$RECONCILE" --projection "$TERM_OLD" --ledger "$TERM_OLD_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
+# Historical completion was reconciled by v1 before upgrading; current consumers never execute v1.
+sed 's/- \[ \] T003/- [x] T003/' "$TERM/docs/maxi/specs/adapter-sample/tasks.md" > "$TERM/change"
+mv "$TERM/change" "$TERM/docs/maxi/specs/adapter-sample/tasks.md"
 sed 's/- \[ \] T002/- [x] T002/' "$TERM/docs/maxi/specs/adapter-sample/tasks.md" > "$TERM/change"
 mv "$TERM/change" "$TERM/docs/maxi/specs/adapter-sample/tasks.md"
 sed 's/Write the second file/Write the corrected terminal file/' "$TERM/docs/maxi/specs/adapter-sample/tasks.md" > "$TERM/change"
@@ -967,6 +1180,53 @@ assert_has "$RECEIPT" "reviewer_dispatch_identity: $REVIEWER_IDENTITY" 'receipt 
 assert_has "$RECEIPT" "reviewer_dispatch_identity_sha256: $(sha "$REVIEWER_IDENTITY")" 'receipt binds reviewer dispatch identity hash'
 assert_has "$RECEIPT" "reviewer_context: $CODEX_REVIEWER_CONTEXT" 'receipt binds Codex reviewer task path'
 RESULT_OUTPUT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT")"
+
+# An all-completed v1 upgrade needs fresh, real terminal review evidence.
+EMPTY="$WORK/empty-upgrade-terminal"
+init_repo "$EMPTY"
+seed_case "$EMPTY"
+git -C "$EMPTY" add .gitignore docs
+git -C "$EMPTY" commit -qm 'empty upgrade fixture'
+empty_base="$(git -C "$EMPTY" rev-parse HEAD)"
+empty_tree="$(git -C "$EMPTY" rev-parse HEAD^{tree})"
+empty_old="$(bash "$FIXTURES/emit-v1.sh" "$EMPTY")"
+printf '%s\n%s\n%s\n' "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" "$COMPLETE_3_CLEAN" >> "$EMPTY/.superpowers/sdd/$(basename "$empty_old" .md)/progress.md"
+empty_dir="$EMPTY/docs/maxi/specs/adapter-sample"
+sed 's/- \[ \]/- [x]/' "$empty_dir/tasks.md" > "$EMPTY/change"
+mv "$EMPTY/change" "$empty_dir/tasks.md"
+run_project "$EMPTY"
+assert_eq "$PROJECT_STATUS" 0 'completed historical selection creates empty v2 successor'
+empty_projection="$PROJECT_OUTPUT"
+empty_workspace="$EMPTY/.superpowers/sdd/$(basename "$empty_projection" .md)"
+empty_receipt="$empty_workspace/terminal-receipt.md"
+empty_result="$(bash "$RESULT" --tasks "$empty_dir/tasks.md" --receipt "$empty_receipt" 2>/dev/null || true)"
+assert_not_has <(printf '%s\n' "$empty_result") 'READY_TO_FINISH' 'empty upgrade cannot succeed without a new receipt'
+empty_package="$empty_workspace/review-full.diff"
+(cd "$EMPTY" && bash "$REVIEW_PACKAGE" "$empty_projection" "$empty_base" "$empty_base" "$empty_package") >/dev/null
+printf 'reviewer_context: %s\n' "$CODEX_REVIEWER_CONTEXT" > "$empty_workspace/final-reviewer-dispatch.identity"
+empty_review="$empty_workspace/maxi-final-review.md"
+awk -v root="$EMPTY" -v base="$empty_base" -v tree="$empty_tree" \
+  -v projection="$empty_projection" -v projection_hash="$(sha "$empty_projection")" \
+  -v package="$empty_package" -v package_hash="$(sha "$empty_package")" \
+  -v spec="$empty_dir/spec.md" -v spec_hash="$(sha "$empty_dir/spec.md")" \
+  -v tasks="$empty_dir/tasks.md" -v tasks_hash="$(sha "$empty_dir/tasks.md")" '
+  /^worktree:/ { print "worktree: " root; next }
+  /^merge_base:/ { print "merge_base: " base; next }
+  /^reviewed_head:/ { print "reviewed_head: " base; next }
+  /^reviewed_tree:/ { print "reviewed_tree: " tree; next }
+  /^projection:/ { print "projection: " projection; next }
+  /^projection_sha256:/ { print "projection_sha256: " projection_hash; next }
+  /^full_review_package:/ { print "full_review_package: " package; next }
+  /^full_review_package_sha256:/ { print "full_review_package_sha256: " package_hash; next }
+  /^spec:/ { print "spec: " spec; next }
+  /^spec_sha256:/ { print "spec_sha256: " spec_hash; next }
+  /^tasks:/ { print "tasks: " tasks; next }
+  /^tasks_sha256:/ { print "tasks_sha256: " tasks_hash; next }
+  { print }
+' "$FINAL_REVIEW" > "$empty_review"
+bash "$RECORD" --worktree "$EMPTY" --merge-base "$empty_base" --projection "$empty_projection" --ledger "$empty_workspace/progress.md" --final-review "$empty_review" --spec "$empty_dir/spec.md" --tasks "$empty_dir/tasks.md" --output "$empty_receipt"
+empty_result="$(bash "$RESULT" --tasks "$empty_dir/tasks.md" --receipt "$empty_receipt")"
+assert_has <(printf '%s\n' "$empty_result") 'READY_TO_FINISH' 'empty upgrade succeeds only with its fresh reviewed receipt'
 
 # Codex paths extend, rather than replace, the existing opaque context grammar.
 cp "$REVIEWER_IDENTITY" "$REVIEWER_IDENTITY.codex"

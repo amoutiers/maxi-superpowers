@@ -7,6 +7,7 @@ export LC_ALL
 
 SCRIPT_DIR="$(cd -P "$(dirname "$0")" && pwd)"
 PROJECT_HELPER="$SCRIPT_DIR/project-tasks.sh"
+projection_headings() { awk -f "$SCRIPT_DIR/projection-headings.awk" "$1"; }
 REVIEW_PACKAGE_HELPER="$SCRIPT_DIR/../subagent-driven-development/scripts/review-package"
 [ -f "$PROJECT_HELPER" ] || { echo 'ERROR: projection helper is missing' >&2; exit 2; }
 [ -f "$REVIEW_PACKAGE_HELPER" ] || { echo 'ERROR: upstream review-package helper is missing' >&2; exit 2; }
@@ -141,7 +142,7 @@ validate_projection_completions() {
       Task\ *:\ complete*)
         number="$(completion_number "$line")"
         [ -n "$number" ] || return 1
-        [ "$(grep -c "^### Task $number: T[0-9][0-9][0-9] " "$projection" || true)" -eq 1 ] || return 1
+        [ "$(projection_headings "$projection" | cut -d'|' -f1 | grep -Fxc -- "$number" || true)" -eq 1 ] || return 1
         case "$seen" in *"|$number|"*) return 1 ;; esac
         seen="$seen$number|"
         ;;
@@ -149,7 +150,7 @@ validate_projection_completions() {
   done < "$ledger"
   while IFS= read -r number; do
     case "$seen" in *"|$number|"*) ;; *) return 1 ;; esac
-  done < <(sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$projection")
+  done < <(projection_headings "$projection" | cut -d'|' -f1)
 }
 
 TASKS_ARG='' RECEIPT=''
@@ -265,7 +266,7 @@ while IFS='|' read -r lineage_projection projection_hash lineage_ledger ledger_h
   under "$lineage_projection" "$PHYSICAL_ROOT/.superpowers/sdd" || quiet_fail 'lineage projection escapes workspace'
   [ "$projection_hash" = "$(sha "$lineage_projection")" ] || quiet_fail 'lineage projection hash mismatch'
   [ "$ledger_hash" = "$(sha "$lineage_ledger")" ] || quiet_fail 'lineage ledger hash mismatch'
-  [ "$(field "$lineage_projection" sdd_projection 2>/dev/null)" = maxi-v1 ] || quiet_fail 'lineage projection contract mismatch'
+  case "$(field "$lineage_projection" sdd_projection 2>/dev/null)" in maxi-v1|maxi-v2) ;; *) quiet_fail 'lineage projection contract mismatch' ;; esac
   [ "$(field "$lineage_projection" slug 2>/dev/null)" = "$SLUG" ] || quiet_fail 'lineage slug mismatch'
   [ "$(field "$lineage_projection" source_spec 2>/dev/null)" = "$SPEC" ] || quiet_fail 'lineage spec-root mismatch'
   [ "$(field "$lineage_projection" predecessor_projection 2>/dev/null)" = "$previous" ] || quiet_fail 'lineage predecessor mismatch'

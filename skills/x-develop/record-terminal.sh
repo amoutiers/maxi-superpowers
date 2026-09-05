@@ -7,6 +7,7 @@ export LC_ALL
 
 SCRIPT_DIR="$(cd -P "$(dirname "$0")" && pwd)"
 PROJECT_HELPER="$SCRIPT_DIR/project-tasks.sh"
+projection_headings() { awk -f "$SCRIPT_DIR/projection-headings.awk" "$1"; }
 REVIEW_PACKAGE_HELPER="$SCRIPT_DIR/../subagent-driven-development/scripts/review-package"
 [ -f "$PROJECT_HELPER" ] || { echo 'ERROR: projection helper is missing' >&2; exit 2; }
 [ -f "$REVIEW_PACKAGE_HELPER" ] || { echo 'ERROR: upstream review-package helper is missing' >&2; exit 2; }
@@ -86,7 +87,7 @@ verify_projection() {
   local projection="$1" root="$2" slug="$3" stored predecessor
   canonical_file "$projection" >/dev/null || return 1
   under "$projection" "$root/.superpowers/sdd" || return 1
-  [ "$(field "$projection" sdd_projection 2>/dev/null)" = maxi-v1 ] || return 1
+  case "$(field "$projection" sdd_projection 2>/dev/null)" in maxi-v1|maxi-v2) ;; *) return 1 ;; esac
   [ "$(field "$projection" slug 2>/dev/null)" = "$slug" ] || return 1
   stored="$(field "$projection" projection_body_sha256 2>/dev/null)" || return 1
   [ "$stored" = "$(projection_body_sha "$projection")" ] || return 1
@@ -125,7 +126,7 @@ validate_projection_completions() {
       Task\ *:\ complete*)
         number="$(completion_number "$line")"
         [ -n "$number" ] || return 1
-        [ "$(grep -c "^### Task $number: T[0-9][0-9][0-9] " "$projection" || true)" -eq 1 ] || return 1
+        [ "$(projection_headings "$projection" | cut -d'|' -f1 | grep -Fxc -- "$number" || true)" -eq 1 ] || return 1
         case "$seen" in *"|$number|"*) return 1 ;; esac
         seen="$seen$number|"
         ;;
@@ -133,7 +134,7 @@ validate_projection_completions() {
   done < "$ledger"
   while IFS= read -r number; do
     case "$seen" in *"|$number|"*) ;; *) return 1 ;; esac
-  done < <(sed -n 's/^### Task \([1-9][0-9]*\): T[0-9][0-9][0-9] .*/\1/p' "$projection")
+  done < <(projection_headings "$projection" | cut -d'|' -f1)
 }
 
 WORKTREE='' MERGE_BASE='' PROJECTION='' LEDGER='' FINAL_REVIEW='' SPEC='' TASKS='' OUTPUT=''

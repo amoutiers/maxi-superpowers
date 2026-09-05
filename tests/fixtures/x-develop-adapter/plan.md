@@ -32,7 +32,7 @@ derived_from:
 Write the complete first task body.
 
     ```markdown
-### Task 99: This fenced heading is not executable
+### Task 99: T099 Example
     ```
 
 Keep this line after the backtick fence.
@@ -42,9 +42,9 @@ Keep this line after the backtick fence.
 **Files:**
 - Create: `src/two.txt`
 
-~~~markdown
+  ~~~markdown
 ### Task 88: This tilde-fenced heading is not executable
-~~~
+  ~~~
 
 Keep this line after the tilde fence.
 
