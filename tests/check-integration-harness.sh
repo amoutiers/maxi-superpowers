@@ -154,6 +154,27 @@ assert_file_exists "$ROOT/tests/integration/run-codex-design-test.sh" "installed
 assert_grep "$RUN_ALL" 'run-codex-design-test.sh' "integration includes design behavior"
 assert_grep "$ROOT/tests/integration/run-codex-design-test.sh" 'codex exec resume --json "\$session_id"' "design resumes exact session"
 assert_not_grep "$ROOT/tests/integration/run-codex-design-test.sh" 'codex exec --ephemeral' "design preserves structured sessions"
+# Codex may read stdin even with a prompt argument. It must not consume the case list.
+DESIGN_HARNESS="$ROOT/tests/integration/run-codex-design-test.sh"
+if [ -f "$DESIGN_HARNESS" ]; then
+  eval "$(sed -n '/^run_codex_with_deadline()/,/^}/p' "$DESIGN_HARNESS")"
+  stdin_log=$(mktemp)
+  labels=""
+  while IFS= read -r label; do
+    labels="$labels $label"
+    run_codex_with_deadline "$stdin_log" cat
+  done <<'LABELS'
+one
+two
+LABELS
+  rm "$stdin_log"
+  if [ "$labels" = " one two" ]; then
+    echo "OK  [design subprocess cannot consume case-list stdin]"
+  else
+    echo "FAIL [design subprocess consumed case-list stdin]" >&2
+    failures=$((failures + 1))
+  fi
+fi
 if command -v jq >/dev/null 2>&1 && [ -f "$CHECKER" ]; then
   sample="$ROOT/tests/integration/design-cases/checker-pass.json"
   if jq -e -f "$CHECKER" "$sample" >/dev/null; then

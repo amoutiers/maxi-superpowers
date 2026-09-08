@@ -77,6 +77,23 @@
             "call_id": "b",
             "output": "{\"status\": \"running\"}"
           }
+        },
+        {
+          "type": "response_item",
+          "payload": {
+            "type": "function_call",
+            "name": "spawn_agent",
+            "call_id": "author",
+            "arguments": "{\"task_name\": \"author\"}"
+          }
+        },
+        {
+          "type": "response_item",
+          "payload": {
+            "type": "function_call_output",
+            "call_id": "author",
+            "output": "{\"task_name\": \"/root/author\"}"
+          }
         }
       ]
     },
@@ -102,10 +119,33 @@
           }
         }
       ]
+    },
+    {
+      "agent": "/root/author",
+      "events": [
+        {
+          "type": "event_msg",
+          "payload": {
+            "completed_at_ms": 1,
+            "item": {
+              "type": "CommandExecution",
+              "id": "read-author",
+              "exit_code": 0,
+              "command": [
+                "/bin/zsh",
+                "-lc",
+                "cat /installed/specify/spec-author.md"
+              ],
+              "aggregated_output": "CANONICAL AUTHOR"
+            }
+          }
+        }
+      ]
     }
   ],
   "installed": {
-    "/installed/plan/SKILL.md": "PLAN OWNER"
+    "/installed/plan/SKILL.md": "PLAN OWNER",
+    "/installed/specify/spec-author.md": "CANONICAL AUTHOR"
   },
   "helper": "/installed/review/design-contract.sh",
   "owners": [

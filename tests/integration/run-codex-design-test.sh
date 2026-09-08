@@ -25,7 +25,7 @@ cp "$ROOT/.agents/plugins/marketplace.json" "$RUNTIME/marketplace/.agents/plugin
 run_codex_with_deadline() {
   local log="$1"
   shift
-  perl "$ROOT/tests/integration/run-with-deadline.pl" 600 5 -- "$@" >> "$log" 2>&1
+  perl "$ROOT/tests/integration/run-with-deadline.pl" 600 5 -- "$@" </dev/null >> "$log" 2>&1
 }
 run_codex_with_deadline "$OUTPUT_DIR/install.log" codex plugin marketplace add "$RUNTIME/marketplace"
 run_codex_with_deadline "$OUTPUT_DIR/install.log" codex plugin add maxi@maxi-superpowers
@@ -36,7 +36,7 @@ printf '{}\n' > "$OUTPUT_DIR/installed.json"
 while IFS= read -r file; do
   jq --arg path "$file" --rawfile content "$file" '. + {($path):$content}' "$OUTPUT_DIR/installed.json" > "$OUTPUT_DIR/installed.tmp"
   mv "$OUTPUT_DIR/installed.tmp" "$OUTPUT_DIR/installed.json"
-done < <(find "$INSTALLED" -type f -name SKILL.md)
+done < <(find "$INSTALLED" -type f \( -name SKILL.md -o -path "$INSTALLED/specify/spec-author.md" \))
 HELPER="$INSTALLED/review/design-contract.sh"
 printf '%s\n' "$SOURCE_HEAD_BEFORE" > "$OUTPUT_DIR/source-head.txt"
 cp -R "$INSTALLED" "$OUTPUT_DIR/installed-skills"

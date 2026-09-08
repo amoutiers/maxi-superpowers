@@ -6,7 +6,8 @@ def commands:
 def read_owner($installed; $owner):
   commands as $cmds |
   any($installed | to_entries[]; . as $skill |
-    ($skill.key | endswith("/" + $owner + "/SKILL.md")) and
+    (($skill.key | endswith("/" + $owner + "/SKILL.md")) or
+     ($owner == "specify" and ($skill.key | endswith("/specify/spec-author.md")))) and
     any($cmds[]; ((.command | join(" ")) | contains($skill.key)) and
       (.aggregated_output | contains($skill.value))));
 . as $input |
