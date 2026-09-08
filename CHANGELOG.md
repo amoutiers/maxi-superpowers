@@ -1,4 +1,30 @@
 
+## [2.7.0] - 2026-09-08
+
+### Features
+
+- Guard bounded design review operations
+- Coordinate bounded canonical design operations
+
+### Bug Fixes
+
+- Execute design owner skills without redundant agent layers
+
+### Documentation
+
+- Record approved convergent design workflow
+- Record verified design workflow task completion
+- Complete convergent design workflow
+
+### Testing
+
+- Exercise installed convergent design workflows
+- Preserve design case stdin and recognize installed spec author
+- Recognize finite installed skill brace reads
+- Match observed installed command path forms exactly
+- Require observed design approval and terminal reviewer verdict
+
+
 ## [2.6.0] - 2026-09-05
 
 ### Features
