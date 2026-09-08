@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "maxi",
-      "description": "Spec-driven development pipeline for Claude Code: constitution → specify → clarify → plan → tasks → analyze → implement",
+      "description": "Spec-driven development pipeline for Claude Code: constitution \u2192 specify \u2192 clarify \u2192 plan \u2192 tasks \u2192 analyze \u2192 implement",
       "author": {
         "name": "Antoine Moutiers"
       },
@@ -17,7 +17,7 @@
       "source": {
         "source": "github",
         "repo": "amoutiers/maxi-superpowers",
-        "commit": "a93e2da3e3a3c1a6dc992210fae6ef9fc8a66af7"
+        "commit": "ee6906bd4aa3faed38a99ac9651e52a60e9f0717"
       },
       "homepage": "https://github.com/amoutiers/maxi-superpowers"
     }
