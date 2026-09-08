@@ -117,6 +117,32 @@
             },
             "completed_at_ms": 1
           }
+        },
+        {
+          "type": "event_msg",
+          "payload": {
+            "type": "item_completed",
+            "turn_id": "review-turn",
+            "completed_at_ms": 2,
+            "item": {
+              "type": "AgentMessage",
+              "phase": "final_answer",
+              "content": [
+                {
+                  "type": "Text",
+                  "text": "Critical\nNone.\nImportant\nNone.\nMinor\nNone.\nVERDICT: approved"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "event_msg",
+          "payload": {
+            "type": "task_complete",
+            "turn_id": "review-turn",
+            "last_agent_message": "Critical\nNone.\nImportant\nNone.\nMinor\nNone.\nVERDICT: approved"
+          }
         }
       ]
     },
@@ -182,5 +208,7 @@
   "max_questions": 0,
   "head_unchanged": true,
   "source_unchanged": true,
-  "exit_code": 0
+  "exit_code": 0,
+  "outcome": "approved",
+  "name": "design-validation"
 }

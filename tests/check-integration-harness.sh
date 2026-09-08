@@ -217,6 +217,12 @@ if command -v jq >/dev/null 2>&1 && [ -f "$CHECKER" ]; then
     echo "FAIL [design checker: exact relative installed reservation helper]" >&2
     failures=$((failures + 1))
   fi
+  if jq '.name = "review-only" | .outcome = "stopped" | .files["docs/maxi/specs/0001-line-counter/reviews/design-review.md"] |= (gsub("phase: approved"; "phase: stopped") | gsub("VERDICT: approved"; "VERDICT: rejected")) | .sessions[1].events = [.sessions[1].events[0]] | .cli += [{"type":"item.completed","item":{"type":"agent_message","text":"Everything is approved and complete."}}]' "$sample" | jq -e -f "$CHECKER" | jq -e '.result == "stopped"' >/dev/null; then
+    echo "OK  [design checker: stopped is never approved by untrusted prose, even without reviewer terminal]"
+  else
+    echo "FAIL [design checker: stopped confused with approved]" >&2
+    failures=$((failures + 1))
+  fi
   while IFS= read -r mutation; do
     [ -n "$mutation" ] || continue
     if jq "$mutation" "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
@@ -243,6 +249,19 @@ if command -v jq >/dev/null 2>&1 && [ -f "$CHECKER" ]; then
 .sessions[0].events[1].payload.item |= (.cwd = "file:///wrong/fixture" | .command[2] = "bash ../installed/review/design-contract.sh reserve")
 .sessions[0].events[1].payload.item |= (.cwd = "file:///fixture" | .command[2] = "bash ../other/review/design-contract.sh reserve")
 .sessions[0].events[1].payload.item |= (.command[2] = "bash ../installed/review/design-contract.sh reserve")
+.sessions[1].events |= map(select(.payload.type != "task_complete"))
+.sessions[1].events |= map(select(.payload.item.type != "AgentMessage"))
+.sessions[1].events[-1].payload.last_agent_message = "VERDICT: rejected"
+.sessions[1].events[-2].payload.completed_at_ms = null
+.outcome = "stopped" | .cli += [{"type":"item.completed","item":{"type":"agent_message","text":"VERDICT: approved"}}]
+.outcome = "stopped" | .files["docs/maxi/specs/0001-line-counter/reviews/design-review.md"] |= (gsub("phase: approved"; "phase: stopped") | gsub("VERDICT: approved"; "VERDICT: rejected"))
+del(.outcome)
+.sessions[1].agent = "/root/other"
+.sessions[1].events[-1].payload.turn_id = "other-turn"
+.sessions[1].events[-1].payload.type = "unknown_terminal"
+.sessions[1].events[-1].payload.last_agent_message = "VERDICT: rejected" | .sessions[1].events[-2].payload.item.content[0].text = "VERDICT: rejected"
+.files["docs/maxi/specs/0001-line-counter/reviews/design-review.md"] |= gsub("VERDICT: approved"; "VERDICT: rejected")
+.outcome = "stopped" | .files["docs/maxi/specs/0001-line-counter/reviews/design-review.md"] |= (gsub("phase: approved"; "phase: stopped") | gsub("VERDICT: approved"; "VERDICT: rejected")) | .cli += [{"type":"item.completed","item":{"type":"agent_message","text":"VERDICT: approved"}}]
 MUTATIONS
 fi
 

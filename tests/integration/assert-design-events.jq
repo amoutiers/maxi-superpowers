@@ -82,6 +82,31 @@ require(all($reviewers[]; . as $id | any($allocations[]; .identity == $id)); "re
 require(($reservations | length) <= (.max_reviews // 2) and ($reviews | length) == ($reservations | length); "review dispatch/reservation mismatch or excess") |
 require(if .review then ($reviews | length) > 0 else ($reviews | length) == 0 end; "missing or unauthorized review") |
 require(if .review then .verified else true end; "unverified outcome; final assistant claims are not proof") |
-{result:"verified", review_dispatches:($reviews | length), reservations:($reservations | length),
+require(if .name == "design-validation" or .name == "revision" then .outcome == "approved"
+  else true end; "full design case requires approval, stopped is incomplete") |
+# Keep the independently checked machine outcome distinct from untrusted prose.
+[.files | to_entries[] | select(.key | endswith("/reviews/design-review.md")) | .value] as $reports |
+require(if .review then
+  (.outcome == "approved" or .outcome == "stopped") and ($reports | length) == 1 and
+  ([$reports[0] | scan("(?m)^phase: ([a-z]+)$") | .[0]][0] == .outcome)
+  else .outcome == "none" end; "missing or contradictory operation outcome") |
+require(if .outcome == "stopped" then
+  ([$reports[0] | scan("(?m)^VERDICT: ([a-z]+)$") | .[0]][-1] != "approved") and
+  all($messages[]; test("(?m)^VERDICT: approved$|^DESIGN_REVIEW_VERIFIED$") | not)
+  else true end; "stopped operation contradicts structured approval") |
+require(if .outcome == "approved" then
+  ([$reports[0] | scan("(?m)^VERDICT: ([a-z]+)$") | .[0]][-1] == "approved") and
+  ([$reports[0] | scan("(?m)^reviewer: ([^\\n]+)$") | .[0]][0]) as $reviewer |
+  any(.sessions[]; .agent == $reviewer and
+    any(.events[].payload; . as $terminal |
+      .type == "task_complete" and
+      (.last_agent_message // "" | test("VERDICT: approved\\s*$")) and
+      ([.last_agent_message | scan("(?m)^VERDICT: ([a-z]+)$")] == [["approved"]]) and
+      any($input.sessions[] | select(.agent == $reviewer) | .events[].payload;
+        .type == "item_completed" and .completed_at_ms != null and .turn_id == $terminal.turn_id and
+        .item.type == "AgentMessage" and .item.phase == "final_answer" and
+        ([.item.content[] | select(.type == "Text") | .text] | join("")) == $terminal.last_agent_message)))
+  else true end; "absent or inconsistent completed independent reviewer verdict") |
+{result:(if .review then .outcome else "verified" end), review_dispatches:($reviews | length), reservations:($reservations | length),
  user_turns:([.cli[] | select(.type == "turn.completed")] | length),
  questions:([$messages[] | scan("\\?")] | length), duplicate_documents:0}

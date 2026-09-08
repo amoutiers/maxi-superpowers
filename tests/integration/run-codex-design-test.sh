@@ -121,15 +121,15 @@ while IFS= read -r name; do
     jq --arg path "$path" --rawfile content "$FIXTURE/$path" '. + {($path):$content}' "$DIR/files.json" > "$DIR/files.tmp"
     mv "$DIR/files.tmp" "$DIR/files.json"
   done < <(jq -nr --slurpfile c "$DIR/case.json" --slurpfile d "$DIR/changes.json" '$c[0].allowed + $d[0] | unique[]')
-  verified=false
+  verified=false; outcome=none
   if jq -e '.review' "$DIR/case.json" >/dev/null && [ -f "$SPEC_DIR/reviews/design-review.md" ]; then
     id=$(sed -n 's/^operation_id: //p' "$SPEC_DIR/reviews/design-review.md" | head -1)
     if bash "$HELPER" operation "$SPEC_DIR/reviews/design-review.md" "$SPEC_DIR/spec.md" "$SPEC_DIR/plan.md" "$FIXTURE" "$id" > "$DIR/operation.txt" 2>&1; then
       if grep -q '^phase: approved$' "$DIR/operation.txt"; then
-        if bash "$HELPER" verify "$SPEC_DIR/reviews/design-review.md" "$SPEC_DIR/spec.md" "$SPEC_DIR/plan.md" "$FIXTURE" > "$DIR/verify.txt" 2>&1; then verified=true; fi
+        if bash "$HELPER" verify "$SPEC_DIR/reviews/design-review.md" "$SPEC_DIR/spec.md" "$SPEC_DIR/plan.md" "$FIXTURE" > "$DIR/verify.txt" 2>&1; then verified=true; outcome=approved; fi
       elif grep -q '^phase: stopped$' "$DIR/operation.txt"; then
         # A truthful bounded stop is valid behavior, never an approval.
-        verified=true
+        verified=true; outcome=stopped
       fi
     fi
   fi
@@ -138,7 +138,7 @@ while IFS= read -r name; do
   if [ "$(git -C "$ROOT" rev-parse HEAD)" = "$SOURCE_HEAD_BEFORE" ] && [ -z "$(git -C "$ROOT" status --porcelain=v1 --untracked-files=all)" ]; then source_unchanged=true; fi
   max_questions=0
   case "$name" in questions) max_questions=4;; parked|cancelled|missing-continuity) max_questions=1;; esac
-  jq -n --slurpfile c "$DIR/case.json" --slurpfile cli "$DIR/cli.jsonl" --slurpfile sessions "$DIR/sessions.json" --slurpfile files "$DIR/files.json" --slurpfile changes "$DIR/changes.json" --slurpfile installed "$OUTPUT_DIR/installed.json" --arg helper "$HELPER" --argjson verified "$verified" --argjson head "$head_unchanged" --argjson source "$source_unchanged" --argjson code "$code" --argjson elapsed "$elapsed" --argjson max_questions "$max_questions" '$c[0] + {cli:$cli,sessions:$sessions[0],files:$files[0],changes:$changes[0],installed:$installed[0],helper:$helper,verified:$verified,head_unchanged:$head,source_unchanged:$source,exit_code:$code,elapsed_seconds:$elapsed,max_questions:$max_questions}' > "$DIR/evidence.json"
+  jq -n --slurpfile c "$DIR/case.json" --slurpfile cli "$DIR/cli.jsonl" --slurpfile sessions "$DIR/sessions.json" --slurpfile files "$DIR/files.json" --slurpfile changes "$DIR/changes.json" --slurpfile installed "$OUTPUT_DIR/installed.json" --arg helper "$HELPER" --arg outcome "$outcome" --argjson verified "$verified" --argjson head "$head_unchanged" --argjson source "$source_unchanged" --argjson code "$code" --argjson elapsed "$elapsed" --argjson max_questions "$max_questions" '$c[0] + {cli:$cli,sessions:$sessions[0],files:$files[0],changes:$changes[0],installed:$installed[0],helper:$helper,outcome:$outcome,verified:$verified,head_unchanged:$head,source_unchanged:$source,exit_code:$code,elapsed_seconds:$elapsed,max_questions:$max_questions}' > "$DIR/evidence.json"
   cp -R "$FIXTURE/docs" "$DIR/final-docs"
   git -C "$FIXTURE" diff HEAD > "$DIR/final.diff"
   if jq -e -f "$ROOT/tests/integration/assert-design-events.jq" "$DIR/evidence.json" > "$DIR/result.json" 2> "$DIR/assertions.log"; then
