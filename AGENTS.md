@@ -46,7 +46,7 @@ During an initial active lifecycle that lacks the monotone `reopened_from: done`
 Every `spec.md` has a YAML frontmatter `status:` field:
 `drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled`
 
-The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. `/maxi:review` dispatches `skills/review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`, then writes `reviews/design-review.md` only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure is nonblocking unless the reviewed design itself must change. A missing or stale approval stops task extraction before any write. Corrections stop after their owner write and never start a review or successor phase. Re-review is an explicit `/maxi:review` request.
+The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. `/maxi:review` dispatches `skills/review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`, then publishes reviewed evidence in `reviews/design-review.md` only after one exact terminal verdict; it reserves a pending operation before dispatch. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure is nonblocking unless the reviewed design itself must change. A missing or stale approval stops task extraction before any write. Bare specify and spec-only creation coordinate author then actual clarification to `clarified`; explicit design validation and design revisions coordinate affected owners through `planned` plus a bounded review round. Owner-only calls return after their own write. Draft-only, edit-only and phase-only requests stop at the requested owner. Public `/maxi:review` is report-only, with no correction. Standalone initial planning retains one initial review; its nested dispatch is suppressed under a coordinator. Coordinated review reserves at most two passes in the existing report, corrects all first-pass findings once and reuses the reviewer where available; interruption never resets the allowance. No design operation invokes tasks, analyze or implement.
 
 A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
 
@@ -94,12 +94,13 @@ Run `bash tests/run-all.sh` after changes.
 - `check-spec-fixture.sh` — spec fixture has valid `slug`/`created` fields (the 10-status consistency check now lives in `check-status-consistency.sh`)
 - `check-templates.sh` — all 6 maxi templates + 2 fixtures have required fields and body sections, including the single Global Constraints section
 - `check-global-constraints.sh` — fixture-backed durable Global Constraints outcomes and planner guidance remain aligned
-- `check-review-boundaries.sh` — the three fixed review boundaries, explicit re-review, and terminal corrections remain aligned
+- `check-review-boundaries.sh` — fixed review boundaries, owner returns and coordinated destinations remain aligned
+- `check-design-operation.sh` — bounded reservations, continuation, history and atomic publication remain fail-closed
 - `check-readiness-contract.sh` — versioned readiness stamping and structural/exact hash verification remain fail-closed
 - `check-x-develop-adapter.sh` — complete-body v2 projection, immutable v1 upgrades, fence-aware mapping, verification without writes, lineage reconciliation, final-review identity/package validation, and terminal receipts remain fail-closed
 - `check-implement-handoff.sh` — `implement`/`x-develop` ownership and Mandatory Sync 5 terminal-gate contracts remain aligned
 - `check-skills-present.sh` — all 19 maxi-native skills and targeted support files exist
-- `check-revise.sh` — completed-spec reopening and explicit-consent invariants remain aligned
+- `check-revise.sh` — completed-spec reopening and change-authorization invariants remain aligned
 - `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
 - `check-declarative-harnesses.sh` — Cursor, Kimi, Devin, and Gemini manifests match `package.json`, Kimi/Gemini bootstrap wiring is complete, and Pi remains project-gated

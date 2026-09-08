@@ -1,31 +1,11 @@
 #!/usr/bin/env bash
-# Verify the three fixed review boundaries and reject automatic replay.
+# Verify fixed gates, owner returns and bounded design coordination.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
 source "$ROOT/tests/lib/test-helpers.sh"
 
 failures=0
-
-assert_correction_section_not_grep() {
-  local file="$1" heading="$2" pattern="$3" label="$4" section
-
-  section="$(awk -v heading="$heading" '
-    $0 == heading { found = 1 }
-    found && /^## / && $0 != heading { exit }
-    found { print }
-  ' "$file")"
-
-  if [ -z "$section" ]; then
-    echo "FAIL [$label]: expected correction section '$heading' is missing" >&2
-    failures=$((failures + 1))
-  elif printf '%s\n' "$section" | grep -Eq "$pattern"; then
-    echo "FAIL [$label]: correction contains a prohibited dispatch" >&2
-    failures=$((failures + 1))
-  else
-    echo "OK  [$label]"
-  fi
-}
 
 assert_correction_section_grep() {
   local file="$1" heading="$2" pattern="$3" label="$4" section
@@ -44,31 +24,6 @@ assert_correction_section_grep() {
   else
     echo "FAIL [$label]: terminal correction message is missing" >&2
     failures=$((failures + 1))
-  fi
-}
-
-assert_correction_section_has_no_phase_command() {
-  local file="$1" heading="$2" label="$3" section remaining
-  local terminal_message='Request `/maxi:review` when you want a new design review.'
-
-  section="$(awk -v heading="$heading" '
-    $0 == heading { found = 1 }
-    found && /^## / && $0 != heading { exit }
-    found { print }
-  ' "$file")"
-
-  if [ -z "$section" ]; then
-    echo "FAIL [$label]: expected correction section '$heading' is missing" >&2
-    failures=$((failures + 1))
-    return
-  fi
-
-  remaining="$(printf '%s\n' "$section" | awk -v terminal_message="$terminal_message" '{ sub(terminal_message, ""); print }')"
-  if printf '%s\n' "$remaining" | grep -Eq '/maxi:(review|specify|clarify|plan|tasks|analyze|implement)([^[:alnum:]_-]|$)'; then
-    echo "FAIL [$label]: correction contains a direct review or successor command" >&2
-    failures=$((failures + 1))
-  else
-    echo "OK  [$label]"
   fi
 }
 
@@ -336,29 +291,23 @@ for skill in specify clarify revise plan tasks analyze implement; do
   assert_not_grep "$ROOT/skills/$skill/SKILL.md" 'replay_contract\|replay_continuation\|--resume-current-\|REVIEW_REQUIRED\|replay-plan\.sh\|x-review' "$skill has no replay trigger"
 done
 
-assert_correction_section_not_grep "$ROOT/skills/plan/SKILL.md" '## Explicit Structural Plan Correction' 'automatically invoke.*review|x-review' "plan correction does not dispatch review"
-assert_correction_section_not_grep "$ROOT/skills/tasks/SKILL.md" '## Explicit Structural Tasks Correction' 'automatically invoke.*review|x-review' "tasks correction does not dispatch review"
-assert_correction_section_not_grep "$ROOT/skills/revise/SKILL.md" '## Process' 'automatically invoke.*review|x-review' "spec correction does not dispatch review"
-assert_correction_section_not_grep "$ROOT/skills/plan/SKILL.md" '## Explicit Structural Plan Correction' 'replay-plan\.sh|REVIEW_REQUIRED|REPLAY\||start-phase|invoke exactly.*(tasks|analyze|plan|clarify|specify)' "plan correction does not dispatch a successor"
-assert_correction_section_not_grep "$ROOT/skills/tasks/SKILL.md" '## Explicit Structural Tasks Correction' 'replay-plan\.sh|REVIEW_REQUIRED|REPLAY\||start-phase|invoke exactly.*(tasks|analyze|plan|clarify|specify)' "tasks correction does not dispatch a successor"
-assert_correction_section_not_grep "$ROOT/skills/revise/SKILL.md" '## Process' 'replay-plan\.sh|REVIEW_REQUIRED|REPLAY\||start-phase|invoke exactly.*(tasks|analyze|plan|clarify|specify)' "spec correction does not dispatch a successor"
-for correction in \
-  "$ROOT/skills/revise/SKILL.md|## Process|spec" \
-  "$ROOT/skills/plan/SKILL.md|## Explicit Structural Plan Correction|plan" \
-  "$ROOT/skills/tasks/SKILL.md|## Explicit Structural Tasks Correction|tasks"; do
-  IFS='|' read -r file heading label <<< "$correction"
-  assert_correction_section_grep "$file" "$heading" 'Correction recorded\. No review or successor phase was started\. Request `/maxi:review` when you want a new design review\.' "$label correction is terminal"
-  assert_correction_section_has_no_phase_command "$file" "$heading" "$label correction has no direct phase command"
-done
-
-# Design review dispatch has exactly one normal entry point. Corrections remain
-# terminal, tasks fail closed on stale approval, and only the public command can
-# re-run a design review.
-assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Process' 'Invoke `/maxi:review` exactly once.*spec\.md.*plan\.md' "normal plan completion dispatches one design review"
-assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Process' 'pre-existing `plan.md`.*after `/maxi:revise` and `/maxi:clarify`.*zero automatic design-review dispatches.*`/maxi:review`' "replan after revision dispatches zero design reviews"
-assert_correction_section_not_grep "$ROOT/skills/plan/SKILL.md" '## Explicit Structural Plan Correction' 'Invoke `/maxi:review`|dispatch.*design review' "plan correction dispatches zero design reviews"
+# Artifact owners return; only authorized entry coordinators continue the round.
+assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Process' 'Invoke `/maxi:review` exactly once.*spec\.md.*plan\.md' "standalone initial plan has one review"
+assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Process' 'outer specify/revise coordinator.*return after writing' "coordinated plan returns to owner"
+assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Explicit Structural Plan Correction' 'Direct edit-only correction stops' "direct correction remains narrow"
+assert_correction_section_grep "$ROOT/skills/tasks/SKILL.md" '## Explicit Structural Tasks Correction' 'Correction recorded\. No review or successor phase was started' "tasks correction stays terminal"
 assert_section_grep "$ROOT/skills/tasks/SKILL.md" '## Process' 'missing or stale.*design review.*stop.*no write.*`/maxi:review`' "stale design review blocks tasks without writing"
-assert_grep "$ROOT/skills/review/SKILL.md" 'only re-review entry point' "public review is the only re-review entry point"
+assert_grep "$ROOT/skills/review/SKILL.md" 'report-only.*one pass.*never correct' "public review stays report-only"
+assert_grep "$ROOT/skills/review/SKILL.md" 'stamp-operation' "managed review publication"
+assert_grep "$ROOT/skills/review/design-operation.md" 'rejected second pass stops' "two-pass bound"
+assert_grep "$ROOT/skills/review/design-operation.md" 'No hidden UUID is mandatory' "native identity is not a hidden prerequisite"
+assert_grep "$ROOT/skills/review/design-operation.md" 'only for an established new user order use a local discriminator' "fallback requires an actual new order"
+assert_grep "$ROOT/skills/review/design-operation.md" 'On resume always reuse the stored operation ID' "identity fallback cannot reset resume"
+assert_grep "$ROOT/skills/review/design-operation.md" 'Never invent a narrative ordinal' "identity provenance is explicit"
+assert_grep "$ROOT/skills/review/design-operation.md" 'every producer, mutation, persisted representation, reload, consumer' "whole-flow self-check"
+assert_grep "$ROOT/skills/review/design-reviewer.md" 'every prior finding resolved or still blocking' "correction checks prior findings"
+assert_not_grep "$ROOT/skills/revise/SKILL.md" 'Describe the change that requires revision' "no unconditional repeat interview"
+assert_not_grep "$ROOT/skills/clarify/SKILL.md" 'One question at a time' "no unconditional serial questions"
 assert_not_grep "$ROOT/skills/review/SKILL.md" 'superpowers:requesting-code-review\|code-reviewer\.md\|Ready to merge' "design review does not use the code-review contract"
 assert_grep "$ROOT/skills/review/SKILL.md" 'design-reviewer\.md' "design review dispatches its dedicated brief"
 assert_grep "$ROOT/skills/review/SKILL.md" '`related_adrs` entry in `spec.md`' "design review resolves explicitly applicable ADRs"

@@ -10,7 +10,7 @@ Resolve open questions in an existing spec without rewriting it. Appends a `## C
 ## Prereqs
 
 - `docs/maxi/constitution.md` must exist — if missing, stop: *"No constitution found. Run `/maxi:constitution` first."*
-- Locate the in-flight spec in `docs/maxi/specs/`. Find `spec.md` with `status: specified`.
+- Use the coordinator's explicit canonical target when supplied; otherwise locate the in-flight spec in `docs/maxi/specs/`. Require `status: specified`.
   - If multiple specs at `status: specified`: ask user which one to clarify.
   - If none at `status: specified`: stop with *"No spec at status `specified` found. Run `/maxi:specify` to create one, or check that the target spec is in the right phase."*
   - If spec is `drafting`: stop with *"Spec is still `drafting` — run `/maxi:specify` to complete it first."*
@@ -20,14 +20,14 @@ Resolve open questions in an existing spec without rewriting it. Appends a `## C
 
 1. **Read spec.md** — scan for: `[NEEDS CLARIFICATION: ...]` markers, questions in FR descriptions, vague adjectives ("fast", "robust", "user-friendly", "simple"), and missing acceptance criteria
 2. **Build question list** — collect all ambiguities found; prioritize by impact (blocking FRs first)
-3. **Ask one question at a time** — present context, ask one focused question, wait for answer before next
+3. **Ask up to three independent questions together** — reuse settled answers first. Group independent choices with concise recommendations; sequence only dependent questions. Ask zero questions when the actual scan is clean.
 4. **Record each answer** — after each answer, note how it resolves the ambiguity
 5. **Update spec.md** — three updates in the same write operation:
    a. In-place: replace `[NEEDS CLARIFICATION: ...]` markers with the resolved text in the relevant FRs
    b. Append: add/update `## Clarifications` section at the end of spec.md with Q&A pairs
    c. Frontmatter: set `updated: [today's ISO date]` (`YYYY-MM-DD`)
 6. **Transition** — change `status: specified` → `status: clarified`.
-7. **Report** — tell user: spec clarified at `docs/maxi/specs/NNNN-slug/spec.md` (status: `clarified`). Next: `/maxi:plan`.
+7. **Return** — in owner-only context return the canonical path and `clarified` to the coordinator. Direct invocation reports phase completion and stops. Never invoke a successor yourself.
 
 ## Clarifications Section Format
 
@@ -52,7 +52,7 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 ## Critical Rules
 
 - **Read before asking.** Identify ALL ambiguities first; then ask questions in priority order.
-- **One question at a time.** Never dump a list of questions. Ask → wait → record → ask next.
+- **Grouped questions.** Ask up to three independent questions per turn; dependent questions wait for their prerequisites. Reuse settled answers and ask zero redundant questions.
 - **Narrow scope.** Only resolve existing open questions. Do NOT add new requirements, expand scope, or introduce new user stories. If the user's answer suggests a scope change, note it as a potential follow-up spec.
 - **No rewriting.** Do not rewrite sections for polish, style, or clarity. Only touch text that directly resolves an open question.
 - **Update spec in place.** Remove `[NEEDS CLARIFICATION: ...]` markers when resolved. Don't leave them as-is.
@@ -63,7 +63,7 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 ## Red Flags
 
 - No questions asked; skill just rewrites sections → narrow scope, resolve open Qs only
-- Asking 5+ questions in one message → one at a time, always
+- Asking more than three independent questions in one message → group at most three
 - `[NEEDS CLARIFICATION: ...]` markers still in spec.md after clarification → must update in place
 - Running on a spec with `status: planned` or later → wrong phase, stop immediately
 - Adding new FR-### items not in the original spec → scope creep, defer to new `/maxi:specify`

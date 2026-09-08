@@ -8,16 +8,16 @@ verdict: approved
 
 # Design Review
 
-## Findings
-
-[Preserve the complete independent reviewer output.]
-
-## Verdict
-
-approved
+[For managed operations copy the reservation's leading operation block here, changing only phase to the exact verdict. Preserve its complete length-framed history bytes unchanged. Do not emit this placeholder. The approval envelope above is stamper output, not candidate input.]
 
 ## Verification
 
-- Exact current `spec.md` SHA-256: verified.
-- Exact current `plan.md` SHA-256: verified.
-- Original constitution and complete ADR snapshot SHA-256: verified unchanged.
+- Original exact spec/plan hashes and complete decision-input digest remain unchanged.
+
+## Verdict
+
+[Supplied exact verdict; the terminal VERDICT line remains at the end of independent findings below.]
+
+## Findings
+
+[Append the complete independent reviewer output, including prior-finding resolutions on pass two. Its exact VERDICT line must be the final non-empty line.]

@@ -9,10 +9,10 @@ This table shows which maxi pipeline skill delegates to which sub-skill, what st
 | maxi skill | Required status | Delegates to | Status transition |
 |---|---|---|---|
 | `constitution` | — (always runs) | (none — writes `docs/maxi/constitution.md` directly) | — |
-| `specify` | constitution exists (no spec status required) | `/maxi:brainstorming` | `drafting → specified` |
-| `clarify` | `specified` | (none — interactive Q&A dialogue) | `specified → clarified` |
-| `plan` | `clarified` | `/maxi:writing-plans`, then one design review | `clarified → planned` |
-| `review` | current `spec.md` and `plan.md`; explicit re-review request | dedicated `skills/review/design-reviewer.md` brief with accepted `related_adrs` and one exact terminal verdict | none; writes `reviews/design-review.md` |
+| `specify` | constitution exists (no spec status required) | `/maxi:brainstorming`, spec-author, clarify; plan/review for design validation | owner: `drafting → specified`; destination: `clarified` or `planned` plus verdict |
+| `clarify` | `specified` | (none; zero questions on clean scan, up to three independent questions) | `specified → clarified` |
+| `plan` | normal: `clarified`; explicit correction: `planned`, `tasked`, `analyzed`, `implementing` | `/maxi:writing-plans`; coordinator owns review, standalone initial plan reviews once | `clarified → planned` |
+| `review` | current `spec.md` and `plan.md`; direct review request or coordinated pass | dedicated `skills/review/design-reviewer.md` brief with accepted `related_adrs` and one exact terminal verdict | none; writes `reviews/design-review.md` |
 | `tasks` | `planned`; current approved `reviews/design-review.md` | (none — extraction from plan.md) | `planned → tasked` |
 | `analyze` | `tasked`, `analyzed`, `implementing`, or `done` | (none — reads artifacts, writes and stamps `analysis.md`) | `tasked → analyzed` (once; reruns don't change status) |
 | `implement` | `analyzed` or `implementing` (resume), with a current `maxi-readiness-v2` contract | `/maxi:x-develop` | `analyzed → implementing`; `READY_TO_FINISH` receipt gate; then `implementing → done` |
@@ -45,11 +45,11 @@ Design approval uses `maxi-design-review-v1` with exact spec/plan hashes and the
 
 | Boundary | Successor gate | Owner | Status effect |
 |---|---|---|---|
-| Design review of current `spec.md` and `plan.md` | Before `tasks` | `plan` invokes the initial review; public `/maxi:review` is explicit re-review | none |
+| Design review of current `spec.md` and `plan.md` | Before `tasks` | specify/revise coordinate bounded rounds; standalone initial plan invokes one report-only review; public review is report-only | none |
 | readiness review of the current design and tasks | Before implementation | `/maxi:analyze` | `tasked → analyzed` |
 | Final implementation review | Before branch finishing | Upstream SDD through `/maxi:x-develop` | `implementing → done` only after `READY_TO_FINISH` |
 
-The design review is bound to the complete exact current `spec.md` and `plan.md` pair; a missing or stale approval stops task extraction without a write. Its dedicated artifact brief treats task `Files` lists as expected primary edits, not implementation allowlists. Mechanical callers, declarations, registrations, fixtures, manifests, generated metadata, and lockfiles are nonblocking unless they expose a requirement, feasibility, architecture, contract, decomposition, ordering, safety, or verification defect that requires the reviewed design to change. A correction stops after its owner write and never starts a review or successor phase. Re-review is only the explicit `/maxi:review` command. These boundaries are gates, not statuses or automatic phase transitions.
+The design review is bound to the complete exact current `spec.md` and `plan.md` pair; a missing or stale approval stops task extraction without a write. Its dedicated artifact brief treats task `Files` lists as expected primary edits, not implementation allowlists. Mechanical callers, declarations, registrations, fixtures, manifests, generated metadata, and lockfiles are nonblocking unless they expose a requirement, feasibility, architecture, contract, decomposition, ordering, safety, or verification defect that requires the reviewed design to change. Bare specify and spec-only creation coordinate author then actual clarification to `clarified`; explicit design validation and design revisions coordinate affected owners through `planned` plus a bounded review round. Owner-only calls return after their own write. Draft-only, edit-only and phase-only requests stop at the requested owner. Public `/maxi:review` is report-only, with no correction. Standalone initial planning retains one initial review; its nested dispatch is suppressed under a coordinator. Coordinated review reserves at most two passes in the existing report, corrects all first-pass findings once and reuses the reviewer where available; interruption never resets the allowance. No design operation invokes tasks, analyze or implement.
 
 ### Lifecycle Skills
 
@@ -59,7 +59,7 @@ The design review is bound to the complete exact current `spec.md` and `plan.md`
 | `park` | any active status (not `parked`, `cancelled`, `done`) | (none — writes spec.md only) | `<any> → parked` (stores `parked_from:`) |
 | `resume` | `parked` | (none — reads `parked_from:`, writes spec.md) | `parked → <parked_from>` (clears `parked_from:`) |
 | `cancel` | any active status (not `parked`, `cancelled`, `done`) | (none — writes spec.md only) | `<any> → cancelled` (terminal) |
-| `revise` | `clarified` through `implementing`, or `done` | (none — writes spec.md only) | `<any> → <rollback_target>` (A+ picker: `clarified`/`planned`/`tasked`/`analyzed`; exceptional `specified` rollback for a source-spec gap; `done` writes the monotone `reopened_from: done` watermark) |
+| `revise` | `clarified` through `implementing`, or `done` | rollback/note owner, affected author/clarify, plan and bounded review | `<any> → <rollback_target>` (authorized target: `clarified`/`planned`/`tasked`/`analyzed`; exceptional `specified` rollback for a source-spec gap; `done` writes the monotone `reopened_from: done` watermark) |
 
 ### Ingress / Migration Skills
 
@@ -75,7 +75,7 @@ These skills ingest *already-implemented* work, so they may set a terminal/advan
 
 - `/maxi:analyze` can be rerun at any status from `tasked` onward — it is non-destructive and never modifies source artifacts. Status does not change on subsequent runs.
 - `/maxi:implement` resumes from `implementing` if an earlier run was interrupted — it starts from the first unchecked `- [ ]` task.
-- `/maxi:revise` is the **only skill that makes `status:` go backwards**. It is consent-gated and leaves downstream artefacts in place; a confirmed rollback from `done` writes the monotone `reopened_from: done` watermark.
+- `/maxi:revise` is the **only skill that makes `status:` go backwards**. It reuses explicit change authorization and leaves downstream artefacts in place; an authorized rollback from `done` writes the monotone `reopened_from: done` watermark.
 - The exceptional `specified` rollback is offered only for a demonstrated missing or ambiguous requirement in the source spec; it resumes at `clarify` and never reruns `specify`.
 - `/maxi:resume` restores the exact status stored in `parked_from:` — it never asks the user what status to restore to (unless `parked_from:` is missing).
 - `/maxi:cancel` is **terminal** — there is no un-cancel path in the pipeline.

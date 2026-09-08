@@ -36,7 +36,7 @@ The existing repository, shell test helpers, approval guards, and Codex integrat
 
 **Purpose**: Establish report-local continuation and fail-closed reservation/publication before activating coordinated workflows. This implements the safety foundation of US3 and is inert until T002 uses it.
 
-- [ ] T001 [US3] Guard review reservations and publication in skills/review/design-contract.sh with executable lifecycle, interruption, freshness, legacy-compatibility, alias, and locking scenarios in tests/check-design-operation.sh (plan Task 1)
+- [x] T001 [US3] Guard review reservations and publication in skills/review/design-contract.sh with executable lifecycle, interruption, freshness, legacy-compatibility, alias, and locking scenarios in tests/check-design-operation.sh (plan Task 1)
 
 **Checkpoint**: The new lifecycle scenarios and existing review/readiness contract checks pass. Do not activate coordination or commit a partial gating change before T002's synchronized update.
 

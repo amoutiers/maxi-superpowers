@@ -26,28 +26,14 @@ assert_process_order() {
   fi
 }
 
-assert_non_yes_no_write() {
-  if printf '%s\n' "$process_section" | awk '
-    BEGIN { RS = "" }
-    $0 ~ /non[- ]yes|anything other than.*yes|response.*not.*yes/ &&
-      $0 ~ /do not write|write nothing|no file (is )?written|writes no file/ { found = 1 }
-    END { exit(found ? 0 : 1) }
-  '; then
-    echo "OK  [non-yes response writes nothing]"
-  else
-    echo "FAIL [non-yes response writes nothing]: non-yes and no-write must be stated together" >&2
-    failures=$((failures + 1))
-  fi
-}
-
 assert_file_exists "$REVISE" "revise SKILL.md"
 
-# A completed spec is a valid rollback source, while the existing A+ picker
-# and explicit consent boundary remain unchanged.
+# A completed spec is a valid rollback source
+# and the authorization boundary remain enforced.
 assert_grep "$REVISE" 'Valid for:.*done' "done is an accepted revision source"
-assert_grep "$REVISE" 'A+ picker' "A+ rollback picker is preserved"
-assert_grep "$REVISE" 'About to roll back' "rollback confirmation is preserved"
-assert_grep "$REVISE" 'explicit `yes`' "rollback still requires explicit yes"
+assert_grep "$REVISE" 'Reuse explicit authorization' "existing authorization is reused"
+assert_grep "$REVISE" 'mutation authority remains materially unclear' "real authorization gaps stop"
+assert_grep "$REVISE" 'unresolved authorization question writes nothing' "unresolved authority writes nothing"
 assert_not_grep "$REVISE" 'done (shipped)' "done is not treated as shipped"
 assert_not_grep "$REVISE" 'status: done.*Refuse\|Refuse.*status: done' "done is not refused"
 
@@ -58,13 +44,7 @@ assert_grep "$REVISE" 'retain.*reopened_from: done\|reopened_from: done.*retain'
 assert_grep "$REVISE" 'never.*clear.*reopened_from\|reopened_from.*never.*clear' "watermark cannot be cleared"
 assert_grep "$REVISE" 'Clarifications' "reopening records a revision note"
 assert_grep "$REVISE" 'Only `spec.md` is written' "reopening keeps artifact ownership"
-if printf '%s\n' "$process_section" | grep -Eq 'On explicit `yes` only'; then
-  echo "OK  [write is gated by explicit yes]"
-else
-  echo "FAIL [write is gated by explicit yes]: missing explicit consent write boundary" >&2
-  failures=$((failures + 1))
-fi
-assert_non_yes_no_write
-assert_process_order 'On explicit `yes` only' 'write `spec.md`' "write follows explicit yes"
-
+assert_process_order 'Reuse explicit authorization' 'write `spec.md`' "authorization precedes rollback write"
+assert_grep "$REVISE" 'Never delete or rename downstream' "stale artifacts retained"
+assert_grep "$REVISE" 'Never modify constitution or ADR files' "ADR authority preserved"
 summary_and_exit "revise invariant checks"

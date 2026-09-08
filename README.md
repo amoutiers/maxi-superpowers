@@ -124,15 +124,14 @@ Your first feature, end to end:
 
 ```
 /maxi:constitution                         # one-time: establish your project's principles
-/maxi:specify add email + password login   # start a spec via guided Q&A      (→ specified)
-/maxi:clarify                              # answer any open questions         (→ clarified)
+/maxi:specify add email + password login   # author + actual clarification     (→ clarified)
 /maxi:plan                                 # technical plan + ADR proposals    (→ planned)
 /maxi:tasks                                # checkbox task list                (→ tasked)
 /maxi:analyze                              # 7-pass quality audit              (→ analyzed)
 /maxi:implement                            # TDD execution + code review       (→ done)
 ```
 
-Each command reads the previous artifacts and refuses to run if the spec is in the wrong phase — so the path is hard to get wrong. Artifacts land in `docs/maxi/` (see [Artifact Structure](#artifact-structure)).
+Specify coordinates clarification automatically; request design validation to include planning and bounded review. Each command reads the previous artifacts and refuses to run if the spec is in the wrong phase — so the path is hard to get wrong. Artifacts land in `docs/maxi/` (see [Artifact Structure](#artifact-structure)).
 
 ## Pipeline Commands
 
@@ -141,10 +140,10 @@ Full reference for the forward pipeline:
 | Command | Description |
 |---|---|
 | `/maxi:constitution` | Establish or amend project principles — required before any other command |
-| `/maxi:specify` | Create a new feature spec via guided design dialogue |
+| `/maxi:specify` | Create and clarify one canonical spec; explicit design validation adds plan and bounded review |
 | `/maxi:clarify` | Resolve open questions in a spec before planning |
 | `/maxi:plan` | Generate a technical implementation plan from the spec |
-| `/maxi:review` | Explicitly re-review the current `spec.md` and `plan.md` after a correction or stale record |
+| `/maxi:review` | Review the current spec and plan, writing only the report, without correction |
 | `/maxi:tasks` | Extract a structured checkbox task list from the plan |
 | `/maxi:analyze` | Run a 7-pass quality audit and stamp its readiness report (includes ADR alignment) |
 | `/maxi:implement` | Require a current readiness contract, execute the task list, and transition the spec to `done` |
@@ -159,7 +158,7 @@ The 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migratio
 
 A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
 
-`/maxi:review` dispatches the dedicated `skills/review/design-reviewer.md` artifact brief with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It writes `reviews/design-review.md` only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure is nonblocking unless the reviewed design itself must change. A missing or stale approval stops `/maxi:tasks` before any write. Corrections stop after their owner write and never start a review or successor phase; request `/maxi:review` to re-review.
+`/maxi:review` dispatches the dedicated `skills/review/design-reviewer.md` artifact brief with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It reserves a pending operation in `reviews/design-review.md` before dispatch and publishes reviewed evidence only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure is nonblocking unless the reviewed design itself must change. A missing or stale approval stops `/maxi:tasks` before any write. Bare specify and spec-only creation coordinate author then actual clarification to `clarified`; explicit design validation and design revisions coordinate affected owners through `planned` plus a bounded review round. Owner-only calls return after their own write. Draft-only, edit-only and phase-only requests stop at the requested owner. Public `/maxi:review` is report-only, with no correction. Standalone initial planning retains one initial review; its nested dispatch is suppressed under a coordinator. Coordinated review reserves at most two passes in the existing report, corrects all first-pass findings once and reuses the reviewer where available; interruption never resets the allowance. No design operation invokes tasks, analyze or implement.
 
 `/maxi:revise` offers the exceptional `specified` rollback only for a demonstrated source-spec gap. It resumes at `clarify` and never reruns `specify`.
 
@@ -224,3 +223,5 @@ See [AGENTS.md](AGENTS.md) for contributor guidelines. Key rules:
 ## License
 
 MIT
+
+Design-operation behavior is checked against a byte-verified installed Codex snapshot in the opt-in integration tier. Static checks cover report reservation and continuity; runtime results must retain dispatch evidence and report incomplete traces honestly.

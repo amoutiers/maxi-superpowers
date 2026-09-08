@@ -20,13 +20,12 @@ Create or explicitly correct a technical implementation plan for an existing spe
 
 1. **Read artifacts** — before normal planning, record whether `plan.md` already exists; then load `spec.md` (FRs, SCs, user stories) and `constitution.md` (principles, constraints).
 2. **Constitution check** — before planning: does anything in the spec contradict constitution principles? Flag violations to the user before proceeding. (Do NOT silently discard violating requirements — surface them.)
-3. **Invoke /maxi:writing-plans** — **REQUIRED SUB-SKILL.** Pass the spec and constitution as context. Let writing-plans run its full planning process including file structure decisions and task decomposition.
+3. **Invoke /maxi:writing-plans** — **REQUIRED SUB-SKILL.** Pass the spec and constitution, canonical Maxi plan path, settled choices, requested destination and owner-only return context. Let writing-plans run its full planning process including file structure decisions and task decomposition. Its output is the canonical Maxi plan, without a duplicate plan or nested execution handoff. Trace every changed value through producer, mutation, persistence, reload and consumer; cover interacting paths and corresponding verification before returning.
 4. **Post-format into plan schema** — write output to `docs/maxi/specs/NNNN-slug/plan.md` following `plan-template.md` structure and the Global Constraints Protocol below. Set plan.md frontmatter: `slug` and `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
 5. **ADR scan (post-planning)** — scan the just-written `plan.md` for non-obvious architectural choices. Look for: Tech Stack sections, storage/database/runtime/framework picks, phrases like "we chose X over Y because" or "considered A, B, chose C". For each detected choice, invoke `/maxi:x-adr` — it will draft the ADR, show it to the user, and write it only if the user consents. If the user declines all ADR proposals, the plan is still complete; ADR capture is opt-out, not mandatory. Do not invoke `/maxi:x-adr` for trivial choices (e.g., variable naming conventions, test library defaults).
 6. **Transition status** — update spec.md frontmatter `status → planned`; also set `updated: [today's ISO date]` on spec.md and on plan.md.
-7. **Initial design review** — only when `plan.md` did not exist before normal planning, Invoke `/maxi:review` exactly once for one design review after both current `spec.md` and `plan.md` files are written. Do not ask the user to invoke it. If it is rejected, report its findings and stop; do not start a correction, replacement review, or successor phase.
-8. **Replanning boundary** — when a pre-existing `plan.md` was rewritten after `/maxi:revise` and `/maxi:clarify`, preserve the new plan and stop with zero automatic design-review dispatches. Direct the user to `/maxi:review`; do not start a replacement review or successor phase.
-9. **Report** — after an approved initial review: *"Plan written to `docs/maxi/specs/NNNN-slug/plan.md` (status: `planned`). Design review approved. Next: `/maxi:tasks`."* For replanning: *"Plan updated (status: `planned`). No review or successor phase was started. Request `/maxi:review` when you want a new design review."*
+7. **Design boundary** — under an outer specify/revise coordinator, return after writing the current `spec.md` and `plan.md`; the coordinator owns the single bounded review round. Suppress only the nested initial-review dispatch. For standalone normal first planning (no prior plan), Invoke `/maxi:review` exactly once for one design review of the current `spec.md` and `plan.md`; return its verdict without correction. A narrower phase-only request stops after the plan write. Standalone replanning returns after its owner write; only an authorized design coordinator continues through correction and review.
+8. **Return** — report the canonical plan and actual `planned` status, plus the verdict if a review ran. Never invoke tasks, analyze or implement from this operation.
 
 ## Explicit Structural Plan Correction
 
@@ -36,7 +35,7 @@ Use this owner mode only when the user explicitly requests a structural correcti
 2. Invoke `superpowers:writing-plans` for the correction.
 3. Post-format the corrected plan using the Global Constraints Protocol below.
 4. Return the spec status to `planned`.
-5. Report: *"Correction recorded. No review or successor phase was started. Request `/maxi:review` when you want a new design review."*
+5. Return the corrected plan and `planned` status to the outer coordinator when supplied. Direct edit-only correction stops after this owner write.
 
 This correction never invokes `review`, `specify`, `clarify`, `tasks`, or `analyze` and never edits `tasks.md` or `analysis.md`.
 

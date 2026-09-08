@@ -2,7 +2,7 @@
 slug: 0025-convergent-design-workflow
 created: 2026-09-08
 updated: 2026-09-08
-status: analyzed
+status: implementing
 parked_from: null
 related_adrs: [0029-convergent-design-workflow]
 ---

@@ -31,4 +31,6 @@ assert_not_grep "$SKILLS_DIR/review/SKILL.md" 'x-review\|bounded replay\|replay_
 
 assert_file_exists "$ROOT/skills/review/design-contract.sh" "design envelope helper"
 assert_file_exists "$ROOT/skills/analyze/readiness-contract.sh" "readiness envelope helper"
+assert_file_exists "$SKILLS_DIR/specify/spec-author.md" "canonical spec author support"
+assert_file_exists "$SKILLS_DIR/review/design-operation.md" "shared design coordination support"
 summary_and_exit "maxi-native skill checks"

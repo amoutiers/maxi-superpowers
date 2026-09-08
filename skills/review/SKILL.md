@@ -14,34 +14,46 @@ remains owned by upstream Superpowers at the implementation boundary.
 
 ## Invocation Boundary
 
-- The normal first `plan` completion invokes this skill once after writing the
-  current `spec.md` and `plan.md` pair.
-- After any correction, do not invoke a review automatically. This public
-  command is the only re-review entry point, and it runs only when the user
-  explicitly requests `/maxi:review`.
+Direct `/maxi:review` and standalone initial-plan review run in `report-only` mode for one pass and never correct artifacts. Specify/revise coordinators use `coordinated` mode with the same report-only owner for at most two passes under `design-operation.md`. The coordinator owns corrections; review returns its result after its own write.
 
 ## Process
 
-1. Bind the explicit physical `project_root` and canonical artifact paths. Take the exact loaded `review/SKILL.md` path from the skill loader, canonicalize its directory, and resolve adjacent `design-contract.sh` as `design_contract` and `review-inputs.sh` as `review_inputs`. Require regular, non-symlink helpers; no client-project lookup or fallback.
+1. Bind the explicit physical `project_root` and canonical artifact paths. Take the exact loaded `review/SKILL.md` path from the skill loader, canonicalize its directory with `cd -P`, and resolve adjacent `design-contract.sh` as `design_contract` and `review-inputs.sh` as `review_inputs`. Require readable regular, non-symlink helpers and support files `design-operation.md`, `design-reviewer.md`, `review-template.md`; no client-project lookup or fallback. Read design-operation.md for destination and continuity rules.
 2. Before reading reviewed content, capture the ORIGINAL exact spec/plan SHA-256 values (`shasum -a 256 < "$spec_path"`, likewise plan) and `original_inputs="$(bash "$review_inputs" hash "$project_root")"`. Stop on any failure. Read the complete current `spec.md`, `plan.md`, constitution and all digest-bound ADR bytes. Never reconstruct missing artifacts from Git history. Resolve every `related_adrs` entry in `spec.md` to one accepted `docs/maxi/adr/NNNN-*.md` file. Missing, ambiguous or non-accepted references stop without writing. Inline prose mentions do not select ADR inputs. They also do not narrow the full digest-bound ADR snapshot.
-3. Read the complete `design-reviewer.md` brief. Fill every placeholder with the complete artifacts, exact paths and ORIGINAL hashes, the complete constitution, decision-input digest, all ADR paths/bytes and the applicable accepted ADR index. Use `none` for empty ADR slots. Distinguish historical contextual records from applicable accepted decisions. Verify no placeholder remains, then dispatch exactly one fresh independent read-only reviewer with that rendered brief.
-4. Accept the response only when it contains exactly one terminal verdict line, that line is the final non-empty line, and it is exactly `VERDICT: approved` or `VERDICT: rejected`. If absent, malformed, duplicated, contradictory, or nonterminal, discard the response and write nothing. Never infer or repair a verdict.
-5. Before any report write, compare current exact spec/plan hashes and the dependency digest to the ORIGINAL values. If any changed, discard the review result and write nothing. A new actual review is required; never replace the original digest with a later one and label it reviewed.
-6. Create the real `reviews/` directory if absent. Create a separate candidate beside the canonical destination and retain an owner cleanup trap, including on failure:
+3. Establish the actual initiating user order, exact request hash and operation ID as specified in design-operation.md. Prefer native message/session identity; the documented local discriminator is available only for an established new order, never to reset a resume. On resume inspect the existing report with:
+   ```bash
+   bash "$design_contract" operation "$review_path" "$spec_path" "$plan_path" "$project_root" "$operation_id"
+   ```
+   A reserved pass only recovers the recorded reviewer's result; no redispatch. Missing/malformed continuation evidence stops. A fresh operation requires a real fresh request; it cannot replace an active operation automatically.
+4. Allocate a fresh independent read-only reviewer for pass one using an identity-only handshake. Save its harness-returned identity. For pass two reuse that reviewer, or allocate a replacement only after a completed first rejection when the original is unavailable. Read the complete design-reviewer.md brief and fill every placeholder with complete artifacts, ORIGINAL hashes, constitution, full ADR snapshot and accepted index; use `none` for empty slots. Include all prior findings for pass two. Confirm no placeholder remains. Do not send the review payload yet.
+5. Create the real `reviews/` directory if absent. Hash the existing report exactly, or use literal `absent` only for a missing fresh-operation report. Reserve before dispatch:
+   ```bash
+   bash "$design_contract" reserve "$review_path" "$spec_path" "$plan_path" "$project_root" \
+     "$operation_id" "$request_sha256" "$mode" "$reviewer" "$expected_report_sha"
+   ```
+   Require exit 0 and `DESIGN_REVIEW_RESERVED operation_id=<hash> pass=<N> report_sha256=<hash>`. Retain the returned report hash for publication; verify reservation hashes equal the ORIGINAL values before sending the payload. Only this successful reservation permits one review dispatch, sent by follow-up to the recorded reviewer. A mismatch stops the operation without dispatch.
+6. Accept the response only when it contains exactly one terminal verdict line, that line is the final non-empty line, and it is exactly `VERDICT: approved` or `VERDICT: rejected`. If absent, malformed, duplicated, contradictory, or nonterminal, discard the response and write nothing as reviewed evidence. Never infer or repair a verdict. Ask the helper to stop the pending operation, preserving history. Compare current exact spec/plan hashes and dependency digest to ORIGINAL values before publication; freshness failure stops without an approval.
+7. Create a separate private sibling candidate and cleanup trap:
    ```bash
    review_candidate="$(mktemp "$(dirname "$review_path")/.design-candidate.XXXXXX")"
    trap 'rm -f -- "$review_candidate"' EXIT
    ```
-   Write the complete unstamped body from `review-template.md` to that candidate, never to `review_path`. The template's envelope documents the stamper output and is not part of the candidate. Invoke:
+   Copy the reserved report body exactly, changing only the leading operation block's `phase: reserved` to the supplied verdict. Retain the entire byte-length-framed history section byte-for-byte. Append the complete independent output ending with its exact terminal VERDICT; reject reserved operation/history markers in reviewer output. The template's approval envelope documents stamper output and is not part of the candidate. Publish through:
    ```bash
-   bash "$design_contract" stamp "$review_candidate" "$review_path" \
-     "$spec_path" "$plan_path" "$verdict" "$project_root" "$original_inputs"
+   bash "$design_contract" stamp-operation "$review_candidate" "$review_path" \
+     "$spec_path" "$plan_path" "$verdict" "$project_root" "$original_inputs" \
+     "$operation_id" "$expected_report_sha"
    ```
-   The stamper validates and atomically publishes only current evidence. Failed stamping preserves prior evidence and yields no success. For `approved`, run:
+   Use the reservation's returned report hash as `expected_report_sha`. Failed publication preserves prior evidence; do not retry with newly substituted originals. For approval require exit 0 and exactly `DESIGN_REVIEW_VERIFIED` from:
    ```bash
    bash "$design_contract" verify "$review_path" "$spec_path" "$plan_path" "$project_root"
    ```
-   Require exit 0 and exactly `DESIGN_REVIEW_VERIFIED` before reporting approval. `rejected` may be stamped, but never verifies as approved; report findings and stop without correction or replacement review.
+8. Return the complete findings, operation identity, consumed pass and verdict to the coordinator; direct invocation stops here. Rejected pass one in coordinated mode remains available for one owner correction. Rejected pass two, report-only rejection, malformed output, unrecoverable reviewer or freshness failure ends continuation. Use the current exact report hash with:
+   ```bash
+   bash "$design_contract" stop-operation "$review_path" "$spec_path" "$plan_path" \
+     "$project_root" "$operation_id" "$expected_report_sha"
+   ```
+   If inputs are unsafe or unreadable leave the report unchanged and report the stop. Never delete a lock left by another writer. Legacy `stamp` is not a fallback for managed reports.
 
 ## Hard Boundaries
 
@@ -58,4 +70,4 @@ remains owned by upstream Superpowers at the implementation boundary.
 - Accepting an absent, malformed, duplicate, contradictory, or nonterminal verdict
 - Reusing a stale review after either artifact changed
 - Starting a correction after a rejected review
-- Re-running a review without an explicit `/maxi:review` request
+- Redispatching a reserved pass or resetting its allowance without a fresh user request

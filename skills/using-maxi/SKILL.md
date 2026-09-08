@@ -15,9 +15,9 @@ maxi adds a strict spec-driven pipeline to superpowers. The 19 Maxi-native skill
 
 ```
 /maxi:constitution  → establish project principles
-/maxi:specify       → write spec.md (specified)
-/maxi:clarify       → resolve open questions (clarified)
-/maxi:plan          → write plan.md (planned), then one design review
+/maxi:specify       → author + clarify (clarified); design validation adds plan + bounded review
+/maxi:clarify       → direct owner for a specified spec (clarified)
+/maxi:plan          → owner writes plan.md (planned); standalone initial planning reviews once; coordinator owns its round
 /maxi:tasks         → extract tasks.md after a current design review (tasked)
 /maxi:analyze       → stamped readiness review before implementation (analyzed)
 /maxi:implement     → require current readiness contract; delegate to x-develop
@@ -42,15 +42,16 @@ The 10-state FSM remains unchanged. The three fixed review boundaries are design
 | Skill | Required status | Produces |
 |---|---|---|
 | `/maxi:constitution` | — | `docs/maxi/constitution.md` |
-| `/maxi:specify` | constitution exists | `specified` |
-| `/maxi:clarify` | `specified` | `clarified` |
-| `/maxi:plan` | `clarified` | `planned`, then one design review |
-| `/maxi:review` | current `spec.md` and `plan.md`; explicit re-review request | `reviews/design-review.md` |
+| `/maxi:specify` | constitution exists | owner `specified`; destination `clarified`, or `planned` plus verdict for design validation |
+| `/maxi:clarify` | `specified` | `clarified`; zero questions when clean, up to three independent questions |
+| `/maxi:plan` | `clarified`; documented correction mode | owner `planned`; one initial review when standalone, coordinator owns bounded round |
+| `/maxi:revise` | `clarified` or later including `done`, excluding parked/cancelled | rollback/note then affected owners to requested design destination |
+| `/maxi:review` | current `spec.md` and `plan.md`; direct review request or coordinated pass | `reviews/design-review.md` |
 | `/maxi:tasks` | `planned` plus current approved `reviews/design-review.md` | `tasked` |
 | `/maxi:analyze` | `tasked`+ | `analyzed` plus stamped `maxi-readiness-v2` report |
 | `/maxi:implement` | `analyzed` or `implementing`; current `maxi-readiness-v2` contract | `done` after `READY_TO_FINISH` |
 
-The design review uses `skills/review/design-reviewer.md` and supplies the complete current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It records SHA-256 values for the spec/plan pair and writes only after one exact terminal verdict. Task `Files` lists identify expected primary edits, not implementation allowlists. Mechanical callers, module declarations, registrations, fixtures, manifests, generated metadata, and lockfiles are nonblocking when they only implement the reviewed owning task without changing requirements, behavior beyond that task, feasibility, architecture, public contracts, task decomposition, dependency order, safety, or verification. A missing or stale approval stops `/maxi:tasks` before any write. Corrections stop after their owner write and never start a review or successor phase; request `/maxi:review` when a re-review is wanted.
+The design review uses `skills/review/design-reviewer.md` and supplies the complete current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It records SHA-256 values for the spec/plan pair and reserves an unstamped pending report before dispatch; stamped publication requires one exact terminal verdict. Task `Files` lists identify expected primary edits, not implementation allowlists. Mechanical callers, module declarations, registrations, fixtures, manifests, generated metadata, and lockfiles are nonblocking when they only implement the reviewed owning task without changing requirements, behavior beyond that task, feasibility, architecture, public contracts, task decomposition, dependency order, safety, or verification. A missing or stale approval stops `/maxi:tasks` before any write. Bare specify and spec-only creation coordinate author then actual clarification to `clarified`; explicit design validation and design revisions coordinate affected owners through `planned` plus a bounded review round. Owner-only calls return after their own write. Draft-only, edit-only and phase-only requests stop at the requested owner. Public `/maxi:review` is report-only, with no correction. Standalone initial planning retains one initial review; its nested dispatch is suppressed under a coordinator. Coordinated review reserves at most two passes in the existing report, corrects all first-pass findings once and reuses the reviewer where available; interruption never resets the allowance. No design operation invokes tasks, analyze or implement.
 
 A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
 

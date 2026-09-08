@@ -5,150 +5,17 @@ description: Use when the user invokes /maxi:specify or wants to create a new fe
 
 # specify
 
-Create a new feature specification. Invokes `/maxi:brainstorming` for design dialogue, then formats output into `docs/maxi/specs/NNNN-slug/spec.md`.
-
-## Prereqs
-
-- `docs/maxi/constitution.md` must exist — if missing, stop: *"No constitution found. Run `/maxi:constitution` first to establish project principles."*
-- No `spec.md` status prereq (this skill creates the spec)
+Coordinate one canonical specification through the user's requested design destination. Read the constitution first; if absent, stop for `/maxi:constitution`.
 
 ## Process
 
-```dot
-digraph specify {
-    "Check docs/maxi/constitution.md" [shape=diamond];
-    "STOP: No constitution found" [shape=box];
-    "Compute next NNNN" [shape=box];
-    "Derive slug from description" [shape=box];
-    "Create docs/maxi/specs/NNNN-slug/" [shape=box];
-    "Copy spec-template.md" [shape=box];
-    "Set status: drafting in frontmatter" [shape=box];
-    "Invoke /maxi:brainstorming" [shape=box];
-    "Reformat output to spec-kit schema" [shape=box];
-    "Write spec.md" [shape=box];
-    "Set status: specified" [shape=box];
-    "Report to user" [shape=box];
-
-    "Check docs/maxi/constitution.md" -> "STOP: No constitution found" [label="missing"];
-    "Check docs/maxi/constitution.md" -> "Compute next NNNN" [label="exists"];
-    "Compute next NNNN" -> "Derive slug from description";
-    "Derive slug from description" -> "Create docs/maxi/specs/NNNN-slug/";
-    "Create docs/maxi/specs/NNNN-slug/" -> "Copy spec-template.md";
-    "Copy spec-template.md" -> "Set status: drafting in frontmatter";
-    "Set status: drafting in frontmatter" -> "Invoke /maxi:brainstorming";
-    "Invoke /maxi:brainstorming" -> "Reformat output to spec-kit schema";
-    "Reformat output to spec-kit schema" -> "Write spec.md";
-    "Write spec.md" -> "Set status: specified";
-    "Set status: specified" -> "Report to user";
-}
-```
-
-## Step-by-Step
-
-**Step 1 — Prereq check**
-
-Read `docs/maxi/constitution.md`. If it does not exist, stop immediately:
-
-> *"No constitution found. Run `/maxi:constitution` first to establish project principles."*
-
-Do not proceed past this step without the constitution file.
-
-**Step 2 — Compute next feature number**
-
-Scan `docs/maxi/specs/` for directories matching the pattern `NNNN-*` (four-digit numeric prefix). Find the highest NNNN. Add 1. If no specs directory exists or no `NNNN-*` directories are found, use `0001`.
-
-Examples:
-- No specs → `0001`
-- Existing: `0001-auth`, `0002-export` → next is `0003`
-- Existing: `0001-auth`, `0003-export` (gap) → next is `0004`
-
-**Step 3 — Derive slug**
-
-Kebab-case the feature description. Max 5 words. Drop stop words (a, the, an, to, for, of). Lowercase.
-
-Examples:
-- "build a CSV to JSON converter" → `csv-json-converter`
-- "add user authentication with OAuth" → `user-authentication-oauth`
-- "send email notifications" → `send-email-notifications`
-
-**Slug collision check:** After deriving the slug-suffix, scan `docs/maxi/specs/` for any directory whose name (after the `NNNN-` prefix) is exactly equal to the derived suffix (exact character-for-character match — no fuzzy matching). If a match is found, stop and ask:
-
-> "The slug `<suffix>` already exists (used by `<MMMM-suffix>`). Please provide a disambiguating suffix. Suggested: `<suffix>-v2`."
-
-Wait for the user's input. Use the user-supplied suffix as the final slug-suffix. If `docs/maxi/specs/` does not exist or contains no `NNNN-*` directories, proceed directly (no collision possible).
-
-**Step 4 — Create directory and copy template**
-
-Create `docs/maxi/specs/NNNN-slug/`.
-
-Verify `spec-template.md` exists (Read tool) before copying; if missing, stop: *"Cannot proceed — `spec-template.md` is missing. Please reinstall the maxi plugin."*
-
-Copy `spec-template.md` to `docs/maxi/specs/NNNN-slug/spec.md`.
-
-**NEVER write spec.md from scratch.** Always start from the template. This applies even if:
-- The feature is simple
-- The user says "just a quick spec"
-- A previous spec looks similar
-
-**Step 5 — Set initial frontmatter**
-
-Update the frontmatter in the copied `spec.md`:
-
-```yaml
----
-slug: NNNN-slug
-created: [today's ISO date, e.g. 2026-05-08]
-updated: [today's ISO date, e.g. 2026-05-08]
-status: drafting
-related_adrs: []
-# related_adrs: full ADR slugs (NNNN-slug) appended by x-adr when an ADR is accepted; initialize empty
----
-```
-
-Use the ordinary template frontmatter only. Do not add pipeline revision, contributor, provenance, or replay metadata when creating a spec.
-
-**Step 6 — Invoke /maxi:brainstorming**
-
-**REQUIRED SUB-SKILL:** Invoke `/maxi:brainstorming` with the feature description as context.
-
-Wait for brainstorming to complete its full elicitation dialogue. Do NOT write any spec content (FR-###, user stories, SC-###) before brainstorming completes.
-
-Rationalization to reject: *"I have enough context to write the spec directly."* — brainstorming is not optional.
-
-**Step 7 — Reformat brainstorming output into spec-kit schema**
-
-Map every element of the brainstorming output to the spec-kit schema. No freeform sections:
-
-| Brainstorming output | spec-kit format |
-|---|---|
-| User journeys / workflows | `### User Story N - [Title] (Priority: PN)` with `**Why this priority**`, `**Independent Test**`, `**Acceptance Scenarios**` |
-| Functional requirements | `**FR-001**: System MUST ...` (sequential, starting at FR-001) |
-| Success criteria / metrics | `**SC-001**: [Measurable outcome]` (sequential, starting at SC-001) |
-| Edge cases | `### Edge Cases` section under User Scenarios |
-| Assumptions / constraints | `## Assumptions` section |
-
-Every user story MUST have:
-- A priority (P1 = most critical, P2 = important, P3 = nice to have)
-- An `**Independent Test**` field
-- At least one `**Acceptance Scenarios**` entry in Given/When/Then format
-
-**Step 8 — Write spec.md and transition status**
-
-Overwrite `docs/maxi/specs/NNNN-slug/spec.md` with the fully formatted spec. Update frontmatter:
-
-```yaml
-status: drafting  →  status: specified
-updated: [today's ISO date]
-```
-
-`status: specified` is only set **after** spec.md is fully written and verified. Never set it before.
-
-
-**Step 9 — Report to user**
-
-Tell the user:
-
-> "Spec created at `docs/maxi/specs/NNNN-slug/spec.md` (status: `specified`). Next step: `/maxi:clarify` to resolve open questions, or `/maxi:plan` to proceed to planning."
+1. Reuse the actual request, approved design and settled answers. Bare specify and spec-only creation finish at `clarified`; explicit design validation finishes at `planned` plus the current verdict. Draft-only or phase-only requests stop at that narrower owner boundary.
+2. Load `/maxi:review` by registered skill name for support discovery without invoking its public process. Use the exact loaded `review/SKILL.md` directory, canonicalized with `cd -P`; require adjacent `design-operation.md` to be a readable regular, non-symlink file. Missing or unsafe installed support stops before writing; never use client-project skills as fallback. Read it fully.
+3. Resolve adjacent `spec-author.md` and `spec-template.md` from this exact loaded `specify/SKILL.md` directory using the same canonical regular, non-symlink checks. Never fall back to client-project copies.
+4. Scan `docs/maxi/specs/NNNN-*`, take max + 1 (or `0001`), derive a lowercase kebab-case suffix of at most five words. An exact existing suffix requires a disambiguating user choice; never create a second spec for the same operation on resume.
+5. For an explicit draft-only request, invoke only spec-author with that destination and return. Otherwise invoke `/maxi:brainstorming` with the canonical `docs/maxi/specs/NNNN-slug/spec.md` path, actual request, already settled answers/approval, up to three independent questions per turn and the return-to-owner boundary. Reuse unchanged approved design without a second interview or approval. Consider real unresolved product choices; do not manufacture questions. The delegated output belongs in this canonical spec through the author, with no duplicate Superpowers spec or nested planning/execution handoff.
+6. Run the installed spec-author brief in create mode, passing the approved design, canonical target, destination and owner-only context. It returns after `specified`; the coordinator runs the actual `/maxi:clarify` scan, even for an approved complete brief. When clean, return `clarified` without questions. For explicit design validation, continue with owner-only `/maxi:plan`, then the bounded review round in design-operation.md.
+7. Report the canonical artifact, actual status, unresolved questions or verdict. Never invoke tasks, analyze, or implement as a consequence of completing this operation.
 
 ## Artifact reference links
 
@@ -157,27 +24,3 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 - **URL** = a relative path from the referencing file's directory (workspace-root-relative for chat reports).
 - **Do NOT** link frontmatter data values (`related_adrs` entries stay bare slugs) or within-document IDs (`FR-012`, section names).
 - Applies **forward-only** — do not retro-edit existing artifacts.
-
-## Critical Rules
-
-- **Constitution first.** Hard stop if `docs/maxi/constitution.md` is missing. No exceptions.
-- **Template first.** Never write `spec.md` from scratch. Always copy `spec-template.md` as the base.
-- **Compute NNNN, don't guess.** Scan `docs/maxi/specs/` for existing `NNNN-*` dirs. Take max + 1.
-- **brainstorming before content.** Do NOT write FR-### or user stories until `/maxi:brainstorming` completes. This applies even if the feature is simple or the user wants a quick spec.
-- **Schema compliance is not optional.** Every user story gets a priority (P1/P2/P3), an `Independent Test`, and `Acceptance Scenarios`. Every requirement is `FR-NNN`. Every success criterion is `SC-NNN`. "Feature is too simple" is not an exemption.
-- **Status transition is atomic.** Set `status: drafting` on creation. Set `status: specified` only after spec.md is fully written and verified.
-- **Path is fixed.** Specs live in `docs/maxi/specs/NNNN-slug/spec.md` — not `docs/specs/`, not `.specify/`, not the project root.
-- **Never copy a previous spec as the template.** Even if the feature is similar to an existing spec, always copy `spec-template.md`. Previous specs may have customizations that corrupt the schema.
-
-## Red Flags
-
-- Creating `spec.md` before invoking `/maxi:brainstorming` → wait for brainstorming first
-- Using `.specify/`, `docs/specs/`, `specs/`, or project root instead of `docs/maxi/specs/` → wrong path
-- Writing `Feature 1:` or `1.` instead of `FR-001:` → schema violation
-- Writing `### Requirements` without `FR-###` numbering → schema violation
-- Setting `status: specified` before spec.md is fully written → premature transition
-- Setting `status: done`, `status: draft`, or any value other than `drafting` at creation → wrong value
-- NNNN made up instead of computed → always scan `docs/maxi/specs/` for the next number
-- Copying a previous spec as a starting point instead of the template → always use `spec-template.md`
-- User said "just a quick spec" or "this is simple, skip the details" → schema compliance is mandatory regardless of perceived simplicity
-- Skipping `Independent Test` field on a user story → every story requires one

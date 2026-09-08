@@ -95,6 +95,12 @@ For every Critical or Important finding, include:
 Items that do not satisfy a qualifying predicate may be Minor advice, but they
 do not reject the design.
 
+## Correction round
+
+Previous complete findings: {{PREVIOUS_FINDINGS}}
+
+Use `none` for pass one. On pass two mark every prior finding resolved or still blocking with current evidence. Inspect the interactions changed by correction, including producer, mutation, persistence, reload and consumer paths. New demonstrated blockers remain valid under the same blocking predicate; do not conduct a broad second audit merely to find additional work.
+
 ## Output contract
 
 Return findings grouped by Critical, Important, and Minor severity. Cite the

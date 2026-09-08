@@ -30,9 +30,11 @@ maxi-superpowers/
 ├── skills/
 │   ├── constitution/        # maxi-native pipeline commands
 │   ├── specify/
+│   │   └── spec-author.md   # canonical creation/existing-spec owner
 │   ├── clarify/
 │   ├── plan/
 │   ├── review/              # explicit design-review owner
+│   │   ├── design-operation.md # shared destination and two-pass coordination
 │   │   ├── design-reviewer.md # dedicated artifact-review brief
 │   │   ├── design-contract.sh # candidate-based design stamp/verify
 │   │   ├── approval-guard.sh # shared approval path and alias validation
@@ -111,9 +113,9 @@ See [delegation-map.md](delegation-map.md) for the complete mapping and [pipelin
 |---|---|
 | `constitution` | writes directly |
 | `specify` | `/maxi:brainstorming` |
-| `clarify` | interactive dialogue |
+| `clarify` | actual ambiguity scan; zero to three questions per turn, owner-only return |
 | `plan` | `/maxi:writing-plans`, then `/maxi:x-adr` for detected architectural choices |
-| `review` | dedicated `review/design-reviewer.md`; writes the design-review record |
+| `review` | dedicated `review/design-reviewer.md`; reserves/publishes only the design-review record |
 | `tasks` | extraction from `plan.md` |
 | `analyze` | reads artifacts and ADRs, writes and stamps `analysis.md` |
 | `implement` | requires a current `maxi-readiness-v2` contract, then `/maxi:x-develop` and `/maxi:x-adr` for returned unplanned rulings |
@@ -128,7 +130,7 @@ A passing readiness review is valid only when `analysis.md` carries `maxi-readin
 
 Design approval uses `maxi-design-review-v1` with exact spec/plan hashes and the same decision-input digest: exact constitution bytes and names/bytes of every direct ADR Markdown file except generated README.md, regardless of status. Owners capture original hashes before reading, review the complete decision-input snapshot, and compare before report/status writes. Candidate-based stamping atomically publishes only after comparing the original supplied digest; failure preserves prior evidence. Tasks and implement resolve verifiers from loaded installed skills, never client fallbacks; legacy evidence requires a new actual review or analysis. Only `DESIGN_REVIEW_VERIFIED` permits extraction, and only `READINESS_VERIFIED` permits new/resumed implementation.
 
-The public `/maxi:review` command dispatches `review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It writes `reviews/design-review.md`, bound to the spec/plan pair, only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure does not block unless the design must change. `/maxi:tasks` stops before any write if that approval is missing or stale. A correction stops after its owner write and never starts a review or successor phase; request `/maxi:review` explicitly when a new design review is wanted.
+The public `/maxi:review` command dispatches `review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It reserves the pending report before dispatch and publishes reviewed evidence bound to the spec/plan pair only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure does not block unless the design must change. `/maxi:tasks` stops before any write if that approval is missing or stale. Bare specify and spec-only creation coordinate author then actual clarification to `clarified`; explicit design validation and design revisions coordinate affected owners through `planned` plus a bounded review round. Owner-only calls return after their own write. Draft-only, edit-only and phase-only requests stop at the requested owner. Public `/maxi:review` is report-only, with no correction. Standalone initial planning retains one initial review; its nested dispatch is suppressed under a coordinator. Coordinated review reserves at most two passes in the existing report, corrects all first-pass findings once and reuses the reviewer where available; interruption never resets the allowance. No design operation invokes tasks, analyze or implement.
 
 `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 

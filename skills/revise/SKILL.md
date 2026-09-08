@@ -1,6 +1,6 @@
 ---
 name: revise
-description: Use when the user invokes /maxi:revise, says requirements changed, the spec needs updating, or the plan needs to change — accepts a spec at clarified or later, including done, and rolls back status with A+ picker and consent.
+description: Use when the user invokes /maxi:revise, says requirements changed, the spec needs updating, or the plan needs to change — accepts a spec at clarified or later, including done, and coordinates an authorized design revision.
 ---
 
 # revise
@@ -10,7 +10,7 @@ Roll back a spec to an earlier pipeline phase when requirements or design change
 ## Prereqs
 
 - `docs/maxi/constitution.md` must exist — hard stop if missing.
-- Locate target spec. If multiple in-flight specs, ask which one.
+- Use the explicit canonical target when supplied. Ask which spec only when the target remains ambiguous.
 - **Refuse** if `status: drafting` or `specified` → *"Spec is at `<status>` — use `/maxi:clarify` or `/maxi:specify` instead."*
 - **Refuse** if `status: parked` → *"Spec is parked. Run `/maxi:resume` first, then `/maxi:revise`."*
 - **Refuse** if `status: cancelled` → *"Spec is cancelled. Cannot revise."*
@@ -18,32 +18,12 @@ Roll back a spec to an earlier pipeline phase when requirements or design change
 
 ## Process
 
-1. **Ask**: *"Describe the change that requires revision."* — require a non-empty answer.
-
-2. **A+ picker — infer suggested rollback target with justification**:
-   - A real missing or ambiguous requirement in the current source `spec.md` that must be resolved by clarification → suggest the exceptional rollback target `specified`
-   - Requirements change / new FR / dropped FR / user story change / scope change → suggest `clarified`
-   - Plan change / architecture change / technical decision / new component → suggest `planned`
-   - Task extraction error / missing tasks / wrong phasing → suggest `tasked`
-   - Analysis finding needs revisiting → suggest `analyzed`
-
-   **Always show the suggestion with one sentence of reasoning before offering the full list:**
-   > *"Based on your description, I suggest rolling back to `<target>` — <one-sentence justification>. This means re-running: <list of phases that follow>. Accept this, or choose a different target: `[clarified | planned | tasked | analyzed]`. The exceptional `specified` target is offered only for a demonstrated source-spec gap."*
-
-3. **Constitution check**: before asking for confirmation, scan constitution.md. If the described change would violate a principle, flag it now: *"Note: `<principle>` may conflict with this change — `<brief reason>`. Do you want to proceed anyway?"* Do not silently proceed past a potential violation.
-
-4. **Confirm**:
-   > *"About to roll back `<slug>` from `<current>` to `<target>`. Downstream artefacts (plan.md, tasks.md, analysis.md as applicable) will stay on disk but are stale — the next pipeline skill will regenerate them. Proceed? (yes/no)"*
-
-5. **On explicit `yes` only**:
-   - write `spec.md` —
-   - `status: <target>`
-   - `updated: <today's ISO date>`
-   - If `<current>` is `done`, write `reopened_from: done`. Otherwise retain an existing `reopened_from: done`; never clear `reopened_from` after it has been set.
-   - Append to `## Clarifications`:
-     `**Revised (YYYY-MM-DD):** Rolled back from \`<current>\` to \`<target>\`. Change: <description>. Note: artefacts from phases after \`<target>\` (if any) are stale.`
-   - Any non-yes response writes nothing: do not write `spec.md`.
-6. **Report**: *"Spec `<slug>` is now at `<target>`. Correction recorded. No review or successor phase was started. Request `/maxi:review` when you want a new design review."*
+1. Reuse the change already supplied in the actual initiating user request. Ask for a description only when none is available. Read the target and constitution; a genuine conflict requires the user's decision before writing.
+2. Select the smallest affected rollback: demonstrated missing/ambiguous source requirement → `specified`; requirements/user story/scope change → `clarified`; plan/architecture change → `planned`; extraction-only → `tasked`; analysis-only → `analyzed`. Explain the selected target briefly. Reuse explicit authorization already supplied for this change and associated continuation. Ask only when target, scope, destination or mutation authority remains materially unclear. Do not repeat the description, A+ picker or exact-yes confirmation for an already authorized change. An unresolved authorization question writes nothing.
+3. Load `/maxi:review` by registered skill name for support discovery without executing public review. Canonicalize the exact loaded `review/SKILL.md` directory with `cd -P`; require readable regular, non-symlink `design-operation.md` and read it fully. Load `/maxi:specify` for its adjacent `spec-author.md` using the same checks. Missing or unsafe installed support stops before any write; never fall back to client-project skills.
+4. For the authorized rollback, write `spec.md`: `status: <target>`, `updated: <today>`. If the source is `done`, write `reopened_from: done`; otherwise retain an existing `reopened_from: done`; never clear `reopened_from`. Append to `## Clarifications`: `**Revised (YYYY-MM-DD):** Rolled back from \`<current>\` to \`<target>\`. Change: <description>. Note: artefacts from phases after \`<target>\` (if any) are stale.`
+5. For draft/edit/phase-only requests invoke only the requested owner and stop. For a requirements revision run the existing-spec author, then the actual clarify scan: if gaps require `specified`, record that authorized rollback and invoke clarify; a clean `clarified` source needs no fabricated questions or extra status hop. For the demonstrated source-gap path invoke clarify at `specified`. For design revision continue with owner-only plan and the bounded review round. Extraction/analysis-only requests stop at their explicit destination; this operation never invokes tasks, analyze or implement.
+6. Return the actual destination, canonical artifact and current verdict or precise unresolved blocker. Owners return after their own writes; the coordinator owns continuation and never writes the review report itself.
 
 ## Artifact reference links
 
@@ -55,20 +35,8 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 
 ## Invariants
 
-- **Always show the A+ suggestion before applying.** Never silently roll back to the inferred target.
-- **Never roll back below `clarified` by default.** The sole exception is `specified` for a real missing or ambiguous requirement in the source spec; that path replays `clarify` and must never replay `specify`.
-- **Never delete, rename, or modify** `plan.md`, `tasks.md`, `analysis.md` — they stay on disk, flagged stale in `## Clarifications`.
-- **Never modify** `constitution.md` or any ADR file.
-- Only `spec.md` is written: `status:`, `updated:`, the monotone `reopened_from: done` watermark when applicable, and the `## Clarifications` revision note. Successor phases keep ownership of their own artifacts.
-- Once present, retain `reopened_from: done`; never clear it during later lifecycle transitions.
-- **One consent boundary.** The rollback write requires its own exact `yes`; it authorizes no successor phase.
-
-## Rationalization Counters
-
-| Rationalization | Counter |
-|---|---|
-| "User said 'go back to planned', skip the picker" | Still show A+ suggestion + confirmation. User can confirm the suggested target. |
-| "The change is small, no need to roll back" | If it touches requirements or design, roll back to the right phase. That's what the picker is for. |
-| "Artefacts are stale, let me clean them up" | Never delete or rename downstream artefacts. Flag as stale in `## Clarifications` only. |
-| "The constitution check is slow, I'll skip it" | Always scan constitution.md before confirm. One sentence is enough if no conflict found. |
-| "User said the inferred target is wrong, I'll just pick another" | Show the full list `[clarified | planned | tasked | analyzed]` and let the user pick. |
+- `parked` requires resume; `cancelled` cannot be revised. Existing completion lineage is preserved.
+- Only `spec.md` is written by the rollback owner: status, updated, monotone watermark and revision note. Delegated author, clarify, plan and review retain their separate artifact ownership.
+- Never delete or rename downstream `plan.md`, `tasks.md`, or `analysis.md`; stale files remain until their proper owners regenerate them. Never edit tasks or analysis in this design operation.
+- Never modify constitution or ADR files. ADR changes keep their separate explicit approval through x-adr.
+- A resumed initiating request retains its operation identity and consumed review allowance; elapsed time and interruptions never authorize another pass.
