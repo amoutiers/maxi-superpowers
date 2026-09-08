@@ -3,9 +3,16 @@
 set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 CASE_GROUP="${1:-all}"
-case "$CASE_GROUP" in initial|revision|boundaries|all) ;; *) echo 'Usage: run-codex-design-test.sh [initial|revision|boundaries|all]' >&2; exit 2;; esac
 [ "$#" -le 1 ] || exit 2
 command -v jq >/dev/null || { echo 'ERROR: jq required' >&2; exit 1; }
+CASES="$ROOT/tests/integration/design-cases/cases.json"
+case "$CASE_GROUP" in
+  initial|revision|boundaries|all) ;;
+  *) jq -e --arg name "$CASE_GROUP" 'any(.[]; .name == $name)' "$CASES" >/dev/null || {
+    echo 'Usage: run-codex-design-test.sh [initial|revision|boundaries|all|case-name]' >&2
+    exit 2
+  };;
+esac
 USER_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 [ -f "$USER_CODEX_HOME/auth.json" ] || { echo 'ERROR: Codex authentication file not found' >&2; exit 1; }
 SOURCE_HEAD_BEFORE=$(git -C "$ROOT" rev-parse HEAD)
@@ -40,7 +47,6 @@ done < <(find "$INSTALLED" -type f \( -name SKILL.md -o -path "$INSTALLED/specif
 HELPER="$INSTALLED/review/design-contract.sh"
 printf '%s\n' "$SOURCE_HEAD_BEFORE" > "$OUTPUT_DIR/source-head.txt"
 cp -R "$INSTALLED" "$OUTPUT_DIR/installed-skills"
-CASES="$ROOT/tests/integration/design-cases/cases.json"
 FAILED=0
 while IFS= read -r name; do
   DIR="$OUTPUT_DIR/$name"
@@ -142,6 +148,6 @@ while IFS= read -r name; do
     echo "FAIL/INCOMPLETE: $name (${elapsed}s, exit $code); evidence: $DIR"
     cat "$DIR/assertions.log"
   fi
- done < <(jq -r --arg group "$CASE_GROUP" '.[] | select($group == "all" or .group == $group) | .name' "$CASES")
+ done < <(jq -r --arg group "$CASE_GROUP" '.[] | select($group == "all" or .group == $group or .name == $group) | .name' "$CASES")
 echo "Design cases failed/incomplete: $FAILED; runtime preserved at $RUNTIME"
 [ "$FAILED" -eq 0 ]

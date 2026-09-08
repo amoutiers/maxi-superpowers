@@ -154,6 +154,28 @@ assert_file_exists "$ROOT/tests/integration/run-codex-design-test.sh" "installed
 assert_grep "$RUN_ALL" 'run-codex-design-test.sh' "integration includes design behavior"
 assert_grep "$ROOT/tests/integration/run-codex-design-test.sh" 'codex exec resume --json "\$session_id"' "design resumes exact session"
 assert_not_grep "$ROOT/tests/integration/run-codex-design-test.sh" 'codex exec --ephemeral' "design preserves structured sessions"
+# Selector validation is exercised before authentication or runtime creation.
+selector_home=$(mktemp -d)
+for selector in initial revision boundaries all design-validation review-only; do
+  selector_code=0
+  CODEX_HOME="$selector_home" bash "$ROOT/tests/integration/run-codex-design-test.sh" "$selector" > "$selector_home/result" 2>&1 || selector_code=$?
+  if [ "$selector_code" -eq 1 ] && grep -q 'authentication file not found' "$selector_home/result"; then
+    echo "OK  [design selector accepted before auth: $selector]"
+  else
+    echo "FAIL [design selector rejected: $selector]" >&2
+    failures=$((failures + 1))
+  fi
+done
+selector_code=0
+CODEX_HOME="$selector_home" bash "$ROOT/tests/integration/run-codex-design-test.sh" unknown-case > "$selector_home/result" 2>&1 || selector_code=$?
+if [ "$selector_code" -eq 2 ] && ! grep -q 'authentication' "$selector_home/result"; then
+  echo "OK  [design invalid selector rejected before auth]"
+else
+  echo "FAIL [design invalid selector reached auth]" >&2
+  failures=$((failures + 1))
+fi
+rm -rf "$selector_home"
+
 # Codex may read stdin even with a prompt argument. It must not consume the case list.
 DESIGN_HARNESS="$ROOT/tests/integration/run-codex-design-test.sh"
 if [ -f "$DESIGN_HARNESS" ]; then
