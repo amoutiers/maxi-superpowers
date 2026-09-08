@@ -17,11 +17,11 @@
               "command": [
                 "/bin/zsh",
                 "-lc",
-                "cat /installed/plan/SKILL.md"
+                "cat /installed/{plan,clarify}/SKILL.md"
               ],
               "exit_code": 0,
               "status": "completed",
-              "aggregated_output": "PLAN OWNER"
+              "aggregated_output": "PLAN OWNER\nCLARIFY OWNER"
             },
             "completed_at_ms": 1
           }
@@ -145,7 +145,8 @@
   ],
   "installed": {
     "/installed/plan/SKILL.md": "PLAN OWNER",
-    "/installed/specify/spec-author.md": "CANONICAL AUTHOR"
+    "/installed/specify/spec-author.md": "CANONICAL AUTHOR",
+    "/installed/clarify/SKILL.md": "CLARIFY OWNER"
   },
   "helper": "/installed/review/design-contract.sh",
   "owners": [

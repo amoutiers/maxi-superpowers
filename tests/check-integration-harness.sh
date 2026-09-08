@@ -201,6 +201,9 @@ if command -v jq >/dev/null 2>&1 && [ -f "$CHECKER" ]; then
 .sessions[0].events += [{"type":"response_item","payload":{"type":"function_call","name":"spawn_agent","call_id":"unknown","arguments":"{\"task_name\":\"surprise\"}"}}]
 .sessions[1].events = []
 .sessions[0].events += [.sessions[0].events[4], .sessions[0].events[4]]
+.sessions[0].events[0].payload.item.command[2] = "cat /installed/{plan,unknown}/SKILL.md"
+.sessions[0].events[0].payload.item.command[2] = "cat /installed/{plan,clarify*}/SKILL.md"
+.sessions[0].events[0].payload.item.aggregated_output = ""
 MUTATIONS
 fi
 

@@ -3,12 +3,27 @@ def require($ok; $why): if $ok then . else error($why) end;
 def commands:
   [.events[] | .payload | select(.completed_at_ms != null)
    | .item | select(.type == "CommandExecution" and .exit_code == 0)];
+# Only finite comma-separated installed skill names; never evaluate shell text.
+def reads_path($installed; $path):
+  (.command | join(" ")) as $command |
+  ($command | contains($path)) or
+  (if ($path | endswith("/SKILL.md")) then
+    ($path | split("/")) as $parts |
+    (($parts[0:-2] | join("/")) + "/") as $prefix |
+    any($command | split(" ")[];
+      if startswith($prefix + "{") and endswith("}/SKILL.md") then
+        (ltrimstr($prefix + "{") | rtrimstr("}/SKILL.md") | split(",")) as $names |
+        ($names | length) > 1 and
+        all($names[]; test("^[a-z][a-z-]*$") and $installed[$prefix + . + "/SKILL.md"] != null) and
+        ($names | index($parts[-2]) != null)
+      else false end)
+   else false end);
 def read_owner($installed; $owner):
   commands as $cmds |
   any($installed | to_entries[]; . as $skill |
     (($skill.key | endswith("/" + $owner + "/SKILL.md")) or
      ($owner == "specify" and ($skill.key | endswith("/specify/spec-author.md")))) and
-    any($cmds[]; ((.command | join(" ")) | contains($skill.key)) and
+    any($cmds[]; reads_path($installed; $skill.key) and
       (.aggregated_output | contains($skill.value))));
 . as $input |
 require(.exit_code == 0 and .head_unchanged and .source_unchanged; "incomplete execution or changed Git HEAD/source") |
