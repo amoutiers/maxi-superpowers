@@ -1,0 +1,145 @@
+{
+  "cli": [
+    {
+      "type": "turn.completed"
+    }
+  ],
+  "sessions": [
+    {
+      "agent": "/root",
+      "events": [
+        {
+          "type": "event_msg",
+          "payload": {
+            "item": {
+              "type": "CommandExecution",
+              "id": "cat /installed/plan/SKILL.md",
+              "command": [
+                "/bin/zsh",
+                "-lc",
+                "cat /installed/plan/SKILL.md"
+              ],
+              "exit_code": 0,
+              "status": "completed",
+              "aggregated_output": "PLAN OWNER"
+            },
+            "completed_at_ms": 1
+          }
+        },
+        {
+          "type": "event_msg",
+          "payload": {
+            "item": {
+              "type": "CommandExecution",
+              "id": "bash /installed/review/design-contract.sh reserve",
+              "command": [
+                "/bin/zsh",
+                "-lc",
+                "bash /installed/review/design-contract.sh reserve"
+              ],
+              "exit_code": 0,
+              "status": "completed",
+              "aggregated_output": "DESIGN_REVIEW_RESERVED operation_id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa pass=1 report_sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
+            },
+            "completed_at_ms": 1
+          }
+        },
+        {
+          "type": "response_item",
+          "payload": {
+            "type": "function_call",
+            "name": "spawn_agent",
+            "call_id": "a",
+            "arguments": "{\"task_name\": \"reviewer\"}"
+          }
+        },
+        {
+          "type": "response_item",
+          "payload": {
+            "type": "function_call_output",
+            "call_id": "a",
+            "output": "{\"task_name\": \"/root/reviewer\"}"
+          }
+        },
+        {
+          "type": "response_item",
+          "payload": {
+            "type": "function_call",
+            "name": "followup_task",
+            "call_id": "b",
+            "arguments": "{\"target\": \"/root/reviewer\"}"
+          }
+        },
+        {
+          "type": "response_item",
+          "payload": {
+            "type": "function_call_output",
+            "call_id": "b",
+            "output": "{\"status\": \"running\"}"
+          }
+        }
+      ]
+    },
+    {
+      "agent": "/root/reviewer",
+      "events": [
+        {
+          "type": "event_msg",
+          "payload": {
+            "item": {
+              "type": "CommandExecution",
+              "id": "cat spec.md",
+              "command": [
+                "/bin/zsh",
+                "-lc",
+                "cat spec.md"
+              ],
+              "exit_code": 0,
+              "status": "completed",
+              "aggregated_output": "spec snapshot"
+            },
+            "completed_at_ms": 1
+          }
+        }
+      ]
+    }
+  ],
+  "installed": {
+    "/installed/plan/SKILL.md": "PLAN OWNER"
+  },
+  "helper": "/installed/review/design-contract.sh",
+  "owners": [
+    "plan"
+  ],
+  "files": {
+    "docs/maxi/specs/0001-line-counter/spec.md": "status: planned\nwhitespace-only lines are empty",
+    "docs/maxi/specs/0001-line-counter/plan.md": "producer persisted reload ownership",
+    "docs/maxi/specs/0001-line-counter/reviews/design-review.md": "# Design Review\n<!-- maxi-design-operation-v1\nreviewer: /root/reviewer\nphase: approved\npasses: 1\n-->\nVERDICT: approved\n"
+  },
+  "changes": [
+    "docs/maxi/specs/0001-line-counter/spec.md",
+    "docs/maxi/specs/0001-line-counter/plan.md",
+    "docs/maxi/specs/0001-line-counter/reviews/design-review.md"
+  ],
+  "allowed": [
+    "docs/maxi/specs/0001-line-counter/spec.md",
+    "docs/maxi/specs/0001-line-counter/plan.md",
+    "docs/maxi/specs/0001-line-counter/reviews/design-review.md"
+  ],
+  "required": {
+    "docs/maxi/specs/0001-line-counter/spec.md": [
+      "status: planned"
+    ],
+    "docs/maxi/specs/0001-line-counter/plan.md": [
+      "producer",
+      "persisted",
+      "reload"
+    ]
+  },
+  "review": true,
+  "verified": true,
+  "max_questions": 0,
+  "head_unchanged": true,
+  "source_unchanged": true,
+  "exit_code": 0
+}

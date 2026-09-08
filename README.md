@@ -220,8 +220,10 @@ See [AGENTS.md](AGENTS.md) for contributor guidelines. Key rules:
 - Do not hand-edit files under `skills/` that originate from superpowers. Run `scripts/sync-superpowers.sh` to re-sync after a version bump.
 - Run `bash tests/run-all.sh` before committing — all checks must pass.
 
+Design-operation behavior is checked against a byte-verified installed Codex snapshot with `bash tests/integration/run-codex-design-test.sh [initial|revision|boundaries|all]` (default `all`), also included in `bash tests/run-all.sh --integration`. It requires a clean checkout, authenticated Codex and jq. Each invocation has a 600-second deadline; fixed answers resume the same non-ephemeral session. Fixtures and runtime homes remain in external temporary directories, with paths, snapshots and transcripts retained under `.superpowers/sdd/integration/`.
+
+The checker joins actual reviewer allocations and follow-ups with reservation evidence and checks fixture writes. Unknown dispatch schemas, missing owner evidence, authentication failures and timeouts fail as incomplete evidence. Static fault tests cover second rejection, stale inputs, malformed results and reviewer loss; these are not live review proof. Inspect retained product questions for necessity; counts alone do not establish quality. A verified bounded stop is distinct from approved design and elapsed measurements imply no promised speedup.
+
 ## License
 
 MIT
-
-Design-operation behavior is checked against a byte-verified installed Codex snapshot in the opt-in integration tier. Static checks cover report reservation and continuity; runtime results must retain dispatch evidence and report incomplete traces honestly.

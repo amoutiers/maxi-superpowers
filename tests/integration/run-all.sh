@@ -52,6 +52,15 @@ else
 fi
 
 echo ""
+echo "Testing: design behavior"
+if "$SCRIPT_DIR/run-codex-design-test.sh" all; then
+  PASSED=$((PASSED + 1))
+  RESULTS+=("PASS: design behavior")
+else
+  FAILED=$((FAILED + 1))
+  RESULTS+=("FAIL/INCOMPLETE: design behavior")
+fi
+
 echo "=== Summary ==="
 for result in "${RESULTS[@]}"; do
   echo "  $result"

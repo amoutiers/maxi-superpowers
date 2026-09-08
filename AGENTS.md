@@ -129,4 +129,4 @@ Run `bash tests/run-all.sh` after changes.
 ```
 bash tests/run-all.sh --integration
 ```
-Runs `tests/integration/run-all.sh`: every prompt in `tests/integration/prompts/*.txt` runs in an isolated local Codex marketplace and is checked to assert one completed JSONL command result reads the byte-checked matching skill snapshot.
+Runs `tests/integration/run-all.sh`, including installed readiness and initial/revision/boundary design behavior. The design runner stages byte-checked skills, uses external temporary fixtures and runtime homes, retains structured reviewer allocation/follow-up joins and snapshots under `.superpowers/sdd/integration/`, and fails incomplete evidence (including timeout or unknown dispatch schema). Deterministic injected review faults are not live-agent proof. Every prompt in `tests/integration/prompts/*.txt` runs in an isolated local Codex marketplace and is checked to assert one completed JSONL command result reads the byte-checked matching skill snapshot.

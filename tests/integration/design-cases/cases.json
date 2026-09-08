@@ -1,0 +1,228 @@
+[
+  {
+    "name": "spec-only",
+    "group": "initial",
+    "prompt": "Run /maxi:specify with slug 0001-line-counter. A Python command line utility counts non-empty lines in one existing UTF-8 file path. Whitespace-only lines are empty. Print the decimal count followed by LF. An unreadable file produces concise stderr and nonzero exit. No network, configuration, dependencies, or UI. All these product choices and this design are approved. Create the canonical spec and complete clarification only. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "specify",
+      "clarify"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "status: clarified",
+        "whitespace"
+      ]
+    },
+    "seeded": false,
+    "review": false,
+    "answers": [],
+    "status": null,
+    "max_reviews": 2
+  },
+  {
+    "name": "design-validation",
+    "group": "initial",
+    "prompt": "Run /maxi:specify with slug 0001-line-counter. A Python command line utility counts non-empty lines in one existing UTF-8 file path. Whitespace-only lines are empty. Print the decimal count followed by LF. An unreadable file produces concise stderr and nonzero exit. No network, configuration, dependencies, or UI. All these product choices and this design are approved. Complete design validation through the real owners and bounded independent review. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "specify",
+      "clarify",
+      "plan",
+      "review"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md",
+      "docs/maxi/specs/0001-line-counter/plan.md",
+      "docs/maxi/specs/0001-line-counter/reviews/design-review.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "status: planned"
+      ],
+      "docs/maxi/specs/0001-line-counter/plan.md": [
+        "Global Constraints",
+        "counter.py"
+      ]
+    },
+    "seeded": false,
+    "review": true,
+    "answers": [],
+    "status": null,
+    "max_reviews": 2
+  },
+  {
+    "name": "questions",
+    "group": "initial",
+    "prompt": "Run /maxi:specify with slug 0001-line-counter for a Python file line-counter. Exactly three independent product choices remain: treatment of whitespace-only lines, path versus stdin input, and text versus JSON output. If JSON is chosen, the key name is a dependent choice. Ask the independent choices together, then the dependent follow-up. No other product decision is open: UTF-8 input, concise stderr and nonzero exit on unreadable input, stdlib only. Create the canonical spec and complete clarification only. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "specify",
+      "clarify"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "status: clarified",
+        "whitespace",
+        "line_count",
+        "JSON"
+      ]
+    },
+    "seeded": false,
+    "review": false,
+    "answers": [
+      "Whitespace-only lines are empty; input is a single existing file path; output is JSON.",
+      "Use line_count as the JSON key. This settles the dependent choice; complete the canonical spec and clarification."
+    ],
+    "status": null,
+    "max_reviews": 2
+  },
+  {
+    "name": "revision",
+    "group": "revision",
+    "prompt": "Run /maxi:revise for 0001-line-counter. I authorize changing whitespace-only lines to empty and the associated plan through design validation. Correct the rejected producer inversion, persisted fixture provenance, reload, and ownership defects together. Record one consolidated old-to-new mapping tied to counter.py, expected_count.txt and check.py. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "revise",
+      "plan",
+      "review"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md",
+      "docs/maxi/specs/0001-line-counter/plan.md",
+      "docs/maxi/specs/0001-line-counter/reviews/design-review.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "status: planned",
+        "whitespace"
+      ],
+      "docs/maxi/specs/0001-line-counter/plan.md": [
+        "counter.py",
+        "expected_count.txt",
+        "check.py",
+        "whitespace",
+        "(?s)expected_count.{0,600}\\b1\\b",
+        "mapping|old.to.new|before.*after",
+        "reload",
+        "owner|responsib"
+      ]
+    },
+    "seeded": true,
+    "review": true,
+    "answers": [],
+    "status": null,
+    "max_reviews": 2
+  },
+  {
+    "name": "review-only",
+    "group": "boundaries",
+    "prompt": "Run /maxi:review for 0001-line-counter. Review only, no correction or successor. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "review"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/reviews/design-review.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/reviews/design-review.md": [
+        "mode: report-only"
+      ]
+    },
+    "seeded": true,
+    "review": true,
+    "answers": [],
+    "status": null,
+    "max_reviews": 1
+  },
+  {
+    "name": "edit-only",
+    "group": "boundaries",
+    "prompt": "Run /maxi:revise for 0001-line-counter. I authorize this requirement change: whitespace-only lines are empty. Edit only the spec; stop after that owner write, with no plan or review. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "revise"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "whitespace"
+      ]
+    },
+    "seeded": true,
+    "review": false,
+    "answers": [],
+    "status": null,
+    "max_reviews": 2
+  },
+  {
+    "name": "parked",
+    "group": "boundaries",
+    "prompt": "Run /maxi:revise for 0001-line-counter to make whitespace-only lines empty. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "revise"
+    ],
+    "allowed": [],
+    "required": {},
+    "seeded": true,
+    "review": false,
+    "answers": [],
+    "status": "parked",
+    "max_reviews": 2
+  },
+  {
+    "name": "cancelled",
+    "group": "boundaries",
+    "prompt": "Run /maxi:revise for 0001-line-counter to make whitespace-only lines empty. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "revise"
+    ],
+    "allowed": [],
+    "required": {},
+    "seeded": true,
+    "review": false,
+    "answers": [],
+    "status": "cancelled",
+    "max_reviews": 2
+  },
+  {
+    "name": "reopened-done",
+    "group": "boundaries",
+    "prompt": "Run /maxi:revise for 0001-line-counter. I authorize changing whitespace-only lines to empty. Edit only the spec. Preserve reopened_from: done and completion lineage. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "revise"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "reopened_from: done",
+        "whitespace"
+      ]
+    },
+    "seeded": true,
+    "review": false,
+    "answers": [],
+    "status": "reopened",
+    "max_reviews": 2
+  },
+  {
+    "name": "missing-continuity",
+    "group": "boundaries",
+    "prompt": "Resume the existing coordinated design operation for 0001-line-counter after its first review reservation. The report has been lost. Do not treat this as a new request or rebuild continuity; stop safely. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "review"
+    ],
+    "allowed": [],
+    "required": {},
+    "seeded": true,
+    "review": false,
+    "answers": [],
+    "status": "missing",
+    "max_reviews": 2
+  }
+]

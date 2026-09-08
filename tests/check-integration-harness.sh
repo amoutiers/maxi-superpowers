@@ -147,4 +147,40 @@ if [ -f "$FAST_RUN_ALL" ]; then
   assert_grep "$FAST_RUN_ALL" 'test-codex-timeout.sh' "fast tier: runs Codex timeout regression"
 fi
 
+# Behavioral checker regressions use recorded-shaped events, without Codex authentication.
+CHECKER="$ROOT/tests/integration/assert-design-events.jq"
+assert_file_exists "$CHECKER" "design event checker"
+assert_file_exists "$ROOT/tests/integration/run-codex-design-test.sh" "installed design runner"
+assert_grep "$RUN_ALL" 'run-codex-design-test.sh' "integration includes design behavior"
+assert_grep "$ROOT/tests/integration/run-codex-design-test.sh" 'codex exec resume --json "\$session_id"' "design resumes exact session"
+assert_not_grep "$ROOT/tests/integration/run-codex-design-test.sh" 'codex exec --ephemeral' "design preserves structured sessions"
+if command -v jq >/dev/null 2>&1 && [ -f "$CHECKER" ]; then
+  sample="$ROOT/tests/integration/design-cases/checker-pass.json"
+  if jq -e -f "$CHECKER" "$sample" >/dev/null; then
+    echo "OK  [design checker: completed owner evidence and actual artifacts]"
+  else
+    echo "FAIL [design checker: positive transcript]" >&2
+    failures=$((failures + 1))
+  fi
+  while IFS= read -r mutation; do
+    [ -n "$mutation" ] || continue
+    if jq "$mutation" "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
+      echo "FAIL [design checker accepted: $mutation]" >&2
+      failures=$((failures + 1))
+    else
+      echo "OK  [design checker rejects: $mutation]"
+    fi
+  done <<'MUTATIONS'
+.cli += [{"type":"item.completed","item":{"type":"agent_message","text":"Which output format?"}}]
+.files["docs/design.md"] = "duplicate"
+.sessions[0].events += [.sessions[0].events[1], .sessions[0].events[1]]
+.changes += ["counter.py"]
+.sessions[0].events = []
+.verified = false | .cli += [{"type":"item.completed","item":{"type":"agent_message","text":"Everything is approved and complete."}}]
+.sessions[0].events += [{"type":"response_item","payload":{"type":"function_call","name":"spawn_agent","call_id":"unknown","arguments":"{\"task_name\":\"surprise\"}"}}]
+.sessions[1].events = []
+.sessions[0].events += [.sessions[0].events[4], .sessions[0].events[4]]
+MUTATIONS
+fi
+
 summary_and_exit "integration harness checks"

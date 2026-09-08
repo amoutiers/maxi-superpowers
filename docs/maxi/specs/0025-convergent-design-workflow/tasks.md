@@ -46,7 +46,7 @@ The existing repository, shell test helpers, approval guards, and Codex integrat
 
 **Independent Test**: Run the mapped writing-skills pressure scenarios for clear revision, complete initial design, unresolved choices, and review-only scope. Verify owner writes and question/dispatch behavior, then run the fast suite and doc-consistency review.
 
-- [ ] T002 [US1] Coordinate initial specs and revisions through skills/specify/SKILL.md, skills/clarify/SKILL.md, skills/revise/SKILL.md, skills/plan/SKILL.md, and skills/review/SKILL.md; add skills/specify/spec-author.md and skills/review/design-operation.md, update the reviewer/template and affected checks, and synchronize all five pipeline documents plus README.md (depends on T001) (plan Task 2)
+- [x] T002 [US1] Coordinate initial specs and revisions through skills/specify/SKILL.md, skills/clarify/SKILL.md, skills/revise/SKILL.md, skills/plan/SKILL.md, and skills/review/SKILL.md; add skills/specify/spec-author.md and skills/review/design-operation.md, update the reviewer/template and affected checks, and synchronize all five pipeline documents plus README.md (depends on T001) (plan Task 2)
 
 **Checkpoint (MVP)**: Coordinated owner flows and bounded review behavior pass their pressure scenarios. T001, T002, and mandatory document synchronization form the coherent activation change; installed end-to-end proof remains T003.
 
