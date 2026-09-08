@@ -1,14 +1,14 @@
 ---
 adr: 0022
 slug: 0022-fixed-review-boundaries
-status: accepted
+status: superseded
 created: 2026-08-22
 updated: 2026-08-22
 decider: "Antoine Moutiers"
 supersedes:
   - 0019
   - 0020
-superseded_by: null
+superseded_by: 0029
 ---
 
 # ADR-0022: Fixed Review Boundaries
