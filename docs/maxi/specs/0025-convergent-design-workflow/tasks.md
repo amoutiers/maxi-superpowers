@@ -64,7 +64,7 @@ US2 implementation is already owned by T002. Do not duplicate that source-plan m
 
 **Independent Test**: Run deterministic transcript-checker negative cases and the authenticated initial, revision, and boundaries case groups, followed by the existing integration suite from a clean isolated implementation checkout.
 
-- [ ] T003 [US3] Prove initial and revision behavior using tests/integration/run-codex-design-test.sh, tests/integration/assert-design-events.jq, and minimal tests/integration/design-cases fixtures; wire tests/integration/run-all.sh and tests/check-integration-harness.sh, update README.md and AGENTS.md integration guidance, and report baseline-versus-result measurements (depends on T001, T002) (plan Task 3)
+- [x] T003 [US3] Prove initial and revision behavior using tests/integration/run-codex-design-test.sh, tests/integration/assert-design-events.jq, and minimal tests/integration/design-cases fixtures; wire tests/integration/run-all.sh and tests/check-integration-harness.sh, update README.md and AGENTS.md integration guidance, and report baseline-versus-result measurements (depends on T001, T002) (plan Task 3)
 
 **Checkpoint**: Runtime evidence covers US1, US2, and US3. Missing authentication, unknown event shapes, deadlines, or unverified reports are incomplete/failing evidence, never success.
 
