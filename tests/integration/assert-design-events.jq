@@ -10,13 +10,25 @@ def reads_path($installed; $path):
   (if ($path | endswith("/SKILL.md")) then
     ($path | split("/")) as $parts |
     (($parts[0:-2] | join("/")) + "/") as $prefix |
-    any($command | split(" ")[];
+    any($command | split(" ")[] | rtrimstr(";");
       if startswith($prefix + "{") and endswith("}/SKILL.md") then
         (ltrimstr($prefix + "{") | rtrimstr("}/SKILL.md") | split(",")) as $names |
         ($names | length) > 1 and
         all($names[]; test("^[a-z][a-z-]*$") and $installed[$prefix + . + "/SKILL.md"] != null) and
         ($names | index($parts[-2]) != null)
       else false end)
+   else false end);
+# The observed relative invocation starts in the recorded cwd, one directory up.
+# Do not interpret shell commands, cd, URI escapes, or other relative-path forms.
+def invokes_helper($helper):
+  (.command | join(" ")) as $command |
+  any($command | split(" ")[]; . == $helper or . == ("\"" + $helper + "\"") or . == ("'" + $helper + "'")) or
+  (if (.cwd // "" | test("^file:///[^%]+$")) then
+    (.command[-1] | split(" ")) as $words |
+    ($words[0] == "bash" and ($words[1] // "" | startswith("../")) and
+     $words[2] == "reserve" and
+     (((.cwd | ltrimstr("file://") | split("/") | .[0:-1] | join("/")) +
+       "/" + ($words[1] | ltrimstr("../"))) == $helper))
    else false end);
 def read_owner($installed; $owner):
   commands as $cmds |
@@ -55,7 +67,7 @@ $input |
    (any(["specify","clarify","plan","revise"][]; . as $owner |
       any($input.sessions[] | select(.agent == $identity); read_owner($input.installed; $owner))) or
     (read_owner($input.installed; "review") and any(commands[];
-      (.command | join(" ") | contains($input.helper)) and
+      invokes_helper($input.helper) and
       (.aggregated_output | test("^DESIGN_REVIEW_RESERVED "))))))} end end] as $allocations |
 require(all($allocations[]; .reviewer or .owner); "unclassified allocation: incomplete review count") |
 require(all($reviewers[]; . as $id | any($allocations[]; .identity == $id)); "report reviewer is not a returned harness identity") |
@@ -64,7 +76,7 @@ require(all($reviewers[]; . as $id | any($allocations[]; .identity == $id)); "re
  require(any($allocations[]; .identity == $target); "unmatched follow-up target") |
  require(any($outputs[]; .call_id == $call.call_id); "missing follow-up result") |
  select($reviewers | index($target))] as $reviews |
-[.sessions[] | commands[] | select((.command | join(" ") | contains($input.helper)) and
+[.sessions[] | commands[] | select(invokes_helper($input.helper) and
  (.command | join(" ") | test("[[:space:]]reserve[[:space:]]|[[:space:]]reserve$"))) |
  .aggregated_output | split("\n")[] | select(test("^DESIGN_REVIEW_RESERVED operation_id=[a-f0-9]{64} pass=[12] report_sha256=[a-f0-9]{64}$"))] as $reservations |
 require(($reservations | length) <= (.max_reviews // 2) and ($reviews | length) == ($reservations | length); "review dispatch/reservation mismatch or excess") |

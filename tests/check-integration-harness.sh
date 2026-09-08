@@ -205,6 +205,18 @@ if command -v jq >/dev/null 2>&1 && [ -f "$CHECKER" ]; then
     echo "FAIL [design checker: positive transcript]" >&2
     failures=$((failures + 1))
   fi
+  if jq '.sessions[0].events[0].payload.item.command[2] += "; cat unrelated.txt"' "$sample" | jq -e -f "$CHECKER" >/dev/null; then
+    echo "OK  [design checker: finite brace before command separator]"
+  else
+    echo "FAIL [design checker: finite brace before command separator]" >&2
+    failures=$((failures + 1))
+  fi
+  if jq '.sessions[0].events[1].payload.item |= (.cwd = "file:///fixture" | .command[2] = "bash ../installed/review/design-contract.sh reserve")' "$sample" | jq -e -f "$CHECKER" >/dev/null; then
+    echo "OK  [design checker: exact relative installed reservation helper]"
+  else
+    echo "FAIL [design checker: exact relative installed reservation helper]" >&2
+    failures=$((failures + 1))
+  fi
   while IFS= read -r mutation; do
     [ -n "$mutation" ] || continue
     if jq "$mutation" "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
@@ -225,7 +237,12 @@ if command -v jq >/dev/null 2>&1 && [ -f "$CHECKER" ]; then
 .sessions[0].events += [.sessions[0].events[4], .sessions[0].events[4]]
 .sessions[0].events[0].payload.item.command[2] = "cat /installed/{plan,unknown}/SKILL.md"
 .sessions[0].events[0].payload.item.command[2] = "cat /installed/{plan,clarify*}/SKILL.md"
+.sessions[0].events[0].payload.item.command[2] = "cat /installed/{plan,unknown}/SKILL.md; cat unrelated.txt"
+.sessions[0].events[0].payload.item.command[2] = "cat /installed/{plan,clarify}/SKILL.md;evil"
 .sessions[0].events[0].payload.item.aggregated_output = ""
+.sessions[0].events[1].payload.item |= (.cwd = "file:///wrong/fixture" | .command[2] = "bash ../installed/review/design-contract.sh reserve")
+.sessions[0].events[1].payload.item |= (.cwd = "file:///fixture" | .command[2] = "bash ../other/review/design-contract.sh reserve")
+.sessions[0].events[1].payload.item |= (.command[2] = "bash ../installed/review/design-contract.sh reserve")
 MUTATIONS
 fi
 
