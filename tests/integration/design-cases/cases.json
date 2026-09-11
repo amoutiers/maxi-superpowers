@@ -191,7 +191,7 @@
   {
     "name": "reopened-done",
     "group": "boundaries",
-    "prompt": "Run /maxi:revise for 0001-line-counter. I authorize changing whitespace-only lines to empty. Edit only the spec. Preserve reopened_from: done and completion lineage. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "prompt": "Run /maxi:revise for 0001-line-counter. I authorize changing whitespace-only lines to empty. Edit only the spec, preserve completion lineage, and start the next design_cycle. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
     "owners": [
       "revise"
     ],
@@ -200,7 +200,7 @@
     ],
     "required": {
       "docs/maxi/specs/0001-line-counter/spec.md": [
-        "reopened_from: done",
+        "design_cycle: 1",
         "whitespace"
       ]
     },

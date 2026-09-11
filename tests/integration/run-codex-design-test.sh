@@ -68,7 +68,7 @@ while IFS= read -r name; do
   status=$(jq -r '.status // ""' "$DIR/case.json")
   case "$status" in
     parked|cancelled) sed -i.bak "s/status: planned/status: $status/" "$SPEC_DIR/spec.md"; rm "$SPEC_DIR/spec.md.bak";;
-    reopened) sed -i.bak 's/status: planned/status: planned\nreopened_from: done/' "$SPEC_DIR/spec.md"; rm "$SPEC_DIR/spec.md.bak";;
+    reopened) sed -i.bak 's/status: planned/status: done/' "$SPEC_DIR/spec.md"; rm "$SPEC_DIR/spec.md.bak";;
     missing) rm "$SPEC_DIR/reviews/design-review.md";;
   esac
   git -C "$FIXTURE" init -q

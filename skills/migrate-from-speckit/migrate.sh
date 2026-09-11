@@ -319,8 +319,8 @@ for i in "${!slugs[@]}"; do
   if [[ -f "$plan_file" ]] && ! head -1 "$plan_file" | grep -q '^---'; then
     tmp=$(mktemp "$dst/.plan.md.XXXXXX")
     {
-      printf -- '---\nslug: %s\nspec_slug: %s\ncreated: %s\nupdated: %s\n---\n\n' \
-        "$sl" "$sl" "$created" "$TODAY"
+      printf -- '---\nspec_slug: %s\ncreated: %s\nupdated: %s\n---\n\n' \
+        "$sl" "$created" "$TODAY"
       cat "$plan_file"
     } > "$tmp"
     mv "$tmp" "$plan_file"
@@ -331,8 +331,8 @@ for i in "${!slugs[@]}"; do
     tmp=$(mktemp "$dst/.tasks.md.XXXXXX")
     description=$(yaml_single_quote "Tasks: $feature_name")
     {
-      printf -- '---\ndescription: %s\nslug: %s\nspec_slug: %s\ncreated: %s\nupdated: %s\n---\n\n' \
-        "$description" "$sl" "$sl" "$created" "$TODAY"
+      printf -- '---\ndescription: %s\nspec_slug: %s\ncreated: %s\nupdated: %s\n---\n\n' \
+        "$description" "$sl" "$created" "$TODAY"
       cat "$tasks_file"
     } > "$tmp"
     mv "$tmp" "$tasks_file"

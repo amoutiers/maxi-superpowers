@@ -1,5 +1,4 @@
 ---
-slug: adapter-sample
 spec_slug: adapter-sample
 created: 2026-08-19
 updated: 2026-08-19

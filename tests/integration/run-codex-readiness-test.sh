@@ -76,7 +76,6 @@ EOF
 
 cat > "$SPEC_DIR/plan.md" <<'EOF'
 ---
-slug: 0001-readiness-integration
 spec_slug: 0001-readiness-integration
 created: 2026-08-30
 updated: 2026-08-30
@@ -90,7 +89,6 @@ EOF
 cat > "$SPEC_DIR/tasks.md" <<'EOF'
 ---
 description: Fixture tasks
-slug: 0001-readiness-integration
 spec_slug: 0001-readiness-integration
 created: 2026-08-30
 updated: 2026-08-30

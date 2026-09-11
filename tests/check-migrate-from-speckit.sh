@@ -92,7 +92,8 @@ done
 plan1="$TMP/docs/maxi/specs/001-shipped-feature/plan.md"
 assert_file_exists "$plan1" "001 plan.md created"
 assert_starts_with_yaml_frontmatter "$plan1" "001 plan.md has YAML frontmatter"
-assert_grep "$plan1" "^slug: 001-shipped-feature$" "001 plan.md slug set"
+assert_grep "$plan1" "^spec_slug: 001-shipped-feature$" "001 plan.md spec slug set"
+assert_not_grep "$plan1" "^slug:" "001 plan.md has no duplicate slug"
 for field in revision writer_context structural_contributors derived_from; do
   assert_not_grep "$plan1" "^${field}:" "001 plan.md has no forward ${field} metadata"
 done
@@ -101,7 +102,8 @@ done
 tasks1="$TMP/docs/maxi/specs/001-shipped-feature/tasks.md"
 assert_file_exists "$tasks1" "001 tasks.md created"
 assert_starts_with_yaml_frontmatter "$tasks1" "001 tasks.md has YAML frontmatter"
-assert_grep "$tasks1" "^slug: 001-shipped-feature$" "001 tasks.md slug set"
+assert_grep "$tasks1" "^spec_slug: 001-shipped-feature$" "001 tasks.md spec slug set"
+assert_not_grep "$tasks1" "^slug:" "001 tasks.md has no duplicate slug"
 for field in revision writer_context structural_contributors derived_from; do
   assert_not_grep "$tasks1" "^${field}:" "001 tasks.md has no forward ${field} metadata"
 done

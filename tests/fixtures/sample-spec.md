@@ -3,6 +3,7 @@ slug: 0001-sample-feature
 created: "2026-05-08"
 updated: "2026-05-08"
 status: drafting
+design_cycle: 0
 # Allowed values: drafting | specified | clarified | planned | tasked | analyzed | implementing | done | parked | cancelled
 parked_from: null
 ---

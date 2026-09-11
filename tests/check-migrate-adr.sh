@@ -144,11 +144,12 @@ assert_route_order_in_paragraph() {
     failures=$((failures + 1))
   fi
 }
-assert_section_pattern "$route_section" 'reopened_from: done' "reopened specs are ineligible for amendment"
-assert_same_route_paragraph 'reopened_from: done' 'supersession' "reopened specs use supersession"
-assert_same_route_paragraph 'active' 'never reached.*done|lacks.*reopened_from: done|without.*reopened_from: done' "initial lifecycle amendment path remains available"
-assert_route_order_in_paragraph 'reopened_from: done' 'active spec|spec is active|active-spec' "reopened watermark checked before active eligibility"
-assert_grep "$ADR" 'adr.*,.*slug.*,.*spec.*,.*created.*,.*status.*,.*supersedes.*,.*superseded_by' "ADR amendment preserves identity and supersession fields"
+assert_not_grep "$ADR" 'reopened_from' "ADR amendment routing has no reopening watermark"
+assert_grep "$ADR" 'design_cycle' "ADR amendment routing records design cycles"
+assert_same_route_paragraph 'current active spec slug' 'design_cycle.*match' "only the current design cycle is amendable"
+assert_same_route_paragraph 'different design cycle' 'supersession' "historical design cycles use supersession"
+assert_same_route_paragraph 'missing.*null.*done.*parked.*cancelled' 'supersession' "closed or unlinked specs use supersession"
+assert_grep "$ADR" 'adr.*,.*slug.*,.*spec.*,.*design_cycle.*,.*created.*,.*status.*,.*supersedes.*,.*superseded_by' "ADR amendment preserves identity, cycle, and supersession fields"
 assert_grep "$ADR" 'refresh.*updated' "ADR amendment refreshes updated"
 amendment_route_line=$(grep -n 'Route an accepted ADR change before supersession' "$ADR" | head -1 | cut -d: -f1 || true)
 generic_supersession_line=$(grep -n 'Load accepted ADRs for contradiction check' "$ADR" | head -1 | cut -d: -f1 || true)

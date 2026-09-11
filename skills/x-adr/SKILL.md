@@ -32,9 +32,9 @@ The fact that the calling workflow already identified the decision does NOT coun
 
 ## Amendment Eligibility
 
-Every new ADR records exactly one creating spec: `spec: <full-spec-slug>` or `spec: null`.
-When an agent detects a change to an accepted ADR, first inspect the linked spec frontmatter: `reopened_from: done` makes it ineligible for amendment and requires supersession, even while it is active. Amend only when its `spec:` equals the current active spec slug, that spec is active (`drafting`, `specified`, `clarified`, `planned`, `tasked`, `analyzed`, or `implementing`), and its initial lifecycle never reached `done` (it lacks `reopened_from: done`).
-If the link is missing or null, use supersession. If the linked spec is done, parked, or cancelled, use supersession. A missing linked spec also uses supersession.
+Every new ADR records exactly one creating spec: `spec: <full-spec-slug>` or `spec: null`, plus that spec's `design_cycle` (or `0` when standalone). Missing `design_cycle` on a historical spec or ADR means `0`; malformed values are ineligible.
+Amend only when its `spec:` equals the current active spec slug, both records have matching `design_cycle`, and that spec is active (`drafting`, `specified`, `clarified`, `planned`, `tasked`, `analyzed`, or `implementing`), including after a rollback from `done`.
+If the link is missing or null, the design cycles differ, or the linked spec is done, parked, or cancelled, use supersession. A missing linked spec also uses supersession.
 
 ## Process
 
@@ -91,7 +91,7 @@ digraph adr_process {
 
 ### 1. Route an accepted ADR change before supersession
 
-When an agent detects a changed accepted ADR, inspect the linked spec's `reopened_from: done` watermark before active-spec eligibility: a reopened spec uses supersession even if its spec is active; only an initial active lifecycle that never reached `done` and lacks `reopened_from: done` remains eligible for amendment. Evaluate that eligibility before loading accepted ADRs for generic contradiction handling. An eligible change goes directly to the amendment procedure below and never enters the generic supersession path. An ineligible change, including a missing, `null`, closed, or reopened `spec:` link, continues to the existing generic path, which offers supersession. If no accepted ADR changed, continue to step 2.
+When an agent detects a changed accepted ADR, amend it when its direct `spec:` link equals the current active spec slug, its `design_cycle` matches the current spec's `design_cycle`, and the linked spec is active (`drafting`, `specified`, `clarified`, `planned`, `tasked`, `analyzed`, or `implementing`), including after a rollback from `done`. Treat a missing historical `design_cycle` as `0`; a malformed value is ineligible. Evaluate that eligibility before loading accepted ADRs for generic contradiction handling. An eligible change goes directly to the amendment procedure below and never enters the generic supersession path. An ineligible change, including a missing, `null`, `done`, `parked`, or `cancelled` `spec:` link or a different design cycle, continues to the existing generic path, which offers supersession. If no accepted ADR changed, continue to step 2.
 
 ### 2. Compute next NNNN
 
@@ -114,6 +114,7 @@ Use `adr-template.md` as the base. Fill in:
 - `adr:` — the 4-digit number
 - `slug:` — `NNNN-[short-kebab-title]`
 - `spec:` — replace the template's `null` with the current active spec slug when this ADR is created for that spec; otherwise keep `spec: null`
+- `design_cycle:` — copy the current linked spec's nonnegative integer; use `0` for a standalone ADR
 - `status: proposed` ← draft state; transitions to `accepted` when user confirms
 - `created:` — today in YYYY-MM-DD
 - `updated:` — today in YYYY-MM-DD
@@ -164,7 +165,7 @@ Do not create a replacement ADR when the eligibility conditions above hold. Show
 
 **`no`:** Leave the ADR unchanged.
 
-**Anything else:** Re-ask the same amendment question once. On no or two ambiguous responses, leave the ADR unchanged. The amendment preserves `adr`, `slug`, `spec`, `created`, `status`, `supersedes`, and `superseded_by`; it changes the body and refreshes `updated:` to today's ISO date. It never changes ADR identity or supersession links, and never creates a new ADR.
+**Anything else:** Re-ask the same amendment question once. On no or two ambiguous responses, leave the ADR unchanged. The amendment preserves `adr`, `slug`, `spec`, `design_cycle`, `created`, `status`, `supersedes`, and `superseded_by`; it changes the body and refreshes `updated:` to today's ISO date. It never changes ADR identity or supersession links, and never creates a new ADR.
 
 ### 7. Handle new-ADR response
 
@@ -205,7 +206,7 @@ The **Related Specs** column is built by **reverse-lookup** — ADRs no longer c
 
 ## Append-Only After Creation
 
-An eligible amendment for an initial active lifecycle that lacks `reopened_from: done` is the sole exception and must use the full-draft, exact-diff, explicit-`yes` procedure above. Otherwise, once an ADR is written, its **content is immutable**. These fields MAY be updated:
+An eligible amendment for a linked active spec with a matching `design_cycle`, including after a rollback from `done`, is the sole exception and must use the full-draft, exact-diff, explicit-`yes` procedure above. Otherwise, once an ADR is written, its **content is immutable**. These fields MAY be updated:
 - `status` (accepted → deprecated or superseded)
 - `superseded_by`
 - `supersedes`

@@ -25,7 +25,7 @@ maxi adds a strict spec-driven pipeline to superpowers. The 19 Maxi-native skill
 
 Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
 
-Every new ADR records its creating spec through a direct `spec` link as `spec: <full-spec-slug>`, or `spec: null` when standalone. For an initial active lifecycle that lacks `reopened_from: done`, an agent detecting a change to an accepted ADR whose `spec` equals the current spec slug invokes internal `x-adr` for an agent-proposed active-spec amendment: it shows the full amended ADR and exact diff, then writes only after explicit approval. `reopened_from: done` is a monotone lifecycle watermark: a spec reopened with `/maxi:revise` uses supersession for accepted linked ADRs even while its status is active. Unlinked, closed-spec, or reopened-spec ADRs use closed-spec supersession instead.
+Every new ADR records its creating spec through a direct `spec` link as `spec: <full-spec-slug>`, or `spec: null` when standalone, and its `design_cycle`. An agent detecting a change to an accepted ADR whose `spec` equals the current active spec slug and has a matching `design_cycle` invokes internal `x-adr` for an agent-proposed active-spec amendment, including after a rollback from `done`: it shows the full amended ADR and exact diff, then writes only after explicit approval. Unlinked, closed-spec, or different-cycle ADRs use closed-spec supersession instead.
 
 ## Status State Machine
 
@@ -79,4 +79,4 @@ Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineag
 
 - Never skip the constitution step.
 - Never hand-edit `status:` frontmatter.
-- ADRs are append-only after their creating spec closes. An agent-proposed, explicitly approved `x-adr` amendment is permitted only during its linked spec's initial active lifecycle; `reopened_from: done` requires supersession.
+- ADRs are append-only after their creating spec closes. An agent-proposed, explicitly approved `x-adr` amendment is permitted while its linked spec is active with a matching `design_cycle`, including after a rollback from `done`.

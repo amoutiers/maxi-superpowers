@@ -37,11 +37,14 @@ assert_grep "$REVISE" 'unresolved authorization question writes nothing' "unreso
 assert_not_grep "$REVISE" 'done (shipped)' "done is not treated as shipped"
 assert_not_grep "$REVISE" 'status: done.*Refuse\|Refuse.*status: done' "done is not refused"
 
-# Reopening writes a permanent lifecycle watermark and records the revision in
-# the spec only; later transitions must not clear the watermark.
-assert_grep "$REVISE" 'reopened_from: done' "reopening writes the done watermark"
-assert_grep "$REVISE" 'retain.*reopened_from: done\|reopened_from: done.*retain' "watermark is retained"
-assert_grep "$REVISE" 'never.*clear.*reopened_from\|reopened_from.*never.*clear' "watermark cannot be cleared"
+# A done rollback starts a distinct design cycle. Active-only rollbacks retain
+# that cycle, so ADRs from a prior conception cannot be amended.
+assert_not_grep "$REVISE" 'reopened_from' "reopening uses no boolean watermark"
+assert_grep "$REVISE" 'design_cycle' "reopening records the design cycle"
+assert_grep "$REVISE" 'increment' "done rollback increments the design cycle"
+assert_grep "$REVISE" 'source is `done`' "only a done rollback advances the design cycle"
+assert_grep "$REVISE" 'retain.*design_cycle' "non-done rollback retains the design cycle"
+assert_grep "$REVISE" 'nonnegative integer.*stop before writing' "malformed design cycles fail closed"
 assert_grep "$REVISE" 'Clarifications' "reopening records a revision note"
 assert_grep "$REVISE" 'Only `spec.md` is written' "reopening keeps artifact ownership"
 assert_process_order 'Reuse explicit authorization' 'write `spec.md`' "authorization precedes rollback write"

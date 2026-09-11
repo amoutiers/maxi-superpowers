@@ -2,12 +2,12 @@
 adr: 0025
 slug: 0025-reopened-spec-adr-eligibility
 spec: 0021-reopen-done-specs
-status: accepted
+status: superseded
 created: 2026-08-23
-updated: 2026-08-23
+updated: 2026-09-10
 decider: "Antoine Moutiers"
 supersedes: 0024
-superseded_by: null
+superseded_by: 0030
 ---
 
 # ADR-0025: Reopened-Spec ADR Eligibility

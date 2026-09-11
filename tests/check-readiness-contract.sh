@@ -29,7 +29,6 @@ EOF
 
 cat > "$BASE/plan.md" <<'EOF'
 ---
-slug: 0001-readiness-fixture
 spec_slug: 0001-readiness-fixture
 created: 2026-08-30
 updated: 2026-08-30
@@ -43,7 +42,6 @@ EOF
 cat > "$BASE/tasks.md" <<'EOF'
 ---
 description: Fixture tasks
-slug: 0001-readiness-fixture
 spec_slug: 0001-readiness-fixture
 created: 2026-08-30
 updated: 2026-08-30

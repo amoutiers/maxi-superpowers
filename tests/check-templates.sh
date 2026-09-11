@@ -49,38 +49,42 @@ check_template() {
 # adr-template
 check_template \
   "$ROOT/skills/x-adr/adr-template.md" "adr-template.md" "true" \
-  "adr:" "slug:" "spec:" "status:" "created:" "updated:" "decider:" "supersedes:" "superseded_by:" \
+  "adr:" "slug:" "spec:" "design_cycle:" "status:" "created:" "updated:" "decider:" "supersedes:" "superseded_by:" \
   "--" \
   "^## Context" "^## Decision Drivers" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
 assert_not_grep "$ROOT/skills/x-adr/adr-template.md" "^related_specs:" "adr-template.md: no related_specs"
 assert_not_grep "$ROOT/skills/x-adr/adr-template.md" "^related_principles:" "adr-template.md: no related_principles"
 assert_not_grep "$ROOT/skills/x-adr/adr-template.md" "^related_requirements:" "adr-template.md: no related_requirements"
 assert_grep "$ROOT/skills/x-adr/adr-template.md" "^spec: null$" "adr-template.md: unlinked ADR default"
+assert_grep "$ROOT/skills/x-adr/adr-template.md" "^design_cycle: 0$" "adr-template.md: initial design cycle default"
 
 # adr fixture
 check_template \
   "$ROOT/tests/fixtures/sample-adr.md" "fixtures/sample-adr.md" "true" \
-  "adr:" "slug:" "spec:" "status:" "created:" "updated:" "decider:" "supersedes:" "superseded_by:" \
+  "adr:" "slug:" "spec:" "design_cycle:" "status:" "created:" "updated:" "decider:" "supersedes:" "superseded_by:" \
   "--" \
   "^## Context" "^## Decision Drivers" "^## Considered Options" "^## Decision" "^## Consequences" "^## Confirmation"
 assert_not_grep "$ROOT/tests/fixtures/sample-adr.md" "^related_specs:" "sample-adr.md: no related_specs"
 assert_not_grep "$ROOT/tests/fixtures/sample-adr.md" "^related_principles:" "sample-adr.md: no related_principles"
 assert_not_grep "$ROOT/tests/fixtures/sample-adr.md" "^related_requirements:" "sample-adr.md: no related_requirements"
 assert_grep "$ROOT/tests/fixtures/sample-adr.md" "^spec: 0001-sample-feature$" "sample-adr.md: direct creating-spec link"
+assert_grep "$ROOT/tests/fixtures/sample-adr.md" "^design_cycle: 0$" "sample-adr.md: initial design cycle"
 
 # spec-template
 check_template \
   "$ROOT/skills/specify/spec-template.md" "spec-template.md" "true" \
-  "slug:" "created:" "updated:" "status:" "related_adrs:" \
+  "slug:" "created:" "updated:" "status:" "design_cycle:" "related_adrs:" \
   "--" \
   "^## User Scenarios" "^## Requirements" "^## Clarifications" "^## Success Criteria"
+assert_grep "$ROOT/skills/specify/spec-template.md" "^design_cycle: 0$" "spec-template.md: initial design cycle default"
 
 # spec fixture
 check_template \
   "$ROOT/tests/fixtures/sample-spec.md" "fixtures/sample-spec.md" "true" \
-  "slug:" "created:" "updated:" "status:" \
+  "slug:" "created:" "updated:" "status:" "design_cycle:" \
   "--" \
   "^## User Scenarios" "^## Requirements" "^## Clarifications" "^## Success Criteria"
+assert_grep "$ROOT/tests/fixtures/sample-spec.md" "^design_cycle: 0$" "sample-spec.md: initial design cycle"
 
 # constitution-template
 check_template \
@@ -92,9 +96,10 @@ check_template \
 # plan-template
 check_template \
   "$ROOT/skills/plan/plan-template.md" "plan-template.md" "true" \
-  "slug:" "spec_slug:" "created:" "updated:" \
+  "spec_slug:" "created:" "updated:" \
   "--" \
   "## Summary" "## Technical Context" "## Global Constraints" "## Constitution Check"
+assert_not_grep "$ROOT/skills/plan/plan-template.md" "^slug:" "plan-template.md: no duplicate slug"
 if [ "$(grep -c '^## Global Constraints$' "$ROOT/skills/plan/plan-template.md")" -ne 1 ]; then
   echo "FAIL [plan-template.md: one Global Constraints section]" >&2
   failures=$((failures + 1))
@@ -106,9 +111,10 @@ assert_not_grep "$ROOT/skills/plan/plan-template.md" '^##+ Delivery Contract$' "
 # tasks-template
 check_template \
   "$ROOT/skills/tasks/tasks-template.md" "tasks-template.md" "true" \
-  "slug:" "spec_slug:" "created:" "updated:" \
+  "spec_slug:" "created:" "updated:" \
   "--" \
   "## Format:" "## Path Conventions"
+assert_not_grep "$ROOT/skills/tasks/tasks-template.md" "^slug:" "tasks-template.md: no duplicate slug"
 if grep '^- \[[ xX]\] T\(XXX\|[0-9][0-9][0-9]\) ' "$ROOT/skills/tasks/tasks-template.md" | grep -Ev '\(plan Task [1-9][0-9]*\)$' >/dev/null; then
   echo "FAIL [tasks-template.md: terminal plan mapping]: every sample task needs one terminal plan Task N mapping" >&2
   failures=$((failures + 1))

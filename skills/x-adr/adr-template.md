@@ -2,6 +2,7 @@
 adr: NNNN
 slug: NNNN-[short-decision-slug]
 spec: null
+design_cycle: 0
 status: proposed
 # Note: transitions to "accepted" when user confirms the ADR
 created: YYYY-MM-DD
