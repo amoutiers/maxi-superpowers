@@ -1,3 +1,9 @@
+## [2.7.1] - 2026-09-11
+
+### Bug Fixes
+
+- Preserve ADR design-cycle history
+
 
 ## [2.7.0] - 2026-09-08
 
