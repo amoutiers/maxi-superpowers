@@ -1,3 +1,10 @@
+## [2.7.2] - 2026-09-12
+
+### Bug Fixes
+
+- Keep superseded ADRs out of active indexes
+
+
 ## [2.7.1] - 2026-09-11
 
 ### Bug Fixes
