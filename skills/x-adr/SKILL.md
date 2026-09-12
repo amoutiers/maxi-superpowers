@@ -170,9 +170,9 @@ Do not create a replacement ADR when the eligibility conditions above hold. Show
 ### 7. Handle new-ADR response
 
 **`yes`:**
-- Normal case: set `status: accepted` in the ADR, then write `docs/maxi/adr/NNNN-slug.md`, then regenerate index (step 7)
-- Supersede case: write new ADR; also update old ADR — set `status: superseded` and `superseded_by: NNNN`; then regenerate index. If any of the three writes fails, stop and report the failure — do not leave the ADR log in a partially-written state.
-- **Spec back-link (both cases):** if this ADR was accepted in the context of an active spec — the calling workflow knows the spec directory — append this ADR's full slug (e.g. `NNNN-slug`) to that spec's `related_adrs` frontmatter list (create the list if absent; do not duplicate if already present) and bump the spec's `updated:` to today's ISO date, written in the same edit. If there is no active spec, skip this silently — the ADR still stands.
+- Normal case: set `status: accepted` in the ADR, then write `docs/maxi/adr/NNNN-slug.md`. If it belongs to an active spec, append its full slug to that spec's `related_adrs` list (create the list if absent; do not duplicate it) and bump `updated:` in the same edit.
+- Supersede case: write the new ADR; update the old ADR to `status: superseded` and `superseded_by: NNNN`; then replace the old ADR's full slug with the new one in the active creating spec's `related_adrs` list. If the old slug is absent, append the new one once. The active index therefore contains only accepted ADRs; `supersedes` and `superseded_by` preserve the historical chain. If any required write fails, stop and report the failure — do not leave the ADR log in a partially-written state.
+- If there is no active creating spec, do not edit a spec index. The ADR still stands.
 
 **`edit`:**
 - Accept the user's amendments to the draft inline
@@ -237,4 +237,4 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 | Picking a number without counting existing files | Count `docs/maxi/adr/*.md` (excluding README), add 1 |
 | Forgetting to regenerate README.md | Always regenerate after every write |
 | Editing an ineligible ADR body | Decline; offer to supersede instead |
-| Writing the ADR but forgetting the spec back-link | On acceptance with an active spec, append the ADR slug to the spec's `related_adrs` and bump its `updated:` |
+| Leaving a superseded ADR in an active spec index | On supersession, replace its slug with the accepted successor in that spec's `related_adrs`; append only for an independent ADR or an absent old slug |

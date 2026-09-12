@@ -139,6 +139,8 @@ expect_digest_rejection() {
 }
 
 assert_file_exists "$INPUTS" "decision-input digest helper"
+assert_grep "$ROOT/skills/review/design-reviewer.md" "does not determine" "reviewer leaves ADR routing to x-adr"
+assert_grep "$ROOT/skills/review/design-reviewer.md" "amendment or supersession routing from artifact history" "reviewer ignores ADR routing history"
 
 case_a="$DIGEST_TMP/case-a"
 case_b="$DIGEST_TMP/case-b"

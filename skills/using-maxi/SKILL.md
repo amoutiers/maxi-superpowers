@@ -25,7 +25,7 @@ maxi adds a strict spec-driven pipeline to superpowers. The 19 Maxi-native skill
 
 Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
 
-Every new ADR records its creating spec through a direct `spec` link as `spec: <full-spec-slug>`, or `spec: null` when standalone, and its `design_cycle`. An agent detecting a change to an accepted ADR whose `spec` equals the current active spec slug and has a matching `design_cycle` invokes internal `x-adr` for an agent-proposed active-spec amendment, including after a rollback from `done`: it shows the full amended ADR and exact diff, then writes only after explicit approval. Unlinked, closed-spec, or different-cycle ADRs use closed-spec supersession instead.
+Every new ADR records its creating spec through a direct `spec` link as `spec: <full-spec-slug>`, or `spec: null` when standalone, and its `design_cycle`. An agent detecting a change to an accepted ADR whose `spec` equals the current active spec slug and has a matching `design_cycle` invokes internal `x-adr` for an agent-proposed active-spec amendment, including after a rollback from `done`: it shows the full amended ADR and exact diff, then writes only after explicit approval. Unlinked, closed-spec, or different-cycle ADRs use closed-spec supersession instead. A supersession replaces the old slug with its accepted successor in the active spec's `related_adrs`, which indexes only current accepted ADRs for review and analysis.
 
 ## Status State Machine
 

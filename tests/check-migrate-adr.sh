@@ -151,6 +151,7 @@ assert_same_route_paragraph 'different design cycle' 'supersession' "historical 
 assert_same_route_paragraph 'missing.*null.*done.*parked.*cancelled' 'supersession' "closed or unlinked specs use supersession"
 assert_grep "$ADR" 'adr.*,.*slug.*,.*spec.*,.*design_cycle.*,.*created.*,.*status.*,.*supersedes.*,.*superseded_by' "ADR amendment preserves identity, cycle, and supersession fields"
 assert_grep "$ADR" 'refresh.*updated' "ADR amendment refreshes updated"
+assert_grep "$ADR" 'Supersede case.*replace.*related_adrs' "ADR supersession replaces the active spec reference"
 amendment_route_line=$(grep -n 'Route an accepted ADR change before supersession' "$ADR" | head -1 | cut -d: -f1 || true)
 generic_supersession_line=$(grep -n 'Load accepted ADRs for contradiction check' "$ADR" | head -1 | cut -d: -f1 || true)
 if [ -n "$amendment_route_line" ] && [ -n "$generic_supersession_line" ] && [ "$amendment_route_line" -lt "$generic_supersession_line" ]; then
