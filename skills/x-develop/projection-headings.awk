@@ -7,5 +7,7 @@ fm { next }
 v2 && /^```/ { fence = !fence; next }
 !fence && /^### Task [1-9][0-9]*: T[0-9][0-9][0-9] / {
   number = $3; sub(/:$/, "", number)
-  print number "|" $4
+  if (task_line != "") {
+    if ($4 == task_line) { getline; getline; print; exit }
+  } else print number "|" $4
 }

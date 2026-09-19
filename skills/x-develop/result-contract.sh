@@ -59,9 +59,9 @@ validate_review_conclusion() {
   if [ "$fix_package" = null ]; then
     [ "$ready_total" -eq 1 ] && [ "$(grep -Fxc -- '**Ready to merge?** Yes' "$review" || true)" -eq 1 ] && [ "$fix_total" -eq 0 ]
   else
-    [ "$ready_total" -eq 1 ] && [ "$(grep -Fxc -- '**Ready to merge?** With fixes' "$review" || true)" -eq 1 ] || return 1
+    [ "$ready_total" -eq 1 ] && [ "$(grep -Exc '^\*\*Ready to merge\?\*\* (With fixes|No)$' "$review" || true)" -eq 1 ] || return 1
     [ "$fix_total" -eq 1 ] && [ "$(grep -Fxc -- '**Fix round:** All findings addressed, no new Critical/Important breakage' "$review" || true)" -eq 1 ] || return 1
-    ready_line="$(grep -nF -- '**Ready to merge?** With fixes' "$review" | cut -d: -f1)"
+    ready_line="$(grep -nE '^\*\*Ready to merge\?\*\* (With fixes|No)$' "$review" | cut -d: -f1)"
     fix_line="$(grep -nF -- '**Fix round:** All findings addressed, no new Critical/Important breakage' "$review" | cut -d: -f1)"
     [ "$ready_line" -lt "$fix_line" ]
   fi

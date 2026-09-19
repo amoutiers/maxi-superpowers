@@ -58,7 +58,7 @@ If status is already `implementing`:
   ```
   Require exit 0 and exactly one stdout line, `READINESS_VERIFIED`; otherwise stop before any write or `/maxi:x-develop` dispatch and instruct the user to run `/maxi:analyze` because the readiness evidence is missing, malformed, blocked, unsupported, or stale.
 - Read tasks.md to find the first `- [ ]` (unchecked) task
-- Resume from there — skip all `- [x]` tasks
+- Treat checkbox state as a progress hint; `x-develop` must reconcile the current selection against content-bound completion history before dispatch, including clearing stale checks.
 - Pass the exact artifact paths to `x-develop`, then complete the receipt-gated process normally
 
 ## Artifact reference links
@@ -85,6 +85,6 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 | "x-develop is too slow / heavyweight for this task" | There is no lightweight path. x-develop is the only acceptable delegation. Inline implementation is a violation. |
 | "The user told me all tasks are done, I'll just set status to done" | You must count `- [ ]` items in tasks.md yourself. User assertion is not sufficient. If count > 0, do not transition. |
 | "I'll tick tasks here too for safety" | Two checkbox owners race. Only x-develop reconciles upstream ledger completion into tasks.md. |
-| "Status is already implementing, I'll restart from T001 to be safe" | Resuming means starting from the first `- [ ]` task. Do NOT redo completed (`- [x]`) tasks. |
+| "Status is already implementing, I'll restart from T001 to be safe" | Resuming uses the validated current ledger. Reexecute changed requirements; preserve only content-bound completions still present in Git. |
 | "The user says analyze would find nothing, so I can skip it" | User predictions don't replace the analysis phase. `/maxi:analyze` is fast and non-destructive — run it. The pipeline is strict precisely to prevent this class of shortcut. |
 | "The plan looks solid, analyze is just ceremony here" | If a phase has its own skill, it has its own responsibility. The plan looking solid is not a substitute for the audit. |

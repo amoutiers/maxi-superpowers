@@ -68,13 +68,21 @@ completion_number() {
 }
 
 validate_ledger_completions() {
-  local ledger="$1" allowed="$2" output="$3" line number
+  local ledger="$1" allowed="$2" output="$3" line number range base head base_commit head_commit
   : > "$output"
   while IFS= read -r line; do
     case "$line" in
       Task\ *:\ complete*)
         number="$(completion_number "$line")"
         [ -n "$number" ] || return 1
+        range="${line#*commits }"; range="${range%%,*}"
+        base="${range%%..*}"; head="${range#*..}"
+        base_commit="$(git -C "$ROOT" rev-parse --verify "$base^{commit}" 2>/dev/null)" || return 1
+        head_commit="$(git -C "$ROOT" rev-parse --verify "$head^{commit}" 2>/dev/null)" || return 1
+        case "$base_commit" in "$base"*) ;; *) return 1 ;; esac
+        case "$head_commit" in "$head"*) ;; *) return 1 ;; esac
+        git -C "$ROOT" merge-base --is-ancestor "$base_commit" "$head_commit" || return 1
+        git -C "$ROOT" merge-base --is-ancestor "$head_commit" HEAD || return 1
         grep -Fqx -- "$number" "$allowed" || return 1
         ! grep -Fqx -- "$number" "$output" || return 1
         printf '%s\n' "$number" >> "$output"
@@ -152,23 +160,11 @@ validate_projection_anchor() {
   [ "$line" = "Maxi projection SHA256: $(sha "$projection")" ]
 }
 
-ledger_completes_projection() {
-  local projection="$1" root="$2" ledger expected anchored
-  ledger="$root/.superpowers/sdd/$(basename "$projection" .md)/progress.md"
-  [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
-  IFS= read -r expected < "$ledger" || return 1
-  [ "$expected" = "# SDD ledger — plan: $projection" ] || return 1
-  anchored="$TMPDIR_LOCAL/ledger-completion-anchor"
-  validate_selection_anchor "$projection" "$root" "$anchored" || return 1
-  while IFS= read -r number; do
-    [ -n "$number" ] || continue
-    grep -Fqx -- "$number" "${anchored}.completions" || return 1
-  done < <(projection_headings "$projection" | cut -d'|' -f1)
-}
-
 lineage_completed_ids() {
-  local current="$1" root="$2" output="$3" ledger first map number id anchor
+  local current="$1" root="$2" output="$3" ledger first number id anchor
+  local seen_ids='|' current_line historical_line
   : > "$output"
+  : > "${output}.historical"
   while [ "$current" != null ]; do
     ledger="$root/.superpowers/sdd/$(basename "$current" .md)/progress.md"
     [ -f "$ledger" ] && [ ! -L "$ledger" ] || return 1
@@ -179,7 +175,16 @@ lineage_completed_ids() {
     number=0
     while IFS= read -r id; do
       number=$((number + 1))
-      if grep -Fqx -- "$number" "${anchor}.completions" && ! grep -Fqx -- "$id" "$output"; then
+      case "$seen_ids" in *"|$id|"*) continue ;; esac
+      seen_ids="$seen_ids$id|"
+      if grep -Fqx -- "$number" "${anchor}.completions"; then
+        printf '%s\n' "$id" >> "${output}.historical"
+        # ponytail: a changed plan reruns completed tasks; compare task bodies
+        # only if conservative reexecution becomes materially expensive.
+        [ "$(projection_field "$current" source_plan_sha256)" = "$PLAN_HASH" ] || continue
+        current_line="$(awk -F '\t' -v id="$id" '$2 == id { sub(/^[^\t]*\t[^\t]*\t[^\t]*\t/, ""); print }' "$TASK_META")"
+        historical_line="$(awk -v task_line="$id" -f "$SCRIPT_DIR/projection-headings.awk" "$current")"
+        [ -n "$current_line" ] && [ "$current_line" = "$historical_line" ] || continue
         printf '%s\n' "$id" >> "$output"
       fi
     done < "$anchor"
@@ -490,7 +495,6 @@ while [ "$legacy_projection" != null ]; do
   legacy_projection="$(projection_field "$legacy_projection" predecessor_projection)"
 done
 
-unchecked="$(awk -F '\t' '$1 == " " { count++ } END { print count + 0 }' "$TASK_META")"
 SELECTED_IDS="$TMPDIR_LOCAL/selected"
 ANCHORED_IDS="$TMPDIR_LOCAL/anchored"
 COMPLETED_IDS="$TMPDIR_LOCAL/predecessor-completed"
@@ -541,14 +545,13 @@ if [ -e "$FINAL" ]; then
     final-review-only) [ "$selected_count" -eq 0 ] || die 'final-review-only projection has tasks' ;;
     *) die 'unknown existing execution mode' ;;
   esac
-  [ "$unchecked" -gt 0 ] || [ "$EXECUTION_MODE" = final-review-only ] || ledger_completes_projection "$FINAL" "$ROOT" || die 'existing ledger does not complete the projection'
 else
   PROJECT_PREDECESSOR="$PREDECESSOR"
   if [ "$PROJECT_PREDECESSOR" != null ]; then
     lineage_completed_ids "$PROJECT_PREDECESSOR" "$ROOT" "$COMPLETED_IDS" || die 'predecessor ledger lineage is invalid'
     validate_selection_anchor "$PROJECT_PREDECESSOR" "$ROOT" "$PREDECESSOR_ANCHORED_IDS" || die 'predecessor ledger selection anchor is invalid'
     while IFS= read -r id; do
-      if ! grep -Fqx -- "$id" "$COMPLETED_IDS"; then
+      if ! grep -Fqx -- "$id" "${COMPLETED_IDS}.historical"; then
         [ "$(cut -f2 "$TASK_META" | grep -Fcx -- "$id" || true)" -eq 1 ] || die "structural successor omits anchored uncompleted task: $id"
       fi
     done < "$PREDECESSOR_ANCHORED_IDS"

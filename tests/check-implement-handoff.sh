@@ -60,7 +60,7 @@ require_literal "$DEVELOP" '`record-terminal.sh`' 'x-develop does not persist th
 require_literal "$DEVELOP" '`result-contract.sh`' 'x-develop does not validate the terminal result'
 require_literal "$DEVELOP" 'Project each selected canonical `TNNN` once in tasks-file order, followed by its canonical checkbox line and the complete mapped plan-task body.' 'ordinary task projection is not universal'
 require_literal "$DEVELOP" 'Recover a predecessor only from the validated active-projection pointer.' 'predecessor recovery is not fail closed'
-require_literal "$DEVELOP" 'Reconcile the existing ledger before any resumed dispatch.' 'resume reconciliation is missing'
+require_literal "$DEVELOP" 'Reconcile the current ledger before every new or resumed dispatch, clearing stale checks for selected tasks without a current completion.' 'resume reconciliation is missing'
 require_literal "$DEVELOP" 'Pass the printed canonical absolute projection path verbatim to every upstream SDD helper.' 'canonical projection identity is not preserved'
 require_literal "$DEVELOP" 'Change directory to the bound physical Git worktree before every upstream SDD helper call.' 'foreign-cwd binding is missing'
 require_literal "$DEVELOP" 'Use upstream SDD without fix-loop overrides.' 'upstream fix loop is still overridden'
@@ -82,7 +82,7 @@ require_literal "$DEVELOP" 'Before final-review work is dispatched, persist the 
 require_literal "$DEVELOP" 'For Codex, first allocate a fresh reviewer for an identity handshake only' 'Codex reviewer handshake is missing'
 require_literal "$DEVELOP" 'capture the harness-returned canonical task path, persist it, then dispatch the review through a follow-up to that same reviewer' 'Codex final review does not bind the allocated reviewer'
 require_literal "$DEVELOP" 'If the harness exposes no verifiable reviewer context, stop without a success token.' 'missing harness reviewer identity is not fail closed'
-require_literal "$DEVELOP" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage`.' 'final verdict paths do not match upstream review grammar'
+require_literal "$DEVELOP" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` or `**Ready to merge?** No` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage`.' 'final verdict paths do not match upstream review grammar'
 require_literal "$IMPLEMENT" '`analysis.md` is the required readiness review of the current design and tasks before code begins.' 'implement does not name the readiness boundary'
 
 if grep -Eq 'replay_contract|marker-bound|legacy compatibility' "$DEVELOP"; then
@@ -103,8 +103,10 @@ for doc in \
   require_literal "$doc" 'READY_TO_FINISH' "$(basename "$doc") omits the terminal receipt gate"
   require_literal "$doc" 'Upstream SDD owns the only whole-branch review' "$(basename "$doc") keeps ambiguous final-review ownership"
   require_literal "$doc" 'immutable initial task-selection anchor' "$(basename "$doc") omits the selection anchor gate"
+  require_literal "$doc" 'Completion reuse requires the latest selection of that TNNN to be complete, with an unchanged exact plan hash and canonical task line.' "$(basename "$doc") omits content-bound completion reuse"
+  require_literal "$doc" 'end an ancestor of current HEAD' "$(basename "$doc") omits completion Git ancestry"
   require_literal "$doc" 'Only canonical annotated upstream completion records acquit tasks; bare or malformed completion lines fail closed.' "$(basename "$doc") omits the upstream completion grammar gate"
-  require_literal "$doc" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage`.' "$(basename "$doc") omits the conditional final-review gate"
+  require_literal "$doc" 'A null fix package requires exactly `**Ready to merge?** Yes`; a non-null byte-exact fix package requires the initial `**Ready to merge?** With fixes` or `**Ready to merge?** No` plus exactly `**Fix round:** All findings addressed, no new Critical/Important breakage`.' "$(basename "$doc") omits the conditional final-review gate"
   require_literal "$doc" "Every projection's exact distributed bytes are SHA-256-bound by its ordinary SDD ledger; missing, duplicate, malformed, or mismatched projection-byte anchors fail closed across the current and predecessor lineage." "$(basename "$doc") omits the projection-byte anchor gate"
   require_literal "$doc" 'Removing an anchored incomplete `TNNN` during structural correction fails before successor creation and leaves the active-projection pointer unchanged.' "$(basename "$doc") omits the anchored-task removal gate"
   require_literal "$doc" 'Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.' "$(basename "$doc") omits the ruling evidence contract"

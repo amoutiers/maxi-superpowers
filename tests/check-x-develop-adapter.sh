@@ -30,16 +30,29 @@ assert_has() { grep -Fq -- "$2" "$1" && ok "$3" || fail "$3" "missing '$2'"; }
 assert_not_has() { ! grep -Fq -- "$2" "$1" && ok "$3" || fail "$3" "unexpected '$2'"; }
 sha() { shasum -a 256 "$1" | awk '{print $1}'; }
 
-COMPLETE_1_CLEAN='Task 1: complete (commits 1111111..2222222, review clean)'
-COMPLETE_1_PARKED='Task 1: complete (commits 1111111..2222222, 2 parked)'
-COMPLETE_2_CLEAN='Task 2: complete (commits 2222222..3333333, review clean)'
-COMPLETE_2_PARKED='Task 2: complete (commits 2222222..3333333, 2 parked)'
-COMPLETE_3_CLEAN='Task 3: complete (commits 3333333..4444444, review clean)'
+# Share real ancestor commits across fixtures; grammar-only fake SHAs cannot
+# establish that completed work is still present on the current branch.
+HISTORY="$WORK/history"
+git init -q "$HISTORY"
+git -C "$HISTORY" config user.email adapter@example.invalid
+git -C "$HISTORY" config user.name 'Adapter Test'
+for n in 0 1 2 3; do
+  git -C "$HISTORY" -c commit.gpgsign=false commit --allow-empty -qm "history $n"
+done
+C0="$(git -C "$HISTORY" rev-parse --short=7 HEAD~3)"
+C1="$(git -C "$HISTORY" rev-parse --short=7 HEAD~2)"
+C2="$(git -C "$HISTORY" rev-parse --short=7 HEAD~1)"
+C3="$(git -C "$HISTORY" rev-parse --short=7 HEAD)"
+COMPLETE_1_CLEAN="Task 1: complete (commits $C0..$C1, review clean)"
+COMPLETE_1_PARKED="Task 1: complete (commits $C0..$C1, 2 parked)"
+COMPLETE_2_CLEAN="Task 2: complete (commits $C1..$C2, review clean)"
+COMPLETE_2_PARKED="Task 2: complete (commits $C1..$C2, 2 parked)"
+COMPLETE_3_CLEAN="Task 3: complete (commits $C2..$C3, review clean)"
 
 init_repo() {
   local repo="$1"
+  git clone -q --no-hardlinks "$HISTORY" "$repo"
   mkdir -p "$repo/docs/maxi/specs/adapter-sample" "$repo/.superpowers/sdd/projections"
-  git -C "$repo" init -q
   git -C "$repo" config user.email adapter@example.invalid
   git -C "$repo" config user.name 'Adapter Test'
   printf '.superpowers/\n' > "$repo/.gitignore"
@@ -94,6 +107,86 @@ assert_rejected_without_projection() {
     ok "$label leaves no output"
   fi
 }
+
+# A completed identity never certifies changed requirements. Keep old evidence
+# immutable, project the work again, and clear stale checks before dispatch.
+for changed in plan task-line; do
+  CHANGED="$WORK/completed-$changed"
+  init_repo "$CHANGED"
+  seed_case "$CHANGED"
+  changed_dir="$CHANGED/docs/maxi/specs/adapter-sample"
+  run_project "$CHANGED"
+  prior="$PROJECT_OUTPUT"
+  prior_ledger="$CHANGED/.superpowers/sdd/$(basename "$prior" .md)/progress.md"
+  printf '%s\n' "$COMPLETE_1_CLEAN" "$COMPLETE_2_CLEAN" "$COMPLETE_3_CLEAN" >> "$prior_ledger"
+  bash "$RECONCILE" --projection "$prior" --ledger "$prior_ledger" --tasks "$changed_dir/tasks.md" >/dev/null
+  prior_bytes="$(sha "$prior")"
+  ledger_bytes="$(sha "$prior_ledger")"
+  if [ "$changed" = plan ]; then
+    printf '\nChanged implementation requirement.\n' >> "$changed_dir/plan.md"
+  else
+    sed 's/Write the third file/Write the revised third file/' "$changed_dir/tasks.md" > "$CHANGED/change"
+    mv "$CHANGED/change" "$changed_dir/tasks.md"
+  fi
+  run_project "$CHANGED"
+  assert_eq "$PROJECT_STATUS" 0 "$changed correction reprojects completed work"
+  if [ "$PROJECT_STATUS" -eq 0 ]; then
+    successor="$PROJECT_OUTPUT"
+    successor_ledger="$CHANGED/.superpowers/sdd/$(basename "$successor" .md)/progress.md"
+    assert_has "$successor" '### Task 1: T003 ' "$changed correction retains changed completed task"
+    pending="$(bash "$RECONCILE" --projection "$successor" --ledger "$successor_ledger" --tasks "$changed_dir/tasks.md")"
+    if [ "$changed" = plan ]; then expected_pending=3; else expected_pending=1; fi
+    assert_eq "$pending" "$expected_pending" "$changed correction clears stale completed checks"
+    assert_has "$changed_dir/tasks.md" '- [ ] T003 ' "$changed correction makes changed task pending"
+    assert_eq "$(sha "$prior")" "$prior_bytes" "$changed correction preserves old projection"
+    assert_eq "$(sha "$prior_ledger")" "$ledger_bytes" "$changed correction preserves old ledger"
+    # A third projection may not fall back to a completion before the latest
+    # still-pending selection, even if its old task text reappears.
+    sed 's/Write the revised third file/Write the third file/; s/Finish the sample/Finish the new sample/' "$changed_dir/tasks.md" > "$CHANGED/change"
+    mv "$CHANGED/change" "$changed_dir/tasks.md"
+    run_project "$CHANGED"
+    assert_eq "$PROJECT_STATUS" 0 "$changed correction continues through another successor"
+    if [ "$PROJECT_STATUS" -eq 0 ]; then
+      assert_has "$PROJECT_OUTPUT" '### Task 1: T003 ' 'latest pending selection overrides older completion'
+    fi
+  fi
+done
+
+# Syntax alone is not Git evidence. Reject before checkbox or pointer writes.
+for stale in missing reversed noncommit detached; do
+  STALE="$WORK/completion-git-$stale"
+  init_repo "$STALE"
+  seed_case "$STALE"
+  run_project "$STALE"
+  stale_projection="$PROJECT_OUTPUT"
+  stale_ledger="$STALE/.superpowers/sdd/$(basename "$stale_projection" .md)/progress.md"
+  stale_tasks="$STALE/docs/maxi/specs/adapter-sample/tasks.md"
+  case "$stale" in
+    missing) record='Task 1: complete (commits 0000000..0000000, review clean)' ;;
+    reversed) record="Task 1: complete (commits $C2..$C1, review clean)" ;;
+    noncommit)
+      blob="$(printf 'not a commit' | git -C "$STALE" hash-object -w --stdin)"
+      record="Task 1: complete (commits $C0..${blob:0:7}, review clean)" ;;
+    detached)
+      printf 'implementation\n' > "$STALE/implementation.txt"
+      git -C "$STALE" add implementation.txt
+      git -C "$STALE" commit -qm implementation
+      lost="$(git -C "$STALE" rev-parse --short=7 HEAD)"
+      git -C "$STALE" reset --hard -q "$C3"
+      record="Task 1: complete (commits $C3..$lost, review clean)" ;;
+  esac
+  printf '%s\n' "$record" >> "$stale_ledger"
+  tasks_before="$(sha "$stale_tasks")"
+  run_project "$STALE"
+  [ "$PROJECT_STATUS" -ne 0 ] && ok "$stale completion rejected by projection" || fail "$stale completion rejected by projection"
+  if bash "$RECONCILE" --projection "$stale_projection" --ledger "$stale_ledger" --tasks "$stale_tasks" >/dev/null 2>&1; then
+    fail "$stale completion rejected by reconciliation"
+  else
+    ok "$stale completion rejected by reconciliation"
+  fi
+  assert_eq "$(sha "$stale_tasks")" "$tasks_before" "$stale completion preserves task checks"
+  assert_eq "$(cat "$STALE/.superpowers/sdd/active-adapter-sample")" "$stale_projection" "$stale completion preserves active pointer"
+done
 
 # Strict v2 mappings and representable fences reject before publishing evidence.
 for invalid in missing duplicate non-positive unknown extra-mapping unmapped-plan duplicate-plan long-fence unclosed-fence nested-backtick preamble-fence unterminated-payload; do
@@ -215,12 +308,15 @@ for legacy_case in partial raw-preamble complete malformed tampered rehashed mis
   assert_eq "$(find "$LEGACY/.superpowers/sdd/projections" -name '*-sdd.md' | wc -l | tr -d ' ')" 1 "$legacy_case verification creates no successor"
   run_project "$LEGACY"
   case "$legacy_case" in
-    partial|raw-preamble|complete)
+    partial|raw-preamble|complete|structural-complete)
       assert_eq "$PROJECT_STATUS" 0 "$legacy_case v1 upgrades"
       if [ "$PROJECT_STATUS" -eq 0 ]; then
         assert_has "$PROJECT_OUTPUT" 'sdd_projection: maxi-v2' "$legacy_case upgrade uses v2"
         assert_has "$PROJECT_OUTPUT" "predecessor_projection: $legacy_projection" "$legacy_case upgrade links immutable v1"
-        if [ "$legacy_case" != complete ]; then
+        if [ "$legacy_case" = structural-complete ]; then
+          assert_has "$PROJECT_OUTPUT" '### Task 1: T003 ' 'changed legacy plan reruns historical completions'
+          bash "$RECONCILE" --projection "$PROJECT_OUTPUT" --ledger "$LEGACY/.superpowers/sdd/$(basename "$PROJECT_OUTPUT" .md)/progress.md" --tasks "$legacy_dir/tasks.md" >/dev/null
+        elif [ "$legacy_case" != complete ]; then
           assert_has "$PROJECT_OUTPUT" '### Task 1: T001 ' 'v1 upgrade retains pending first task'
           assert_has "$PROJECT_OUTPUT" '### Task 2: T002 ' 'v1 upgrade ignores checkbox-only completion'
           assert_not_has "$PROJECT_OUTPUT" '### Task 1: T003 ' 'v1 upgrade carries validated completion'
@@ -1444,7 +1540,20 @@ else
   fail 'exact upstream fix-round conclusion creates receipt' 'valid upstream evidence was rejected'
 fi
 
-for fix_verdict_case in missing-conclusion local-suffix duplicate-conclusion mixed-ready no-initial-with-fixes reordered-conclusion; do
+# No is a supported initial upstream verdict; a real fix package plus a clean
+# scoped re-review must reach the same terminal boundary as With fixes.
+FIX_NO_REVIEW="$FIX_REVIEW.initial-no"
+FIX_NO_RECEIPT="$(dirname "$TERM_LEDGER")/terminal-fixed-no-receipt.md"
+sed 's/^\*\*Ready to merge?\*\* With fixes$/**Ready to merge?** No/' "$FIX_REVIEW" > "$FIX_NO_REVIEW"
+if bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FIX_NO_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$FIX_NO_RECEIPT" >/dev/null 2>&1; then
+  ok 'corrected initial No creates receipt'
+  fixed_no_result="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$FIX_NO_RECEIPT")"
+  assert_has <(printf '%s\n' "$fixed_no_result") 'READY_TO_FINISH' 'corrected initial No emits ready'
+else
+  fail 'corrected initial No creates receipt'
+fi
+
+for fix_verdict_case in missing-conclusion local-suffix duplicate-conclusion mixed-ready initial-yes reordered-conclusion; do
   BAD_FIX_REVIEW="$FIX_REVIEW.$fix_verdict_case"
   case "$fix_verdict_case" in
     missing-conclusion) grep -Fvx -- '**Fix round:** All findings addressed, no new Critical/Important breakage' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
@@ -1452,7 +1561,7 @@ for fix_verdict_case in missing-conclusion local-suffix duplicate-conclusion mix
     duplicate-conclusion) { cat "$FIX_REVIEW"; printf '%s\n' '**Fix round:** All findings addressed, no new Critical/Important breakage'; } > "$BAD_FIX_REVIEW" ;;
     mixed-ready) sed '/^\*\*Ready to merge?\*\* With fixes$/a\
 **Ready to merge?** Yes' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
-    no-initial-with-fixes) sed 's/^\*\*Ready to merge?\*\* With fixes$/\*\*Ready to merge?\*\* No/' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
+    initial-yes) sed 's/^\*\*Ready to merge?\*\* With fixes$/\*\*Ready to merge?\*\* Yes/' "$FIX_REVIEW" > "$BAD_FIX_REVIEW" ;;
     reordered-conclusion) awk '
       /^\*\*Ready to merge\?\*\* With fixes$/ { ready = $0; next }
       /^\*\*Fix round:\*\* All findings addressed, no new Critical\/Important breakage$/ { print; print ready; next }
