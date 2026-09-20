@@ -1,3 +1,10 @@
+
+## [2.7.3] - 2026-09-20
+
+### Bug Fixes
+
+- Validate resumed work and corrected review outcomes
+
 ## [2.7.2] - 2026-09-12
 
 ### Bug Fixes
