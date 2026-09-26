@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 IMPLEMENT="$ROOT/skills/implement/SKILL.md"
 DEVELOP="$ROOT/skills/x-develop/SKILL.md"
+SESSION="$ROOT/skills/using-maxi/SKILL.md"
 
 fail_contract() {
   echo "FAIL [implement handoff contract]: $1" >&2
@@ -32,6 +33,11 @@ require_literal "$IMPLEMENT" 'Do not tick task checkboxes in this skill' 'implem
 require_literal "$IMPLEMENT" 'Do not dispatch another code review' 'implement still owns a duplicate final review'
 require_literal "$IMPLEMENT" 'retain the returned projection lineage and aggregated `Ruling:` lines until branch/worktree completion' 'implement drops returned SDD evidence'
 require_literal "$IMPLEMENT" 'invoke `superpowers:finishing-a-development-branch` only after the `done` write is persisted' 'branch finishing is not after done'
+require_literal "$SESSION" '## Git Closure' 'session guidance omits the local Git closure trigger'
+require_literal "$SESSION" 'superpowers:finishing-a-development-branch' 'session closure omits the existing finishing owner'
+require_literal "$IMPLEMENT" 'Git outcome: integrated | awaiting decision | deliberately retained | blocked' 'implement report omits the required Git outcome'
+require_literal "$IMPLEMENT" 'Scope: exact branch/worktree and local batch' 'implement report omits exact Git scope'
+require_literal "$IMPLEMENT" 'Evidence/next action:' 'implement report omits evidence and next action'
 assert_grep "$ROOT/skills/implement/SKILL.md" \
   'readiness-contract.sh` `verify`' \
   "implement verifies readiness evidence"

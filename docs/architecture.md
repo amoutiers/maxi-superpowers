@@ -7,7 +7,7 @@ maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.3
 1. **Spec-driven pipeline**: 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. The forward pipeline reads project artifacts and enforces its documented prerequisites; lifecycle and migration skills use only the prerequisites named by their own contracts.
 2. **Superpowers implementation engine**: vendored superpowers v6.3.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, and others) perform the delegated implementation work.
 
-The result is a reproducible, auditable route from a feature request to shipped code.
+The result is a reproducible, auditable route from a feature request to shipped code. The loaded `using-maxi` session skill also triggers Git closure for a completed local batch or independent external wait. `implement` delegates to the existing Superpowers finishing skill after its `done` write and reports the actual Git disposition with exact scope, evidence, and next action. Explicitly authorized maintenance uses its bounded scope and checks; a partial Maxi spec cannot take that route. Git outcomes are reports, not pipeline statuses.
 
 ## Repo Layout
 

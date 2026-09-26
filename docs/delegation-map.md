@@ -15,7 +15,9 @@ This table shows which maxi pipeline skill delegates to which sub-skill, what st
 | `review` | current `spec.md` and `plan.md`; direct review request or coordinated pass | dedicated `skills/review/design-reviewer.md` brief with accepted `related_adrs` and one exact terminal verdict | none; writes `reviews/design-review.md` |
 | `tasks` | `planned`; current approved `reviews/design-review.md` | (none — extraction from plan.md) | `planned → tasked` |
 | `analyze` | `tasked`, `analyzed`, `implementing`, or `done` | (none — reads artifacts, writes and stamps `analysis.md`) | `tasked → analyzed` (once; reruns don't change status) |
-| `implement` | `analyzed` or `implementing` (resume), with a current `maxi-readiness-v2` contract | `/maxi:x-develop` | `analyzed → implementing`; `READY_TO_FINISH` receipt gate; then `implementing → done` |
+| `implement` | `analyzed` or `implementing` (resume), with a current `maxi-readiness-v2` contract | `/maxi:x-develop`, then `superpowers:finishing-a-development-branch` after `done` | `analyzed → implementing`; `READY_TO_FINISH` receipt gate; then `implementing → done` |
+
+The loaded `using-maxi` session skill triggers Git closure for a completed local batch or independent external wait. The current chat owns one decision unless an integration coordinator is explicitly named. `implement` reports one Git outcome with exact branch/worktree and batch, evidence, and next action after its existing finishing call. Authorized maintenance outside Maxi has its own bounded scope and checks; a partial Maxi spec cannot use that route. These outcomes are reporting dispositions, not statuses. Applicable operation authorization remains scoped to its exact batch and does not imply push or publication.
 
 Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
 

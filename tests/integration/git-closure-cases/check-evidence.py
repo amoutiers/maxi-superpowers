@@ -49,6 +49,15 @@ def command_text(item):
     return " ".join(command) if isinstance(command, list) else command
 
 
+def names_installed_skill(item, installed):
+    command = command_text(item)
+    if str(installed) in command:
+        return True
+    group = re.search(re.escape(str(installed.parent.parent)) +
+                      r"/\{([^{}]+)\}/SKILL\.md", command)
+    return bool(group and installed.parent.name in group[1].split(","))
+
+
 def merge_claimed(final):
     negated = {match.span("result") for match in NEGATED_RESULT.finditer(final)}
     pending = {match.span("result") for match in PENDING_RESULT.finditer(final)}
@@ -161,7 +170,7 @@ def check(path):
         installed = pathlib.Path(evidence["installed"][skill]).resolve(strict=True)
         content = installed.read_text()
         require(any(i.get("status") == "completed" and i.get("exit_code") == 0 and
-                    str(installed) in command_text(i) and
+                    names_installed_skill(i, installed) and
                     content in i.get("aggregated_output", "") for i in commands),
                 f"missing completed byte-checked installed {skill} read")
     for pattern in case.get("final_patterns", []):

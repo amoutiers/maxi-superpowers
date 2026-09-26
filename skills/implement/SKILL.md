@@ -35,7 +35,15 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 6. **ADR nudge on rulings** — for a returned `Ruling:` that records an architectural choice absent from `plan.md`, invoke `/maxi:x-adr`. The ADR skill drafts and requests its own consent. Do not rewrite the ruling or its SDD evidence.
 7. **Transition to done** — after `READY_TO_FINISH`, reread `tasks.md` and require every canonical task to be checked. Count remaining `- [ ]` items. If any remain, stop. Otherwise persist `status: implementing → done` and today's `updated:` value.
 8. **Finish the branch** — retain the returned projection lineage and aggregated `Ruling:` lines until branch/worktree completion, and invoke `superpowers:finishing-a-development-branch` only after the `done` write is persisted.
-9. **Report** — *"Implementation complete. All tasks done. Status: `done`."* Include the retained lineage and rulings in the finishing handoff.
+9. **Report** — *"Implementation complete. All tasks done. Status: `done`."* Include the retained lineage and rulings in the finishing handoff. Apply the Git Closure contract in `using-maxi` to the result of the existing finishing call. The report MUST fill every slot below with the actual result; a blocked or failed combined check is not successful integration.
+
+   ```text
+   Git outcome: integrated | awaiting decision | deliberately retained | blocked
+   Scope: exact branch/worktree and local batch
+   Evidence/next action: verified result, pending decision, keep condition, or blocker
+   ```
+
+   For a failed combined check after local integration, include the failing command and both actual main and batch commit IDs. Preserve the work for correction. A decision request alone does not authorize merge, push, or publication.
 
 ## Critical Rules
 

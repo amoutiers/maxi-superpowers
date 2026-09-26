@@ -1,6 +1,6 @@
 ---
 name: using-maxi
-description: Use when starting a maxi session, or when the pipeline phases, commands, artifact locations, or status state machine need reference
+description: Use when starting a maxi session, completing a local maintenance batch, reporting an external operational wait, or referencing pipeline phases, commands, artifacts, or statuses
 ---
 
 <SUBAGENT-STOP>
@@ -36,6 +36,12 @@ drafting → specified → clarified → planned → tasked → analyzed → imp
 ```
 
 The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
+
+## Git Closure
+
+When a local batch is complete or independently awaits external acceptance, its current chat evaluates the exact branch/worktree, batch, verification, review, applicable authorization, and existing work tracking. An explicitly named integration coordinator owns the decision instead; report readiness through the authorized workflow without making a second decision or messaging another chat without authorization. An external wait does not block a separately ready local batch. An unmet requirement in the current Maxi spec does: do not relabel a partial spec as maintenance. Outside the pipeline, use only an explicitly authorized, bounded maintenance scope with its required checks and review.
+
+After the normal Maxi gates, `implement` persists `done` before invoking `superpowers:finishing-a-development-branch`. For ready maintenance, the current owner uses that same finishing skill and native worktree tools. Apply existing authorization to the exact operation without asking again; a request for a decision alone grants no merge, push, or publication authority. Keep local integration separate from push and publication. Preserve concurrent work, in-use worktrees, and useful ignored evidence. Retain an explicit keep decision and its resume condition in existing tracking; an unchanged deferral needs no second decision. Report one Git disposition, exact scope, evidence, and next action, including both actual main and batch commit IDs when combined verification fails. These dispositions are reports, not pipeline statuses.
 
 ## Phase Gating
 

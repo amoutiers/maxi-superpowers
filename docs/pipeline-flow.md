@@ -30,6 +30,7 @@ flowchart TD
             IMPLEMENT["/maxi:implement\n─────────────\nanalyzed → implementing → done"]
             DEVELOP["/maxi:x-develop\n─────────────\ncontent + Git resume checks\n+ upstream SDD + terminal receipt"]
             READY{{"READY_TO_FINISH\nvalidated receipt gate"}}
+            GIT_OUTCOME["Git outcome\nintegrated / awaiting decision /\ndeliberately retained / blocked"]
             ADR["x-adr\n─────────────\n(internal ADR\ncreate/amend)"]
             REVIEW["/maxi:review\n─────────────\n(direct report-only;\nno status change)"]
             DONE(["✓ done"])
@@ -56,6 +57,7 @@ flowchart TD
     DEVELOP ==>|"hash-bound terminal evidence"| READY
     READY ==>|"implement persists done"| DONE
     DONE -.->|"after done only"| BRANCH_FINISH
+    BRANCH_FINISH -.->|"report exact scope and evidence"| GIT_OUTCOME
 
     %% Analyze re-run loop
     ANALYZE -->|"Pass G CRITICAL →\nre-run after fix"| ANALYZE
@@ -96,6 +98,7 @@ flowchart TD
 
 - `/maxi:constitution` has no status prerequisite — it can run at any time.
 - Every forward phase is mandatory and must run in order — no phase may be skipped.
+- The loaded `using-maxi` skill triggers Git closure for completed local batches and independent external waits. The current chat or explicitly named coordinator owns one decision. After `done`, `implement` delegates to the existing Superpowers finishing skill and reports the Git outcome, exact branch/worktree and batch, evidence, and next action. Outside Maxi, maintenance needs its own explicit bounded authorization and checks. Outcomes are reporting dispositions, not FSM statuses; a partial Maxi spec remains incomplete.
 - `/maxi:analyze` is non-destructive and can be re-run at any status from `tasked` onward; status does not change after the first run.
 - A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
 

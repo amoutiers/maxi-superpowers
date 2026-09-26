@@ -74,6 +74,16 @@ class CheckerTest(unittest.TestCase):
     def test_positive_control(self):
         self.check(True)
 
+    def test_completed_brace_expanded_skill_read(self):
+        self.good_events[2]["item"]["command"] = (
+            f"/bin/zsh -lc 'cat {self.installed.parent.parent}/"
+            "{using-superpowers,using-maxi,finishing-a-development-branch}/SKILL.md'")
+        self.check(True)
+        self.good_events[2]["item"]["command"] = (
+            f"/bin/zsh -lc 'cat {self.installed.parent.parent}/"
+            "{using-superpowers,finishing-a-development-branch}/SKILL.md'")
+        self.check(False)
+
     def test_claimed_merge_without_ref_change(self):
         self.evidence["case"]["final_patterns"] = []
         for claim in (
