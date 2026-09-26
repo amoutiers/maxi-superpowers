@@ -4,19 +4,29 @@ import json
 import hashlib
 import pathlib
 import re
+import shlex
 import subprocess
 import sys
 
 
 KNOWN_EVENTS = {"thread.started", "turn.started", "item.started", "item.updated",
                 "item.completed", "turn.completed", "turn.failed", "error"}
-MERGE_SUCCESS = re.compile(
-    r"(?im)^\s*(?:[-*] )?(?:I |We |Successfully |Locally |Already )?"
-    r"(?:merged|integrated|fast-forwarded)\b|"
-    r"^\s*(?:[-*] )?(?:The )?(?:batch|branch|main)\s+(?:was|is|has been)\s+"
-    r"(?:successfully\s+)?(?:merged|integrated|fast-forwarded)\b|"
-    r"^\s*Local integration (?:succeeded|completed)\b")
-CHECK_COMMAND = re.compile(r"(?<![\w./-])(?:\./check\.sh|(?:bash|sh)\s+check\.sh)\b")
+MERGED_RESULT = re.compile(r"\b(?:merged|integrated|fast-forwarded)\b", re.I)
+NEGATED_RESULT = re.compile(
+    r"\b(?:"
+    r"(?:not|never|hasn't|haven't|hadn't|wasn't|weren't|isn't|aren't)\s+"
+    r"(?:(?:yet|been|fully|completely|actually|already|successfully)\s+){0,3}|"
+    r"no\s+(?:batch|branches|branch|work|changes|commits?)\s+"
+    r"(?:was|were|has been|have been)\s+|"
+    r"nothing\s+(?:was|is|has been)\s+"
+    r")(?P<result>merged|integrated|fast-forwarded)\b", re.I)
+COMPLETED_RESULT = re.compile(
+    r"\b(?:merge|integration)\s+(?:(?:was|is|has been|had been)\s+)?"
+    r"(?:succeeded|completed)\b", re.I)
+NEGATED_COMPLETED = re.compile(
+    r"\b(?:no|not|never)\s+(?:local\s+)?"
+    r"(?P<result>(?:merge|integration)\s+(?:(?:was|is|has been|had been)\s+)?"
+    r"(?:succeeded|completed))\b", re.I)
 
 
 def require(ok, message):
@@ -32,6 +42,84 @@ def git(root, *args):
 def command_text(item):
     command = item.get("command", "")
     return " ".join(command) if isinstance(command, list) else command
+
+
+def merge_claimed(final):
+    negated = {match.span("result") for match in NEGATED_RESULT.finditer(final)}
+    negated_completed = {match.span("result") for match in NEGATED_COMPLETED.finditer(final)}
+    return (any(match.span() not in negated for match in MERGED_RESULT.finditer(final)) or
+            any(match.span() not in negated_completed
+                for match in COMPLETED_RESULT.finditer(final)))
+
+
+def shell_groups(item):
+    raw = item.get("command")
+    if not isinstance(raw, (str, list)):
+        return None
+    try:
+        outer = shlex.split(raw) if isinstance(raw, str) else raw
+        if not all(isinstance(part, str) for part in outer):
+            return None
+        if len(outer) == 3 and outer[0] in {"/bin/zsh", "zsh", "/bin/bash", "bash",
+                                           "/bin/sh", "sh"} and outer[1] in {"-lc", "-c"}:
+            script = outer[2]
+        elif isinstance(raw, str):
+            script = raw
+        else:
+            return None
+        lexer = shlex.shlex(script, posix=True, punctuation_chars=";&|<>")
+        lexer.whitespace_split = True
+        lexer.commenters = "#"
+        tokens = list(lexer)
+    except (TypeError, ValueError):
+        return None
+    if not tokens or any(token in {"|", "||", "&", "<", ">", "<<", ">>"} for token in tokens):
+        return None
+    groups = [[[]]]
+    for token in tokens:
+        if token == ";":
+            if not groups[-1][-1]:
+                return None
+            groups.append([[]])
+        elif token == "&&":
+            if not groups[-1][-1]:
+                return None
+            groups[-1].append([])
+        else:
+            groups[-1][-1].append(token)
+    if not groups[-1][-1]:
+        return None
+    if any(command[0] not in {"cat", "git", "pwd", "ls", "rg"}
+           for group in groups[:-1] for command in group):
+        return None
+    if any(command[0] != "git" and not is_check_command(command)
+           for command in groups[-1]):
+        return None
+    return groups
+
+
+def is_check_command(command):
+    return command == ["./check.sh"] or command in (
+        ["bash", "check.sh"], ["bash", "./check.sh"], ["sh", "check.sh"],
+        ["sh", "./check.sh"], ["bash", "-x", "./check.sh"])
+
+
+def ran_check(item, failed=False):
+    groups = shell_groups(item)
+    if not groups:
+        return False
+    final = groups[-1]
+    if not failed:
+        return any(is_check_command(command) for command in final)
+    if len(final) == 1:
+        return is_check_command(final[0])
+    return (len(final) == 3 and final[0] in (["git", "checkout", "main"],
+                                              ["git", "switch", "main"]) and
+            final[1] in (["git", "merge", "batch"],
+                         ["git", "merge", "--no-edit", "batch"]) and
+            is_check_command(final[2]) and
+            isinstance(item.get("aggregated_output"), str) and
+            "Merge made by" in item["aggregated_output"])
 
 
 def check(path):
@@ -89,9 +177,9 @@ def check(path):
         require(subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", tip, target],
                                stdout=subprocess.DEVNULL).returncode == 0,
                 "batch tip is not an ancestor of target")
-        require(MERGE_SUCCESS.search(final), "integrated ref was not reported as integrated")
+        require(merge_claimed(final), "integrated ref was not reported as integrated")
         require(any(i.get("status") == "completed" and i.get("exit_code") == 0 and
-                    CHECK_COMMAND.search(command_text(i))
+                    ran_check(i)
                     for i in commands), "missing completed passing local verification")
     elif kind == "combined_failure":
         require(re.search(r"fail|broken|error", final, re.I), "combined verification failure not reported")
@@ -105,7 +193,7 @@ def check(path):
                 "combined target lacks one side of the failing condition")
         require(any(i.get("status") == "failed" and
                     isinstance(i.get("exit_code"), int) and i["exit_code"] != 0 and
-                    CHECK_COMMAND.search(command_text(i)) for i in commands),
+                    ran_check(i, failed=True) for i in commands),
                 "missing completed failing combined verification")
         require(re.search(r"\bmain\b", final, re.I) and target[:7] in final and
                 re.search(r"\bbatch\b", final, re.I) and tip[:7] in final,
@@ -123,7 +211,7 @@ def check(path):
     if target == evidence["target_before"] and subprocess.run(
             ["git", "-C", str(root), "merge-base", "--is-ancestor", tip, target],
             stdout=subprocess.DEVNULL).returncode != 0:
-        require(not MERGE_SUCCESS.search(final), "final response claims integration without matching refs")
+        require(not merge_claimed(final), "final response claims integration without matching refs")
     if kind == "maxi_terminal":
         require(subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", tip,
                                 git(root, "rev-parse", "refs/heads/batch")],
