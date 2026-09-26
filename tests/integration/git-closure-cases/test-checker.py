@@ -82,8 +82,9 @@ class CheckerTest(unittest.TestCase):
                 "The changes have been successfully merged into main.",
                 "The changes were merged into main.",
                 "The work is merged into main.",
+                "The batch was found to be merged already.",
                 "Local integration completed.",
-                "The batch is ready to be merged after approval."):
+                "The batch was merged. It could be merged again."):
             self.good_events[-2]["item"]["text"] = claim
             with self.subTest(claim=claim):
                 self.check(False)
@@ -94,6 +95,15 @@ class CheckerTest(unittest.TestCase):
                 "No local integration completed. Please decide."):
             self.good_events[-2]["item"]["text"] = negative
             with self.subTest(negative=negative):
+                self.check(True)
+        for pending in (
+                "The batch is ready to be merged after approval.",
+                "The work remains to be merged after approval.",
+                "The batch can be merged after approval.",
+                "The batch will be integrated after approval.",
+                "The branch should be fast-forwarded only after approval."):
+            self.good_events[-2]["item"]["text"] = pending
+            with self.subTest(pending=pending):
                 self.check(True)
 
     def test_already_integrated_without_pending_work(self):

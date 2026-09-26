@@ -20,6 +20,11 @@ NEGATED_RESULT = re.compile(
     r"(?:was|were|has been|have been)\s+|"
     r"nothing\s+(?:was|is|has been)\s+"
     r")(?P<result>merged|integrated|fast-forwarded)\b", re.I)
+PENDING_RESULT = re.compile(
+    r"\b(?:(?:ready|scheduled|waiting|pending|set|eligible|available|left|remains?)\s+to|"
+    r"can|could|will|would|should|may|might|must)\s+"
+    r"(?:(?:still|only|later|eventually)\s+)?be\s+"
+    r"(?P<result>merged|integrated|fast-forwarded)\b", re.I)
 COMPLETED_RESULT = re.compile(
     r"\b(?:merge|integration)\s+(?:(?:was|is|has been|had been)\s+)?"
     r"(?:succeeded|completed)\b", re.I)
@@ -46,8 +51,10 @@ def command_text(item):
 
 def merge_claimed(final):
     negated = {match.span("result") for match in NEGATED_RESULT.finditer(final)}
+    pending = {match.span("result") for match in PENDING_RESULT.finditer(final)}
     negated_completed = {match.span("result") for match in NEGATED_COMPLETED.finditer(final)}
-    return (any(match.span() not in negated for match in MERGED_RESULT.finditer(final)) or
+    return (any(match.span() not in negated | pending
+                for match in MERGED_RESULT.finditer(final)) or
             any(match.span() not in negated_completed
                 for match in COMPLETED_RESULT.finditer(final)))
 
