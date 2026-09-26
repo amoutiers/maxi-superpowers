@@ -61,6 +61,15 @@ else
   RESULTS+=("FAIL/INCOMPLETE: design behavior")
 fi
 
+echo "Testing: Git closure behavior"
+if "$SCRIPT_DIR/run-codex-git-closure-test.sh" all; then
+  PASSED=$((PASSED + 1))
+  RESULTS+=("PASS: Git closure behavior")
+else
+  FAILED=$((FAILED + 1))
+  RESULTS+=("FAIL/INCOMPLETE: Git closure behavior")
+fi
+
 echo "=== Summary ==="
 for result in "${RESULTS[@]}"; do
   echo "  $result"

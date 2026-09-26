@@ -152,6 +152,16 @@ CHECKER="$ROOT/tests/integration/assert-design-events.jq"
 assert_file_exists "$CHECKER" "design event checker"
 assert_file_exists "$ROOT/tests/integration/run-codex-design-test.sh" "installed design runner"
 assert_grep "$RUN_ALL" 'run-codex-design-test.sh' "integration includes design behavior"
+assert_grep "$RUN_ALL" 'run-codex-git-closure-test.sh' "integration includes Git closure behavior"
+assert_file_exists "$ROOT/tests/integration/run-codex-git-closure-test.sh" "installed Git closure runner"
+assert_file_exists "$ROOT/tests/integration/git-closure-cases/check-evidence.py" "Git closure evidence checker"
+assert_file_exists "$ROOT/tests/integration/git-closure-cases/cases.json" "Git closure case matrix"
+if python3 "$ROOT/tests/integration/git-closure-cases/test-checker.py" >/dev/null; then
+  echo "OK  [Git closure checker regressions]"
+else
+  echo "FAIL [Git closure checker regressions]" >&2
+  failures=$((failures + 1))
+fi
 assert_grep "$ROOT/tests/integration/run-codex-design-test.sh" 'codex exec resume --json "\$session_id"' "design resumes exact session"
 assert_not_grep "$ROOT/tests/integration/run-codex-design-test.sh" 'codex exec --ephemeral' "design preserves structured sessions"
 # Selector validation is exercised before authentication or runtime creation.
