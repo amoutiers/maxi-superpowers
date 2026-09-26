@@ -75,8 +75,54 @@ class CheckerTest(unittest.TestCase):
         self.check(True)
 
     def test_claimed_merge_without_ref_change(self):
+        self.good_events[-2]["item"]["text"] = "Merged the batch into main successfully."
+        self.check(False)
+
+    def test_already_integrated_without_pending_work(self):
+        git(self.repo, "switch", "-q", "main")
+        git(self.repo, "branch", "-f", "batch", "main")
+        self.evidence["batch_tip"] = self.target
+        self.evidence["case"]["kind"] = "no_pending"
+        self.evidence["case"]["final_patterns"] = ["integrated"]
+        self.good_events[-2]["item"]["text"] = "Already integrated in main. No local work remains."
+        self.check(True)
+
+    def test_integrated_requires_completed_verification(self):
+        git(self.repo, "switch", "-q", "main")
+        git(self.repo, "merge", "-q", "--ff-only", "batch")
         self.evidence["case"]["kind"] = "integrated"
         self.good_events[-2]["item"]["text"] = "Merged the batch into main successfully."
+        self.check(False)
+        self.good_events.insert(-2, {"type": "item.completed", "item": {
+            "type": "command_execution", "status": "completed", "exit_code": 0,
+            "command": "./check.sh", "aggregated_output": "checks passed"}})
+        self.check(True)
+        self.good_events[-2]["item"]["text"] = "Ready to merge the batch into main."
+        self.check(False)
+
+    def test_combined_failure_requires_failed_check_and_actual_refs(self):
+        (self.repo / "feature.txt").write_text("feature\n")
+        git(self.repo, "add", "feature.txt")
+        git(self.repo, "commit", "-qm", "feature")
+        self.tip = git(self.repo, "rev-parse", "HEAD")
+        self.evidence["batch_tip"] = self.tip
+        git(self.repo, "switch", "-q", "main")
+        (self.repo / "target.txt").write_text("target\n")
+        git(self.repo, "add", "target.txt")
+        git(self.repo, "commit", "-qm", "target")
+        self.evidence["target_before"] = git(self.repo, "rev-parse", "HEAD")
+        git(self.repo, "merge", "-q", "--no-ff", "batch", "-m", "combined")
+        target_after = git(self.repo, "rev-parse", "HEAD")
+        self.evidence["case"]["kind"] = "combined_failure"
+        self.evidence["case"]["final_patterns"] = ["failed"]
+        self.good_events[-2]["item"]["text"] = (
+            f"Combined check failed. main {target_after[:7]}; batch {self.tip[:7]} remains.")
+        self.check(False)
+        self.good_events.insert(-2, {"type": "item.completed", "item": {
+            "type": "command_execution", "status": "failed", "exit_code": 1,
+            "command": "./check.sh", "aggregated_output": "combined check failed"}})
+        self.check(True)
+        self.good_events[-2]["item"]["text"] = "Combined check failed. main and batch remain."
         self.check(False)
 
     def test_protected_file_change(self):
