@@ -38,7 +38,7 @@ This phase blocks the user-story behavior changes because their baseline and ind
 **Goal:** Provide explicit Git closure through the plugin, preserving authority, gates, owner and work.
 **Independent Test:** Run the installed Git-closure suite across all C1 through C5 variants and inspect candidate evidence.
 
-- [ ] T002 [US1] Add the closure trigger to skills/using-maxi/SKILL.md and required outcome to skills/implement/SKILL.md, extend tests/check-implement-handoff.sh, synchronize Mandatory Sync 5 and verify all five stories (depends on T001; FR-001 through FR-010, SC-001 through SC-006) (plan Task 2)
+- [x] T002 [US1] Add the closure trigger to skills/using-maxi/SKILL.md and required outcome to skills/implement/SKILL.md, extend tests/check-implement-handoff.sh, synchronize Mandatory Sync 5 and verify all five stories (depends on T001; FR-001 through FR-010, SC-001 through SC-006) (plan Task 2)
 
 **Checkpoint:** MVP and all authority, blocking, resume and preservation scenarios pass with the candidate plugin.
 

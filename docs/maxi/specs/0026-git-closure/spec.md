@@ -1,8 +1,8 @@
 ---
 slug: 0026-git-closure
 created: 2026-09-26
-updated: 2026-09-26
-status: implementing
+updated: 2026-09-27
+status: done
 design_cycle: 0
 parked_from: null
 related_adrs:
