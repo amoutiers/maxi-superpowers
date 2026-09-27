@@ -1290,6 +1290,108 @@ assert_has "$RECEIPT" "reviewer_dispatch_identity_sha256: $(sha "$REVIEWER_IDENT
 assert_has "$RECEIPT" "reviewer_context: $CODEX_REVIEWER_CONTEXT" 'receipt binds Codex reviewer task path'
 RESULT_OUTPUT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT")"
 
+# A foreign upstream plan-path must not redirect any Maxi consumer to a
+# suffixed SDD workspace. Snapshot both current and predecessor evidence.
+owner_snapshot() {
+  local repo="${1:-$TERM}" tasks="${2:-$TERM_TASKS}"
+  printf 'tasks %s\n' "$(sha "$tasks")"
+  find "$repo/.superpowers/sdd" -type d -print | sort
+  find "$repo/.superpowers/sdd" \( -type f -o -type l \) -print | sort | while IFS= read -r path; do
+    if [ -L "$path" ]; then printf 'link %s %s\n' "$path" "$(readlink "$path")";
+    else printf 'file %s %s\n' "$path" "$(sha "$path")"; fi
+  done
+}
+verify_term_projection() {
+  (cd "$TERM" && bash "$PROJECT" --spec "$TERM_SPEC" --plan "$TERM/docs/maxi/specs/adapter-sample/plan.md" --tasks "$TERM_TASKS" --output "$TERM_PROJECTION" --state-file "$TERM/.superpowers/sdd/active-adapter-sample" --verify-only)
+}
+owner_rejection() {
+  local label="$1" before after status
+  before="$(owner_snapshot)"
+  set +e
+  verify_term_projection >/dev/null 2>&1; status=$?
+  set -e
+  assert_eq "$status" 2 "$label projection fails closed"
+  after="$(owner_snapshot)"; assert_eq "$after" "$before" "$label projection leaves evidence and directories unchanged"
+  set +e
+  bash "$RECONCILE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --tasks "$TERM_TASKS" >/dev/null 2>&1; status=$?
+  set -e
+  assert_eq "$status" 2 "$label reconciliation fails closed"
+  after="$(owner_snapshot)"; assert_eq "$after" "$before" "$label reconciliation leaves evidence and directories unchanged"
+  set +e
+  bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$FINAL_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$RECEIPT" >/dev/null 2>&1; status=$?
+  set -e
+  assert_eq "$status" 2 "$label terminal record fails closed"
+  after="$(owner_snapshot)"; assert_eq "$after" "$before" "$label terminal record leaves evidence and directories unchanged"
+  set +e
+  bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT" >/dev/null 2>&1; status=$?
+  set -e
+  assert_eq "$status" 2 "$label terminal result fails closed"
+  after="$(owner_snapshot)"; assert_eq "$after" "$before" "$label terminal result leaves evidence and directories unchanged"
+}
+owner_workspace="$TERM/.superpowers/sdd/$(basename "$TERM_PROJECTION" .md)"
+old_owner_workspace="$TERM/.superpowers/sdd/$(basename "$TERM_OLD" .md)"
+owner_marker="$owner_workspace/plan-path"
+old_owner_marker="$old_owner_workspace/plan-path"
+before="$(owner_snapshot)"
+verify_term_projection >/dev/null && ok 'validated legacy marker absence verifies' || fail 'validated legacy marker absence verifies'
+assert_eq "$(owner_snapshot)" "$before" 'verify-only leaves legacy markers absent and evidence unchanged'
+[ ! -e "$owner_marker" ] && [ ! -e "$old_owner_marker" ] && ok 'verify-only leaves both legacy markers absent' || fail 'verify-only leaves both legacy markers absent'
+printf '%s\n' "${TERM_PROJECTION#"$TERM"/}" > "$owner_marker"
+printf '%s\n' "${TERM_OLD#"$TERM"/}" > "$old_owner_marker"
+verify_term_projection >/dev/null && ok 'exact current and predecessor markers verify' || fail 'exact current and predecessor markers verify'
+upstream_workspace="$(cd "$TERM" && bash "$ROOT/skills/subagent-driven-development/scripts/sdd-workspace" "$TERM_PROJECTION")"
+assert_eq "$upstream_workspace" "$owner_workspace" 'upstream helper resolves bound workspace'
+for owner_case in foreign empty multiline symlink dangling; do
+  rm -f "$owner_marker"
+  case "$owner_case" in
+    foreign) printf 'docs/foreign/plan.md\n' > "$owner_marker" ;;
+    empty) : > "$owner_marker" ;;
+    multiline) printf '%s\nextra\n' "${TERM_PROJECTION#"$TERM"/}" > "$owner_marker" ;;
+    symlink) ln -s "$old_owner_marker" "$owner_marker" ;;
+    dangling) ln -s "$TERM/missing-owner" "$owner_marker" ;;
+  esac
+  owner_rejection "$owner_case current marker"
+done
+rm -f "$owner_marker"
+printf '%s\n' "${TERM_PROJECTION#"$TERM"/}" > "$owner_marker"
+printf 'docs/foreign/plan.md\n' > "$old_owner_marker"
+owner_rejection 'foreign predecessor marker'
+printf '%s\n' "${TERM_OLD#"$TERM"/}" > "$old_owner_marker"
+mv "$owner_workspace" "$WORK/owner-workspace-saved"
+printf 'replacement\n' > "$owner_workspace"
+owner_rejection 'regular-file workspace replacement'
+rm "$owner_workspace"
+mv "$WORK/owner-workspace-saved" "$owner_workspace"
+
+# A new successor may publish only into a fresh unowned workspace. A marker
+# or occupied path at its deterministic identity must leave the pointer alone.
+for candidate_case in foreign-marker regular-file fresh-absent; do
+  OWNER_CANDIDATE="$WORK/owner-candidate-$candidate_case"
+  init_repo "$OWNER_CANDIDATE"
+  seed_case "$OWNER_CANDIDATE"
+  run_project "$OWNER_CANDIDATE"
+  candidate_plan="$OWNER_CANDIDATE/docs/maxi/specs/adapter-sample/plan.md"
+  candidate_tasks="$OWNER_CANDIDATE/docs/maxi/specs/adapter-sample/tasks.md"
+  printf '\nChanged owner candidate.\n' >> "$candidate_plan"
+  candidate_tasks_hash="$(sed -n 's/^tasks_structural_sha256: //p' "$PROJECT_OUTPUT")"
+  candidate_name="adapter-sample-v2-p-$(sha "$candidate_plan" | cut -c1-12)-t-$(printf '%s' "$candidate_tasks_hash" | cut -c1-12)-sdd"
+  candidate_workspace="$OWNER_CANDIDATE/.superpowers/sdd/$candidate_name"
+  case "$candidate_case" in
+    foreign-marker) mkdir "$candidate_workspace"; printf 'docs/foreign/plan.md\n' > "$candidate_workspace/plan-path" ;;
+    regular-file) printf 'replacement\n' > "$candidate_workspace" ;;
+    fresh-absent) mkdir "$candidate_workspace" ;;
+  esac
+  candidate_before="$(owner_snapshot "$OWNER_CANDIDATE" "$candidate_tasks")"
+  run_project "$OWNER_CANDIDATE"
+  if [ "$candidate_case" = fresh-absent ]; then
+    assert_eq "$PROJECT_STATUS" 0 'fresh absent-marker candidate publishes'
+    [ ! -e "$candidate_workspace/plan-path" ] && ok 'fresh publication does not write upstream owner marker' || fail 'fresh publication does not write upstream owner marker'
+  else
+    assert_eq "$PROJECT_STATUS" 2 "$candidate_case candidate blocks publication"
+    assert_eq "$(owner_snapshot "$OWNER_CANDIDATE" "$candidate_tasks")" "$candidate_before" "$candidate_case candidate leaves pointer, projections, ledgers and directories unchanged"
+  fi
+done
+
 # An equal full range is byte-exact but contains no reviewed implementation.
 EQUAL_FULL_PACKAGE="$(dirname "$TERM_LEDGER")/review-equal-full.diff"
 legacy_review_package "$TERM" "$REVIEWED_HEAD" "$REVIEWED_HEAD" "$EQUAL_FULL_PACKAGE"

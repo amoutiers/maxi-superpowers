@@ -45,6 +45,7 @@ or an arbitrary ledger.
 ## Execute through upstream SDD
 
 Change directory to the bound physical Git worktree before every upstream SDD helper call. Pass the printed canonical absolute projection path verbatim to every upstream SDD helper.
+Before dispatch, run upstream `sdd-workspace` with that projection and require its returned path to equal the bound `.superpowers/sdd/<projection stem without .md>` directory. `project-tasks.sh` validates the upstream `plan-path` owner before projection reuse or publication; `--verify-only` leaves a missing legacy marker untouched.
 
 - Reconcile the current ledger before every new or resumed dispatch, clearing stale checks for selected tasks without a current completion. Preserve checks for tasks excluded by valid predecessor completion or initially pre-checked outside the selection.
 - Invoke and follow `superpowers:subagent-driven-development` with the

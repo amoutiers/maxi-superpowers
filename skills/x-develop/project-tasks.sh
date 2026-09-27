@@ -133,6 +133,7 @@ validate_lineage() {
   while [ "$current" != null ]; do
     verify_projection "$current" "$expected_slug" || return 1
     under "$current" "$expected_root/.superpowers/sdd" || return 1
+    validate_workspace_owner "$current" "$expected_root" || return 1
     validate_projection_anchor "$current" "$expected_root" || return 1
     [ "$(projection_field "$current" source_spec 2>/dev/null)" = "$expected_spec" ] || return 1
     source_plan="$(projection_field "$current" source_plan 2>/dev/null)" || return 1
@@ -158,6 +159,26 @@ validate_projection_anchor() {
   line="$(grep '^Maxi projection SHA256:' "$ledger")"
   printf '%s\n' "$line" | grep -Eq '^Maxi projection SHA256: [0-9a-f]{64}$' || return 1
   [ "$line" = "Maxi projection SHA256: $(sha "$projection")" ]
+}
+
+validate_workspace_owner() {
+  local projection="$1" root="$2" workspace marker
+  under "$projection" "$root/.superpowers/sdd" || return 1
+  workspace="$root/.superpowers/sdd/$(basename "$projection" .md)"
+  [ ! -L "$workspace" ] || return 1
+  if [ -e "$workspace" ]; then
+    [ -d "$workspace" ] && [ "$(cd -P "$workspace" && pwd)" = "$workspace" ] || return 1
+  fi
+  marker="$workspace/plan-path"
+  [ ! -L "$marker" ] || return 1
+  if [ -e "$marker" ]; then
+    [ -f "$marker" ] || return 1
+    printf '%s\n' "${projection#"$root"/}" | cmp -s - "$marker"
+  elif [ -e "$projection" ]; then
+    validate_projection_anchor "$projection" "$root"
+  elif [ -e "$workspace" ]; then
+    [ -z "$(ls -A "$workspace")" ]
+  fi
 }
 
 lineage_completed_ids() {
@@ -590,11 +611,11 @@ BODY="$TMPDIR_LOCAL/body"
 EXPECTED_PROJECTION="$TMPDIR_LOCAL/expected-projection"
 render_body "$SELECTED_IDS" "$BODY"
 write_expected_projection "$EXPECTED_PROJECTION" "$BODY" "$EXECUTION_MODE" "$PROJECT_PREDECESSOR"
+validate_workspace_owner "$FINAL" "$ROOT" || die 'projection workspace ownership is invalid'
 
 if [ -e "$FINAL" ]; then
   cmp -s "$EXPECTED_PROJECTION" "$FINAL" || die 'existing projection differs from canonical source reconstruction'
 else
-  [ ! -L "$WORKSPACE" ] || die 'projection workspace is a symlink'
   mkdir -p "$WORKSPACE"
   LEDGER="$WORKSPACE/progress.md"
   [ ! -e "$LEDGER" ] && [ ! -L "$LEDGER" ] || die 'fresh projection workspace already has a ledger'
