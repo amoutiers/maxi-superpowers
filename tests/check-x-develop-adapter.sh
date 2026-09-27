@@ -30,6 +30,19 @@ assert_has() { grep -Fq -- "$2" "$1" && ok "$3" || fail "$3" "missing '$2'"; }
 assert_not_has() { ! grep -Fq -- "$2" "$1" && ok "$3" || fail "$3" "unexpected '$2'"; }
 sha() { shasum -a 256 "$1" | awk '{print $1}'; }
 
+# Historical packages may have been written before upstream enforced strict ranges.
+legacy_review_package() {
+  local repo="$1" start="$2" end="$3" out="$4"
+  (cd "$repo" && {
+    printf '# Review package: %s..%s\n\n## Commits\n' "$start" "$end"
+    git log --oneline "$start..$end"
+    printf '\n## Files changed\n'
+    git diff --stat "$start..$end"
+    printf '\n## Diff\n'
+    git diff -U10 "$start..$end"
+  }) > "$out"
+}
+
 # Share real ancestor commits across fixtures; grammar-only fake SHAs cannot
 # establish that completed work is still present on the current branch.
 HISTORY="$WORK/history"
@@ -1277,6 +1290,53 @@ assert_has "$RECEIPT" "reviewer_dispatch_identity_sha256: $(sha "$REVIEWER_IDENT
 assert_has "$RECEIPT" "reviewer_context: $CODEX_REVIEWER_CONTEXT" 'receipt binds Codex reviewer task path'
 RESULT_OUTPUT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT")"
 
+# An equal full range is byte-exact but contains no reviewed implementation.
+EQUAL_FULL_PACKAGE="$(dirname "$TERM_LEDGER")/review-equal-full.diff"
+legacy_review_package "$TERM" "$REVIEWED_HEAD" "$REVIEWED_HEAD" "$EQUAL_FULL_PACKAGE"
+if grep -Fq '**Pinned version**: v6.4.2' "$ROOT/VENDORED.md"; then
+  set +e
+  (cd "$TERM" && bash "$REVIEW_PACKAGE" "$TERM_PROJECTION" "$REVIEWED_HEAD" "$REVIEWED_HEAD" "$EQUAL_FULL_PACKAGE.rejected") >/dev/null 2>&1
+  strict_helper_status=$?
+  set -e
+  assert_eq "$strict_helper_status" 3 'next-pin helper rejects equal full range'
+  [ ! -e "$EQUAL_FULL_PACKAGE.rejected" ] && ok 'next-pin helper leaves no equal-range package' || fail 'next-pin helper leaves no equal-range package'
+fi
+EQUAL_FULL_REVIEW="$FINAL_REVIEW.equal-full"
+awk -v base="$REVIEWED_HEAD" -v package="$EQUAL_FULL_PACKAGE" -v digest="$(sha "$EQUAL_FULL_PACKAGE")" '
+  /^merge_base: / { print "merge_base: " base; next }
+  /^full_review_package: / { print "full_review_package: " package; next }
+  /^full_review_package_sha256: / { print "full_review_package_sha256: " digest; next }
+  { print }
+' "$FINAL_REVIEW" > "$EQUAL_FULL_REVIEW"
+prior_receipt="$RECEIPT"
+cp "$prior_receipt" "$prior_receipt.before-equal-full"
+prior_receipt_sha="$(sha "$prior_receipt")"
+set +e
+rejected_output="$(bash "$RECORD" --worktree "$TERM" --merge-base "$REVIEWED_HEAD" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$EQUAL_FULL_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$prior_receipt" 2>&1)"
+equal_range_status=$?
+set -e
+assert_eq "$equal_range_status" 2 'equal full range rejected'
+assert_eq "$(sha "$prior_receipt")" "$prior_receipt_sha" 'equal full rejection preserves receipt'
+assert_not_has <(printf '%s\n' "$rejected_output") 'READY_TO_FINISH' 'invalid full range cannot complete'
+cp "$prior_receipt.before-equal-full" "$prior_receipt"
+
+# Revalidate a historical receipt independently of the current writer.
+HISTORICAL_ZERO_RECEIPT="$(dirname "$TERM_LEDGER")/historical-zero-range-receipt.md"
+awk -v base="$REVIEWED_HEAD" -v review="$EQUAL_FULL_REVIEW" -v review_hash="$(sha "$EQUAL_FULL_REVIEW")" -v package="$EQUAL_FULL_PACKAGE" -v package_hash="$(sha "$EQUAL_FULL_PACKAGE")" '
+  /^merge_base: / { print "merge_base: " base; next }
+  /^final_review: / { print "final_review: " review; next }
+  /^final_review_sha256: / { print "final_review_sha256: " review_hash; next }
+  /^full_review_package: / { print "full_review_package: " package; next }
+  /^full_review_package_sha256: / { print "full_review_package_sha256: " package_hash; next }
+  { print }
+' "$RECEIPT" > "$HISTORICAL_ZERO_RECEIPT"
+set +e
+historical_zero_output="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$HISTORICAL_ZERO_RECEIPT" 2>&1)"
+historical_zero_status=$?
+set -e
+assert_eq "$historical_zero_status" 2 'historical zero-range receipt rejected'
+assert_not_has <(printf '%s\n' "$historical_zero_output") 'READY_TO_FINISH' 'historical zero range cannot complete'
+
 # An all-completed v1 upgrade needs fresh, real terminal review evidence.
 EMPTY="$WORK/empty-upgrade-terminal"
 init_repo "$EMPTY"
@@ -1284,9 +1344,19 @@ seed_case "$EMPTY"
 git -C "$EMPTY" add .gitignore docs
 git -C "$EMPTY" commit -qm 'empty upgrade fixture'
 empty_base="$(git -C "$EMPTY" rev-parse HEAD)"
+empty_previous="$empty_base"
+for task_number in 1 2 3; do
+  printf 'completed implementation %s\n' "$task_number" > "$EMPTY/task-$task_number.txt"
+  git -C "$EMPTY" add "task-$task_number.txt"
+  git -C "$EMPTY" commit -qm "completed task $task_number"
+  empty_current="$(git -C "$EMPTY" rev-parse HEAD)"
+  printf -v "empty_complete_$task_number" 'Task %s: complete (commits %s..%s, review clean)' "$task_number" "${empty_previous:0:7}" "${empty_current:0:7}"
+  empty_previous="$empty_current"
+done
+empty_head="$(git -C "$EMPTY" rev-parse HEAD)"
 empty_tree="$(git -C "$EMPTY" rev-parse HEAD^{tree})"
 empty_old="$(bash "$FIXTURES/emit-v1.sh" "$EMPTY")"
-printf '%s\n%s\n%s\n' "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" "$COMPLETE_3_CLEAN" >> "$EMPTY/.superpowers/sdd/$(basename "$empty_old" .md)/progress.md"
+printf '%s\n%s\n%s\n' "$empty_complete_1" "$empty_complete_2" "$empty_complete_3" >> "$EMPTY/.superpowers/sdd/$(basename "$empty_old" .md)/progress.md"
 empty_dir="$EMPTY/docs/maxi/specs/adapter-sample"
 sed 's/- \[ \]/- [x]/' "$empty_dir/tasks.md" > "$EMPTY/change"
 mv "$EMPTY/change" "$empty_dir/tasks.md"
@@ -1298,17 +1368,17 @@ empty_receipt="$empty_workspace/terminal-receipt.md"
 empty_result="$(bash "$RESULT" --tasks "$empty_dir/tasks.md" --receipt "$empty_receipt" 2>/dev/null || true)"
 assert_not_has <(printf '%s\n' "$empty_result") 'READY_TO_FINISH' 'empty upgrade cannot succeed without a new receipt'
 empty_package="$empty_workspace/review-full.diff"
-(cd "$EMPTY" && bash "$REVIEW_PACKAGE" "$empty_projection" "$empty_base" "$empty_base" "$empty_package") >/dev/null
+(cd "$EMPTY" && bash "$REVIEW_PACKAGE" "$empty_projection" "$empty_base" "$empty_head" "$empty_package") >/dev/null
 printf 'reviewer_context: %s\n' "$CODEX_REVIEWER_CONTEXT" > "$empty_workspace/final-reviewer-dispatch.identity"
 empty_review="$empty_workspace/maxi-final-review.md"
-awk -v root="$EMPTY" -v base="$empty_base" -v tree="$empty_tree" \
+awk -v root="$EMPTY" -v base="$empty_base" -v head="$empty_head" -v tree="$empty_tree" \
   -v projection="$empty_projection" -v projection_hash="$(sha "$empty_projection")" \
   -v package="$empty_package" -v package_hash="$(sha "$empty_package")" \
   -v spec="$empty_dir/spec.md" -v spec_hash="$(sha "$empty_dir/spec.md")" \
   -v tasks="$empty_dir/tasks.md" -v tasks_hash="$(sha "$empty_dir/tasks.md")" '
   /^worktree:/ { print "worktree: " root; next }
   /^merge_base:/ { print "merge_base: " base; next }
-  /^reviewed_head:/ { print "reviewed_head: " base; next }
+  /^reviewed_head:/ { print "reviewed_head: " head; next }
   /^reviewed_tree:/ { print "reviewed_tree: " tree; next }
   /^projection:/ { print "projection: " projection; next }
   /^projection_sha256:/ { print "projection_sha256: " projection_hash; next }
@@ -1320,7 +1390,11 @@ awk -v root="$EMPTY" -v base="$empty_base" -v tree="$empty_tree" \
   /^tasks_sha256:/ { print "tasks_sha256: " tasks_hash; next }
   { print }
 ' "$FINAL_REVIEW" > "$empty_review"
-bash "$RECORD" --worktree "$EMPTY" --merge-base "$empty_base" --projection "$empty_projection" --ledger "$empty_workspace/progress.md" --final-review "$empty_review" --spec "$empty_dir/spec.md" --tasks "$empty_dir/tasks.md" --output "$empty_receipt"
+set +e
+bash "$RECORD" --worktree "$EMPTY" --merge-base "$empty_base" --projection "$empty_projection" --ledger "$empty_workspace/progress.md" --final-review "$empty_review" --spec "$empty_dir/spec.md" --tasks "$empty_dir/tasks.md" --output "$empty_receipt" >/dev/null 2>&1
+empty_selection_status=$?
+set -e
+assert_eq "$empty_selection_status" 0 'real-history empty selection succeeds'
 empty_result="$(bash "$RESULT" --tasks "$empty_dir/tasks.md" --receipt "$empty_receipt")"
 assert_has <(printf '%s\n' "$empty_result") 'READY_TO_FINISH' 'empty upgrade succeeds only with its fresh reviewed receipt'
 
@@ -1539,6 +1613,63 @@ if [ "$fix_receipt_status" -eq 0 ] && [ -f "$FIX_RECEIPT" ]; then
 else
   fail 'exact upstream fix-round conclusion creates receipt' 'valid upstream evidence was rejected'
 fi
+
+# A fix package also needs a nonempty ancestral range.
+EQUAL_FIX_FULL="$FIX_PACKAGE.equal-full"
+EQUAL_FIX_PACKAGE="$FIX_PACKAGE.equal-fix"
+(cd "$TERM" && bash "$REVIEW_PACKAGE" "$TERM_PROJECTION" "$MERGE_BASE" "$FIXED_HEAD" "$EQUAL_FIX_FULL") >/dev/null
+legacy_review_package "$TERM" "$FIXED_HEAD" "$FIXED_HEAD" "$EQUAL_FIX_PACKAGE"
+EQUAL_FIX_REVIEW="$FIX_REVIEW.equal-fix"
+awk -v full="$EQUAL_FIX_FULL" -v full_hash="$(sha "$EQUAL_FIX_FULL")" -v fix="$EQUAL_FIX_PACKAGE" -v fix_hash="$(sha "$EQUAL_FIX_PACKAGE")" '
+  /^full_review_package: / { print "full_review_package: " full; next }
+  /^full_review_package_sha256: / { print "full_review_package_sha256: " full_hash; next }
+  /^fix_review_package: / { print "fix_review_package: " fix; next }
+  /^fix_review_package_sha256: / { print "fix_review_package_sha256: " fix_hash; next }
+  { print }
+' "$FIX_REVIEW" > "$EQUAL_FIX_REVIEW"
+prior_receipt="$FIX_RECEIPT"
+cp "$prior_receipt" "$prior_receipt.before-equal-fix"
+prior_receipt_sha="$(sha "$prior_receipt")"
+set +e
+rejected_output="$(bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$EQUAL_FIX_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$prior_receipt" 2>&1)"
+equal_fix_status=$?
+set -e
+assert_eq "$equal_fix_status" 2 'equal fix range rejected'
+assert_eq "$(sha "$prior_receipt")" "$prior_receipt_sha" 'equal fix rejection preserves receipt'
+assert_not_has <(printf '%s\n' "$rejected_output") 'READY_TO_FINISH' 'invalid fix range cannot complete'
+cp "$prior_receipt.before-equal-fix" "$prior_receipt"
+
+sibling_head="$(printf 'sibling implementation\n' | git -C "$TERM" commit-tree "$FIXED_TREE" -p "$MERGE_BASE")"
+NONANCESTOR_FULL="$FIX_PACKAGE.nonancestor-full"
+NONANCESTOR_FIX="$FIX_PACKAGE.nonancestor-fix"
+(cd "$TERM" && bash "$REVIEW_PACKAGE" "$TERM_PROJECTION" "$MERGE_BASE" "$sibling_head" "$NONANCESTOR_FULL") >/dev/null
+legacy_review_package "$TERM" "$sibling_head" "$FIXED_HEAD" "$NONANCESTOR_FIX"
+if grep -Fq '**Pinned version**: v6.4.2' "$ROOT/VENDORED.md"; then
+  set +e
+  (cd "$TERM" && bash "$REVIEW_PACKAGE" "$TERM_PROJECTION" "$sibling_head" "$FIXED_HEAD" "$NONANCESTOR_FIX.rejected") >/dev/null 2>&1
+  strict_helper_status=$?
+  set -e
+  assert_eq "$strict_helper_status" 3 'next-pin helper rejects nonancestor range'
+  [ ! -e "$NONANCESTOR_FIX.rejected" ] && ok 'next-pin helper leaves no nonancestor package' || fail 'next-pin helper leaves no nonancestor package'
+fi
+NONANCESTOR_REVIEW="$FIX_REVIEW.nonancestor"
+awk -v full="$NONANCESTOR_FULL" -v full_hash="$(sha "$NONANCESTOR_FULL")" -v fix="$NONANCESTOR_FIX" -v fix_hash="$(sha "$NONANCESTOR_FIX")" '
+  /^full_review_package: / { print "full_review_package: " full; next }
+  /^full_review_package_sha256: / { print "full_review_package_sha256: " full_hash; next }
+  /^fix_review_package: / { print "fix_review_package: " fix; next }
+  /^fix_review_package_sha256: / { print "fix_review_package_sha256: " fix_hash; next }
+  { print }
+' "$FIX_REVIEW" > "$NONANCESTOR_REVIEW"
+cp "$prior_receipt" "$prior_receipt.before-nonancestor"
+prior_receipt_sha="$(sha "$prior_receipt")"
+set +e
+rejected_output="$(bash "$RECORD" --worktree "$TERM" --merge-base "$MERGE_BASE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --final-review "$NONANCESTOR_REVIEW" --spec "$TERM_SPEC" --tasks "$TERM_TASKS" --output "$prior_receipt" 2>&1)"
+nonancestor_status=$?
+set -e
+assert_eq "$nonancestor_status" 2 'nonancestor range rejected'
+assert_eq "$(sha "$prior_receipt")" "$prior_receipt_sha" 'nonancestor rejection preserves receipt'
+assert_not_has <(printf '%s\n' "$rejected_output") 'READY_TO_FINISH' 'nonancestor range cannot complete'
+cp "$prior_receipt.before-nonancestor" "$prior_receipt"
 
 # No is a supported initial upstream verdict; a real fix package plus a clean
 # scoped re-review must reach the same terminal boundary as With fixes.

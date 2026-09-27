@@ -126,7 +126,12 @@ exact_final_review_fields() {
 package_range() { sed -n '1s/^# Review package: \([0-9a-f]\{40\}\)\.\.\([0-9a-f]\{40\}\)$/\1|\2/p' "$1"; }
 
 verify_package_bytes() {
-  local worktree="$1" projection="$2" start="$3" end="$4" package="$5" expected="$6"
+  local worktree="$1" projection="$2" start="$3" end="$4" package="$5" expected="$6" count
+  [ "$(git -C "$worktree" rev-parse --verify --quiet "$start^{commit}" 2>/dev/null)" = "$start" ] || return 1
+  [ "$(git -C "$worktree" rev-parse --verify --quiet "$end^{commit}" 2>/dev/null)" = "$end" ] || return 1
+  git -C "$worktree" merge-base --is-ancestor "$start" "$end" || return 1
+  count="$(git -C "$worktree" rev-list --count "$start..$end")" || return 1
+  [ "$count" -gt 0 ] || return 1
   (cd "$worktree" && bash "$REVIEW_PACKAGE_HELPER" "$projection" "$start" "$end" "$expected") >/dev/null || return 1
   cmp -s "$expected" "$package"
 }
