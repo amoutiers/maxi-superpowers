@@ -143,7 +143,7 @@ gemini extensions install https://github.com/amoutiers/maxi-superpowers
 hermes plugins install amoutiers/maxi-superpowers --enable
 ```
 
-These commands follow the repository-install forms exposed by the v6.3 harness model. This update validates the local packaging surfaces, not a live remote install.
+These commands use each harness's repository-install form. Local checks validate the packaging surfaces. Live remote installation remains unverified.
 
 For Kimi Code, open `/plugins` and install from its marketplace, or install this repository with `/plugins install https://github.com/amoutiers/maxi-superpowers`. Start a fresh session after changing the Kimi plugin.
 

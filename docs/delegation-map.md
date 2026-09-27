@@ -105,7 +105,7 @@ All vendored superpowers skills are available to Claude under the `maxi:` namesp
 | `/maxi:finishing-a-development-branch` | Structured options for merge, PR, or cleanup |
 | `/maxi:using-git-worktrees` | Isolated workspace setup for feature work |
 | `/maxi:dispatching-parallel-agents` | Spawn independent sub-agents for parallel tasks |
-| `/maxi:subagent-driven-development` | Dispatch fresh subagents per task with two-stage review |
+| `/maxi:subagent-driven-development` | Dispatch a fresh implementer per task, then one task review covering spec and quality, followed by one whole-branch final review |
 | `/maxi:requesting-code-review` | Verify work meets requirements before merging |
 | `/maxi:receiving-code-review` | Process review feedback with technical rigor |
 | `/maxi:using-superpowers` | Select and load the applicable upstream skills |
