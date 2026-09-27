@@ -24,7 +24,7 @@ assert_grep "$PI_EXT" "skillsDir\|skillPaths" "maxi.ts: registers skills dir"
 assert_jq "$PKG" '.pi.extensions | index("./.pi/extensions/maxi.ts") != null' "true" "package.json: pi.extensions entry"
 assert_jq "$PKG" '.pi.skills | index("./skills") != null' "true" "package.json: pi.skills entry"
 assert_jq "$PKG" '.type == "module"' "true" "package.json: type is module"
-assert_jq "$PKG" '.main == ".opencode/plugins/maxi.js"' "true" "package.json: main points to maxi.js"
+assert_jq "$PKG" '.main == "index.js"' "true" "package.json: main points to OpenCode root export"
 
 TMP_PROBE="$(mktemp -d)"
 trap 'rm -rf "$TMP_PROBE"' EXIT

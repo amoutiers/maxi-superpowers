@@ -28,7 +28,7 @@ A spec-driven development plugin for Claude Code, Antigravity, Codex App, Codex 
 | GitHub Copilot CLI | Marketplace-only distribution path using the shared root `hooks/hooks.json` → gated `hooks/session-start` |
 | Grok Build CLI | Marketplace-only distribution path; no dedicated in-repo manifest or adapter |
 | Kimi Code | Declarative `.kimi-plugin/plugin.json` with `sessionStart.skill: using-maxi` and inline tool mapping |
-| OpenCode | `package.json` → `.opencode/plugins/maxi.js`, with executable `docs/maxi/` gating |
+| OpenCode | `package.json` → root `index.js` → `.opencode/plugins/maxi.js`, with V1/V2 exports and root-session `docs/maxi/` gating |
 | Pi | `package.json` `pi` section → `.pi/extensions/maxi.ts`, gated at session start and after compaction |
 | Hermes Agent | `.hermes-plugin/plugin.yaml` → `.hermes-plugin/__init__.py`, with a short gated first-turn bootstrap |
 
@@ -74,13 +74,20 @@ Antigravity runs the plugin's session-start hook (the root `hooks/hooks.json`), 
 Install from Cursor's plugin marketplace. `.cursor-plugin/plugin.json` points Cursor to the skills directory and `hooks/hooks-cursor.json`; the hook emits Cursor's `additional_context` shape.
 
 ### For OpenCode
-Add to your `opencode.json`:
+Add the package to `opencode.json`. OpenCode V1 uses `plugin`:
 ```json
 {
   "plugin": ["maxi-superpowers@git+https://github.com/amoutiers/maxi-superpowers.git"]
 }
 ```
-Then restart OpenCode. See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for details.
+OpenCode V2 uses `plugins`:
+```json
+{
+  "plugins": ["maxi-superpowers@git+https://github.com/amoutiers/maxi-superpowers.git"]
+}
+```
+Then restart OpenCode. The bootstrap is gated by the session project's
+`docs/maxi/` directory. See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for details.
 
 ### For Pi
 Install maxi as a Pi package from this repository:

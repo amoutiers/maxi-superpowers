@@ -1,134 +1,154 @@
-/**
- * Maxi plugin for OpenCode.ai
- *
- * Injects maxi bootstrap context via system prompt transform.
- * Auto-registers skills directory via config hook (no symlinks needed).
- */
+/** Maxi plugin for OpenCode V1 and V2. */
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
-import { fileURLToPath } from 'url';
+const skillsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../skills');
+const bootstrapCache = new Map();
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const stripFrontmatter = (content) => {
-  const match = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
-  return match ? match[1] : content;
-};
-
-// Normalize a path: trim whitespace, expand ~, resolve to absolute
-const normalizePath = (p, homeDir) => {
-  if (!p || typeof p !== 'string') return null;
-  let normalized = p.trim();
-  if (!normalized) return null;
-  if (normalized.startsWith('~/')) {
-    normalized = path.join(homeDir, normalized.slice(2));
-  } else if (normalized === '~') {
-    normalized = homeDir;
+const extractFrontmatter = (source) => {
+  const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+  if (!match) return { frontmatter: {}, content: source };
+  const frontmatter = {};
+  let key;
+  for (const raw of match[1].split('\n')) {
+    const line = raw.replace(/\r$/, '');
+    const colon = line.indexOf(':');
+    if (colon > 0 && !/^\s/.test(line)) {
+      key = line.slice(0, colon).trim();
+      const value = line.slice(colon + 1).trim();
+      frontmatter[key] = /^(>[+-]?|\|[+-]?)$/.test(value) ? '' : value;
+    } else if (key && line.trim()) {
+      frontmatter[key] = `${frontmatter[key]} ${line.trim()}`.trim();
+    }
   }
-  return path.resolve(normalized);
+  for (const name of Object.keys(frontmatter)) {
+    frontmatter[name] = frontmatter[name].replace(/^(["'])([\s\S]*)\1$/, '$2');
+  }
+  return { frontmatter, content: match[2] };
 };
 
-// Module-level cache for bootstrap content, keyed by project directory.
-// The SKILL.md file does not change during a session, so reading + parsing it
-// once per project eliminates redundant fs.existsSync + fs.readFileSync + regex
-// work on every agent step.
-const _bootstrapCacheByProject = new Map();
-
-export const MaxiPlugin = async ({ client, directory }) => {
-  const homeDir = os.homedir();
-  const maxiSkillsDir = path.resolve(__dirname, '../../skills');
-  const envConfigDir = normalizePath(process.env.OPENCODE_CONFIG_DIR, homeDir);
-  const configDir = envConfigDir || path.join(homeDir, '.config/opencode');
-
-  // Helper to generate bootstrap content (cached after first call)
-  const getBootstrapContent = () => {
-    // Only inject in maxi projects — skip in projects without docs/maxi/.
-    // Derive from the project `directory` (passed to MaxiPlugin); fall back to
-    // process.cwd() only if the host did not provide it.
-    const baseDir = directory || process.cwd();
-    const cacheKey = path.resolve(baseDir);
-    if (_bootstrapCacheByProject.has(cacheKey)) return _bootstrapCacheByProject.get(cacheKey);
-
-    const maxiDir = path.join(baseDir, 'docs/maxi');
-    let isMaxiProject = false;
-    try {
-      isMaxiProject = fs.statSync(maxiDir).isDirectory();
-    } catch {}
-    if (!isMaxiProject) {
-      _bootstrapCacheByProject.set(cacheKey, null);
-      return null;
-    }
-
-    // Try to load using-maxi skill
-    const skillPath = path.join(maxiSkillsDir, 'using-maxi', 'SKILL.md');
-    if (!fs.existsSync(skillPath)) {
-      _bootstrapCacheByProject.set(cacheKey, null);
-      return null;
-    }
-
-    const fullContent = fs.readFileSync(skillPath, 'utf8');
-    const content = stripFrontmatter(fullContent);
-
-    const toolMapping = `**Tool Mapping for OpenCode:**
+const V1_MAPPING = `**Tool Mapping for OpenCode:**
 When skills reference tools you don't have, substitute OpenCode equivalents:
 - \`TodoWrite\` → \`todowrite\`
-- \`Task\` tool with subagents → Use OpenCode's subagent system (@mention)
+- \`Task\` tool with subagents → Use OpenCode's \`task\` tool with \`subagent_type: "general"\`
 - \`Skill\` tool → OpenCode's native \`skill\` tool
 - \`Read\`, \`Write\`, \`Edit\`, \`Bash\` → Your native tools
 
 Use OpenCode's native \`skill\` tool to list and load skills.`;
 
-    const bootstrap = `<EXTREMELY_IMPORTANT>
+const V2_MAPPING = `**Tool Mapping for OpenCode:**
+When skills reference tools you don't have, substitute OpenCode equivalents:
+- \`TodoWrite\` → Track the plan in a markdown file
+- \`Task\` tool with subagents → Use \`subagent\` with \`agent: "general"\`, \`description\` and \`prompt\`
+- \`Skill\` tool → OpenCode's native \`skill\` tool
+- \`Read\`, \`Write\`, \`Edit\`, \`Bash\` → Use \`read\`, \`patch\`, \`write\`, \`edit\` or \`shell\`
+
+Use OpenCode's native \`skill\` tool to list and load skills.`;
+
+function bootstrap(mapping, directory) {
+  if (typeof directory !== 'string' || !path.isAbsolute(directory)) return null;
+  const base = path.resolve(directory);
+  const key = `${mapping}\0${base}`;
+  if (bootstrapCache.has(key)) return bootstrapCache.get(key);
+  let enabled = false;
+  try { enabled = fs.statSync(path.join(base, 'docs/maxi')).isDirectory(); } catch {}
+  const skillPath = path.join(skillsDir, 'using-maxi', 'SKILL.md');
+  if (!enabled || !fs.existsSync(skillPath)) {
+    bootstrapCache.set(key, null);
+    return null;
+  }
+  const { content } = extractFrontmatter(fs.readFileSync(skillPath, 'utf8'));
+  const value = `<EXTREMELY_IMPORTANT>
 You have maxi.
 
 **Below is the full content of your 'maxi:using-maxi' skill - your introduction to the maxi spec-driven pipeline. For all other maxi skills, use the 'Skill' tool:**
 
 ${content}
 
-${toolMapping}
+${mapping}
 </EXTREMELY_IMPORTANT>`;
+  bootstrapCache.set(key, value);
+  return value;
+}
 
-    _bootstrapCacheByProject.set(cacheKey, bootstrap);
-    return bootstrap;
-  };
+async function sessionInfo(fetch, id) {
+  if (!id) return null;
+  try {
+    const result = await fetch(id);
+    if (!result || typeof result !== 'object' || result.error || result.response?.ok === false) return null;
+    const info = 'data' in result ? result.data : result;
+    if (!info || info.id !== id || (info.parentID !== undefined &&
+      (typeof info.parentID !== 'string' || !info.parentID))) return null;
+    return info;
+  } catch {
+    return null;
+  }
+}
 
-  return {
-    // Inject skills path into live config so OpenCode discovers maxi skills
-    // without requiring manual symlinks or config file edits.
-    // This works because Config.get() returns a cached singleton — modifications
-    // here are visible when skills are lazily discovered later.
-    config: async (config) => {
-      config.skills = config.skills || {};
-      config.skills.paths = config.skills.paths || [];
-      if (!config.skills.paths.includes(maxiSkillsDir)) {
-        config.skills.paths.push(maxiSkillsDir);
+export const MaxiPlugin = async ({ client, directory }) => ({
+  config: async (config) => {
+    if (Array.isArray(config.skills)) return;
+    config.skills = config.skills || {};
+    config.skills.paths = config.skills.paths || [];
+    if (!config.skills.paths.includes(skillsDir)) config.skills.paths.push(skillsDir);
+  },
+  'experimental.chat.messages.transform': async (_input, output) => {
+    const first = output.messages?.find((m) => m.info.role === 'user');
+    if (!first?.parts?.length) return;
+    if (first.parts.some((p) => p.type === 'text' && p.text?.includes('EXTREMELY_IMPORTANT'))) return;
+    const id = first.info.sessionID;
+    const info = client?.session?.get && await sessionInfo((key) => client.session.get({ path: { id: key } }), id);
+    if (!info || info.parentID) return;
+    const text = bootstrap(V1_MAPPING, info.directory || directory);
+    if (text) first.parts.unshift({ ...first.parts[0], type: 'text', text });
+  },
+});
+
+async function setup(ctx) {
+  if (!ctx?.skill || typeof ctx.skill.transform !== 'function' ||
+      !ctx.session || typeof ctx.session.hook !== 'function') return;
+  try {
+    const skills = fs.readdirSync(skillsDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+      .map((entry) => path.join(skillsDir, entry.name, 'SKILL.md'))
+      .filter((file) => fs.existsSync(file))
+      .map((file) => {
+        const id = path.basename(path.dirname(file));
+        const { frontmatter, content } = extractFrontmatter(fs.readFileSync(file, 'utf8'));
+        return { id, name: frontmatter.name || id,
+          ...(frontmatter.description ? { description: frontmatter.description } : {}),
+          path: file, content };
+      });
+    await ctx.skill.transform((draft) => {
+      for (const skill of skills) {
+        try { draft.add(skill); }
+        catch (error) { console.error(`[maxi] skill ${skill.id} rejected:`, error); }
       }
-    },
+    });
+  } catch (error) {
+    console.error('[maxi] skill registration failed:', error);
+  }
+  try {
+    await ctx.session.hook('context', async (event) => {
+      try {
+        if (!event.messages?.length || !event.sessionID) return;
+        const first = event.messages.find((m) => m.role === 'user');
+        if (first && !first.content?.length) return;
+        if (first?.content.some((p) => p.type === 'text' && p.text?.includes('EXTREMELY_IMPORTANT'))) return;
+        const info = await sessionInfo((id) => ctx.session.get({ sessionID: id }), event.sessionID);
+        if (!info || info.parentID) return;
+        const text = bootstrap(V2_MAPPING, info.location?.directory);
+        if (!text) return;
+        if (first) first.content.unshift({ type: 'text', text });
+        else event.messages.push({ role: 'user', content: [{ type: 'text', text }] });
+      } catch (error) {
+        console.error('[maxi] context hook failed:', error);
+      }
+    });
+  } catch (error) {
+    console.error('[maxi] context hook registration failed:', error);
+  }
+}
 
-    // Inject bootstrap into the first user message of each session.
-    // Using a user message instead of a system message avoids:
-    //   1. Token bloat from system messages repeated every turn
-    //   2. Multiple system messages breaking Qwen and other models
-    //
-    // The hook fires on every agent step (not just every turn) because
-    // opencode's prompt.ts reloads messages from DB each step.  Fresh message
-    // arrays may need injection again, so getBootstrapContent() must not do
-    // repeated disk work.
-    'experimental.chat.messages.transform': async (_input, output) => {
-      const bootstrap = getBootstrapContent();
-      if (!bootstrap || !output.messages.length) return;
-      const firstUser = output.messages.find(m => m.info.role === 'user');
-      if (!firstUser || !firstUser.parts.length) return;
-
-      // Guard: skip if first user message already contains bootstrap.
-      // This prevents double injection when OpenCode passes an already
-      // transformed in-memory message array through the hook again.
-      if (firstUser.parts.some(p => p.type === 'text' && p.text.includes('EXTREMELY_IMPORTANT'))) return;
-
-      const ref = firstUser.parts[0];
-      firstUser.parts.unshift({ ...ref, type: 'text', text: bootstrap });
-    }
-  };
-};
+export default { id: 'maxi', server: MaxiPlugin, setup };

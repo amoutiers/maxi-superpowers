@@ -39,7 +39,7 @@ else
 fi
 
 # Check bootstrap caching logic
-if grep -q "_bootstrapCache" "$PLUGIN"; then
+if grep -q "bootstrapCache" "$PLUGIN"; then
   echo "OK  [maxi.js: has bootstrap caching]"
 else
   echo "FAIL [maxi.js: has bootstrap caching]: caching logic not found" >&2
@@ -62,9 +62,7 @@ else
   failures=$((failures + 1))
 fi
 
-assert_not_grep "$PLUGIN" 'const frontmatter = {}' "maxi.js: does not build unused frontmatter"
-assert_not_grep "$PLUGIN" 'frontmatterStr.split' "maxi.js: does not parse unused frontmatter fields"
-assert_grep "$PLUGIN" 'stripFrontmatter' "maxi.js: strips the bootstrap frontmatter"
+assert_grep "$PLUGIN" 'extractFrontmatter' "maxi.js: parses skill frontmatter"
 
 # Check tool mapping for OpenCode
 if grep -q "Tool Mapping for OpenCode" "$PLUGIN"; then
@@ -81,7 +79,7 @@ if grep -q "path.join(process.cwd(), 'docs/maxi')" "$PLUGIN"; then
 else
   echo "OK  [maxi.js: maxi dir not keyed on process.cwd()]"
 fi
-assert_grep "$PLUGIN" "directory || process.cwd()" "maxi.js: bootstrap falls back via directory param"
+assert_grep "$PLUGIN" "info.directory || directory" "maxi.js: bootstrap uses verified session or plugin directory"
 
 # --- M1 (2026-05-30 review): the plugin must be syntactically valid JS ---
 if command -v node >/dev/null 2>&1; then
@@ -107,38 +105,44 @@ const [pluginPath, plainDir, fileDir, cyclicDir, danglingDir, maxiDir] = process
 const mod = await import(`file://${pluginPath}`);
 
 function output(text) {
-  return { messages: [{ info: { role: 'user' }, parts: [{ type: 'text', text }] }] };
+  return { messages: [{ info: { role: 'user', sessionID: text }, parts: [{ type: 'text', text }] }] };
 }
 
-const plainPlugin = await mod.MaxiPlugin({ directory: plainDir });
+function plugin(directory, id) {
+  return mod.MaxiPlugin({ directory, client: { session: {
+    get: async () => ({ data: { id, directory } }),
+  } } });
+}
+
+const plainPlugin = await plugin(plainDir, 'plain');
 const plainOutput = output('plain');
 await plainPlugin['experimental.chat.messages.transform']({}, plainOutput);
 if (plainOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
   throw new Error('bootstrap injected into non-maxi project');
 }
 
-const filePlugin = await mod.MaxiPlugin({ directory: fileDir });
+const filePlugin = await plugin(fileDir, 'file');
 const fileOutput = output('file');
 await filePlugin['experimental.chat.messages.transform']({}, fileOutput);
 if (fileOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
   throw new Error('bootstrap injected when docs/maxi is a file');
 }
 
-const cyclicPlugin = await mod.MaxiPlugin({ directory: cyclicDir });
+const cyclicPlugin = await plugin(cyclicDir, 'cyclic');
 const cyclicOutput = output('cyclic');
 await cyclicPlugin['experimental.chat.messages.transform']({}, cyclicOutput);
 if (cyclicOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
   throw new Error('bootstrap injected when docs/maxi is a cyclic symlink');
 }
 
-const danglingPlugin = await mod.MaxiPlugin({ directory: danglingDir });
+const danglingPlugin = await plugin(danglingDir, 'dangling');
 const danglingOutput = output('dangling');
 await danglingPlugin['experimental.chat.messages.transform']({}, danglingOutput);
 if (danglingOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
   throw new Error('bootstrap injected when docs/maxi is a dangling symlink');
 }
 
-const maxiPlugin = await mod.MaxiPlugin({ directory: maxiDir });
+const maxiPlugin = await plugin(maxiDir, 'maxi');
 const maxiOutput = output('maxi');
 await maxiPlugin['experimental.chat.messages.transform']({}, maxiOutput);
 if (!maxiOutput.messages[0].parts.some(p => p.type === 'text' && p.text.includes('You have maxi.'))) {
@@ -154,6 +158,17 @@ NODE
   rm -rf "$TMP_OC"
 else
   echo "SKIP [maxi.js: bootstrap cache behavior] (node not installed)"
+fi
+
+if command -v node >/dev/null 2>&1; then
+  if node "$ROOT/tests/opencode/test-host-compatibility.mjs" "$PLUGIN"; then
+    echo "OK  [maxi.js: V1/V2 host compatibility]"
+  else
+    echo "FAIL [maxi.js: V1/V2 host compatibility]" >&2
+    failures=$((failures + 1))
+  fi
+else
+  echo "SKIP [maxi.js: V1/V2 host compatibility] (node not installed)"
 fi
 
 summary_and_exit "opencode plugin checks"
