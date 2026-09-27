@@ -90,9 +90,10 @@ All vendored superpowers skills are available to Claude under the `maxi:` namesp
 |---|---|
 | `/maxi:brainstorming` | Guided design dialogue to explore requirements and constraints |
 | `/maxi:writing-plans` | Structured technical planning with file layout and task decomposition |
-| `/maxi:executing-plans` | Step-by-step plan execution with checkpoints (available directly; no longer the pipeline delegate — see `/maxi:x-develop`) |
+| `/maxi:executing-plans` | Inline plan execution in the current session, with one final branch review; available directly outside Maxi's governed implementation path |
 | `/maxi:writing-skills` | Author new SKILL.md files using TDD (required for all new maxi skills) |
 | `/maxi:systematic-debugging` | Root-cause analysis before proposing fixes |
+| `/maxi:diagnosing-superpowers` | Diagnose a Superpowers session from its recorded evidence |
 | `/maxi:test-driven-development` | Red-green-refactor cycle before writing implementation code |
 | `/maxi:verification-before-completion` | Run verification commands before claiming work is done |
 | `/maxi:finishing-a-development-branch` | Structured options for merge, PR, or cleanup |
@@ -101,5 +102,6 @@ All vendored superpowers skills are available to Claude under the `maxi:` namesp
 | `/maxi:subagent-driven-development` | Dispatch fresh subagents per task with two-stage review |
 | `/maxi:requesting-code-review` | Verify work meets requirements before merging |
 | `/maxi:receiving-code-review` | Process review feedback with technical rigor |
+| `/maxi:using-superpowers` | Select and load the applicable upstream skills |
 
-These skills are vendored from [superpowers v6.3.0](https://github.com/obra/superpowers). Do not hand-edit them — run `scripts/sync-superpowers.sh` after any version bump.
+These 15 skills are vendored from [superpowers v6.4.2](https://github.com/obra/superpowers), alongside 19 Maxi-native skills. Imported inline execution does not satisfy Maxi's SDD completion contract. Keep Maxi's independent [design reviewer](../skills/review/design-reviewer.md) even though upstream removed its plan reviewer prompt. Do not hand-edit vendored skills; run `scripts/sync-superpowers.sh` after any version bump.

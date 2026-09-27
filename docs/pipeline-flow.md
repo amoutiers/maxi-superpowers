@@ -96,6 +96,7 @@ flowchart TD
 
 ## Notes
 
+- The imported superpowers v6.4.2 inventory has 15 upstream skills alongside 19 Maxi-native skills. Its Native mode does not provide a Maxi implementation receipt; `/maxi:implement` still delegates execution to upstream SDD.
 - `/maxi:constitution` has no status prerequisite — it can run at any time.
 - Every forward phase is mandatory and must run in order — no phase may be skipped.
 - The loaded `using-maxi` skill triggers Git closure for completed local batches and independent external waits. The current chat or explicitly named coordinator owns one decision. After `done`, `implement` delegates to the existing Superpowers finishing skill and reports the Git outcome, exact branch/worktree and batch, evidence, and next action. Outside Maxi, maintenance needs its own explicit bounded authorization and checks. Outcomes are reporting dispositions, not FSM statuses; a partial Maxi spec remains incomplete.

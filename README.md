@@ -199,7 +199,7 @@ Skipping or reversing a status is blocked by the skill that owns each transition
 
 ## Vendored Superpowers Skills
 
-maxi-superpowers vendors [superpowers v6.3.0](https://github.com/obra/superpowers) via git subtree. All superpowers skills are available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:test-driven-development`). The pipeline skills delegate to them at the right moments — you don't invoke them directly.
+maxi-superpowers vendors [superpowers v6.4.2](https://github.com/obra/superpowers) via git subtree: 15 upstream skills alongside 19 Maxi-native skills. All upstream skills are available as `maxi:<skill>` (e.g., `/maxi:brainstorming`, `/maxi:writing-plans`, `/maxi:diagnosing-superpowers`). The pipeline delegates to them where its contracts require it. Imported Native mode is not a Maxi completion path; Maxi implementation continues to use SDD.
 
 ## Onboarding an existing project
 

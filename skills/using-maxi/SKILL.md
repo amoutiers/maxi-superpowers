@@ -10,6 +10,7 @@ If you were dispatched as a subagent to execute a specific task, ignore this ski
 # maxi — Spec-Driven Development Pipeline
 
 maxi adds a strict spec-driven pipeline to superpowers. The 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills.
+Superpowers v6.4.2 contributes 15 vendored skills. Its imported Native mode does not replace Maxi's SDD execution and completion contract.
 
 ## The Pipeline
 

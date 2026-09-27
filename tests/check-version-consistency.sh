@@ -16,6 +16,15 @@ if [ -z "$VER" ]; then
 fi
 echo "OK  [ground truth: VENDORED.md pins superpowers $VER]"
 
+VENDOR_MANIFEST="$ROOT/vendor/superpowers/.claude-plugin/plugin.json"
+vendor_ver="$(jq -r '.version // empty' "$VENDOR_MANIFEST" 2>/dev/null || true)"
+if [ "$vendor_ver" != "${VER#v}" ]; then
+  echo "FAIL [vendor manifest]: version '${vendor_ver:-missing}' differs from VENDORED.md pin $VER" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [vendor manifest: version matches $VER]"
+fi
+
 # Authored docs that cite a superpowers version. (specs/ and adr/ intentionally drift — excluded.)
 DOCS=(README.md docs/architecture.md docs/delegation-map.md)
 

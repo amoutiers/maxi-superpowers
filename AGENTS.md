@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.3.0 harness model: Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. It vendors superpowers' skills via git subtree and adds 19 Maxi-native skills: 13 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `review`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration skills (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`).
+maxi-superpowers vendors 15 skills from superpowers v6.4.2 via git subtree and adds 19 Maxi-native skills: 13 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `review`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration skills (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). The current Maxi host inventory covers Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. Upstream v6.4.2 host additions are imported but require separate Maxi integration and native qualification.
 
 ## Git
 
@@ -99,7 +99,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-review-boundaries.sh` — fixed review boundaries, owner returns and coordinated destinations remain aligned
 - `check-design-operation.sh` — bounded reservations, continuation, history and atomic publication remain fail-closed
 - `check-readiness-contract.sh` — versioned readiness stamping and structural/exact hash verification remain fail-closed
-- `check-x-develop-adapter.sh` — complete-body v2 projection, immutable v1 upgrades, fence-aware mapping, verification without writes, content-bound lineage reconciliation, completion Git ancestry, corrected initial-No review recovery, nonempty ancestral review ranges, final-review identity/package validation, and terminal receipts remain fail-closed
+- `check-x-develop-adapter.sh`: complete-body v2 projection, immutable v1 upgrades, fence-aware mapping, verification without writes, content-bound lineage reconciliation, completion Git ancestry, corrected initial-No review recovery, nonempty ancestral review ranges, final-review identity/package validation, and terminal receipts remain fail-closed
 - `check-implement-handoff.sh` — `implement`/`x-develop` ownership, Git outcome reporting, and Mandatory Sync 5 terminal-gate contracts remain aligned
 - `check-skills-present.sh` — all 19 maxi-native skills and targeted support files exist
 - `check-revise.sh` — completed-spec reopening and change-authorization invariants remain aligned
@@ -125,7 +125,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-skill-count.sh` — maxi-native skill count, documented review contracts, and Mandatory Sync 5 durable-plan sentence match the filesystem
 - `check-status-consistency.sh` — the 10 FSM statuses are consistent across spec-template, board, and AGENTS.md
 - `check-artifact-link-convention.sh` — the duplicated artifact-link block is byte-identical to the canonical fixture
-- `check-version-consistency.sh` — superpowers version citations in `README.md`/`docs/architecture.md`/`docs/delegation-map.md` match the `VENDORED.md` pin
+- `check-version-consistency.sh`: the vendor manifest version and superpowers version citations in `README.md`/`docs/architecture.md`/`docs/delegation-map.md` match the `VENDORED.md` pin
 
 **Integration tier** (opt-in, requires authenticated `codex` CLI, ~minutes):
 ```

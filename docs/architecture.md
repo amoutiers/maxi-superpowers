@@ -2,10 +2,10 @@
 
 ## Plugin Overview
 
-maxi-superpowers is a multi-harness plugin aligned 1:1 with the superpowers v6.3.0 harness model: Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. It has two layers:
+maxi-superpowers vendors superpowers v6.4.2 and currently supports Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. Newly imported upstream host surfaces require separate Maxi integration and native qualification. The plugin has two layers:
 
 1. **Spec-driven pipeline**: 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. The forward pipeline reads project artifacts and enforces its documented prerequisites; lifecycle and migration skills use only the prerequisites named by their own contracts.
-2. **Superpowers implementation engine**: vendored superpowers v6.3.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, and others) perform the delegated implementation work.
+2. **Superpowers implementation engine**: 15 vendored superpowers v6.4.2 skills (`brainstorming`, `writing-plans`, `executing-plans`, `diagnosing-superpowers`, and others) perform delegated work. The 19 Maxi-native skills retain pipeline ownership; imported Native mode is outside Maxi's SDD completion contract.
 
 The result is a reproducible, auditable route from a feature request to shipped code. The loaded `using-maxi` session skill also triggers Git closure for a completed local batch or independent external wait. `implement` delegates to the existing Superpowers finishing skill after its `done` write and reports the actual Git disposition with exact scope, evidence, and next action. Explicitly authorized maintenance uses its bounded scope and checks; a partial Maxi spec cannot take that route. Git outcomes are reports, not pipeline statuses.
 
@@ -60,6 +60,7 @@ maxi-superpowers/
 │   ├── migrate-from-brownfield/
 │   ├── migrate-adr/
 │   ├── brainstorming/       # vendored from superpowers (do not hand-edit)
+│   ├── diagnosing-superpowers/
 │   ├── writing-plans/
 │   ├── executing-plans/
 │   ├── writing-skills/
@@ -167,8 +168,7 @@ Each phase has one responsibility and remains mandatory in order. There is no sk
 superpowers is vendored as a git subtree at `vendor/superpowers/`:
 
 ```bash
-# Current pin: v6.3.0 (see VENDORED.md)
-git subtree add --prefix=vendor/superpowers https://github.com/obra/superpowers v6.3.0 --squash
+# Current pin: v6.4.2 (see VENDORED.md)
 bash scripts/bump-superpowers.sh <new-tag>
 bash scripts/sync-superpowers.sh
 ```
@@ -177,7 +177,7 @@ bash scripts/sync-superpowers.sh
 
 ## Harness Strategy
 
-maxi adopts the superpowers v6.3.0 harness model 1:1 (ADR-0021). Fourteen harnesses are addressed through executable adapters, declarative manifests, native discovery, or marketplace-only distribution:
+Maxi's current fourteen-host inventory is addressed through executable adapters, declarative manifests, native discovery, or marketplace-only distribution. [ADR-0031](maxi/adr/0031-align-superpowers-v6-4-model.md) governs the v6.4.2 adaptation; imported OpenCode V2, Muse and Qwen interfaces remain pending Maxi integration and native qualification:
 
 | Harness | Mechanism |
 |---|---|
