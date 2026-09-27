@@ -18,13 +18,15 @@ Superpowers v6.4.2 contributes 15 vendored skills. Its imported Native mode does
 /maxi:constitution  → establish project principles
 /maxi:specify       → author + clarify (clarified); design validation adds plan + bounded review
 /maxi:clarify       → direct owner for a specified spec (clarified)
-/maxi:plan          → owner writes plan.md (planned); standalone initial planning reviews once; coordinator owns its round
+/maxi:plan          → owner writes plan.md with Review Focus (planned); standalone initial planning reviews once; coordinator owns its round
 /maxi:tasks         → extract tasks.md after a current design review (tasked)
 /maxi:analyze       → stamped readiness review before implementation (analyzed)
 /maxi:implement     → require current readiness contract; delegate to x-develop
 ```
 
 Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
+
+Every new or structurally corrected `plan.md` also carries exactly one `Review Focus` section: zero to five justified cases after scanning the spec and task tests, each naming its owning task and test; an empty scan is stated explicitly. Task interfaces, assertions and verification commands stay in their owning task bodies through projection and brief extraction. Requested design destinations and owner-only returns still govern the upstream planning handoff.
 
 Every new ADR records its creating spec through a direct `spec` link as `spec: <full-spec-slug>`, or `spec: null` when standalone, and its `design_cycle`. An agent detecting a change to an accepted ADR whose `spec` equals the current active spec slug and has a matching `design_cycle` invokes internal `x-adr` for an agent-proposed active-spec amendment, including after a rollback from `done`: it shows the full amended ADR and exact diff, then writes only after explicit approval. Unlinked, closed-spec, or different-cycle ADRs use closed-spec supersession instead. A supersession replaces the old slug with its accepted successor in the active spec's `related_adrs`, which indexes only current accepted ADRs for review and analysis.
 

@@ -67,6 +67,7 @@ while IFS= read -r name; do
   SPEC_DIR="$FIXTURE/docs/maxi/specs/0001-line-counter"
   status=$(jq -r '.status // ""' "$DIR/case.json")
   case "$status" in
+    clarified) sed -i.bak 's/status: planned/status: clarified/' "$SPEC_DIR/spec.md"; rm "$SPEC_DIR/spec.md.bak" "$SPEC_DIR/plan.md" "$SPEC_DIR/reviews/design-review.md";;
     parked|cancelled) sed -i.bak "s/status: planned/status: $status/" "$SPEC_DIR/spec.md"; rm "$SPEC_DIR/spec.md.bak";;
     reopened) sed -i.bak 's/status: planned/status: done/' "$SPEC_DIR/spec.md"; rm "$SPEC_DIR/spec.md.bak";;
     missing) rm "$SPEC_DIR/reviews/design-review.md";;

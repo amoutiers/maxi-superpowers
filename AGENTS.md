@@ -22,6 +22,8 @@ The authoring flow:
 
 Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
 
+Every new or structurally corrected `plan.md` also carries exactly one `Review Focus` section: zero to five justified cases after scanning the spec and task tests, each naming its owning task and test; an empty scan is stated explicitly. Task interfaces, assertions and verification commands stay in their owning task bodies through projection and brief extraction. Requested design destinations and owner-only returns still govern the upstream planning handoff.
+
 ## Vendored Skills
 
 `skills/` contains a mix of vendored (from superpowers) and maxi-native skills.
@@ -94,12 +96,12 @@ Run `bash tests/run-all.sh` after changes.
 - `check-frontmatter.sh` — every `skills/*/SKILL.md` has valid YAML frontmatter
 - `check-sync-invariant.sh` — vendored skills in `skills/` are byte-identical to `vendor/superpowers/skills/`
 - `check-spec-fixture.sh` — spec fixture has valid `slug`/`created` fields (the 10-status consistency check now lives in `check-status-consistency.sh`)
-- `check-templates.sh` — all 6 maxi templates + 2 fixtures have required fields and body sections, including the single Global Constraints section
+- `check-templates.sh`: all 6 maxi templates + 2 fixtures have required fields and body sections, including the single Global Constraints section; checks one Review Focus section
 - `check-global-constraints.sh` — fixture-backed durable Global Constraints outcomes and planner guidance remain aligned
-- `check-review-boundaries.sh` — fixed review boundaries, owner returns and coordinated destinations remain aligned
+- `check-review-boundaries.sh`: fixed review boundaries, owner returns and coordinated destinations remain aligned; checks lean plan guidance
 - `check-design-operation.sh` — bounded reservations, continuation, history and atomic publication remain fail-closed
 - `check-readiness-contract.sh` — versioned readiness stamping and structural/exact hash verification remain fail-closed
-- `check-x-develop-adapter.sh`: complete-body v2 projection, immutable v1 upgrades, fence-aware mapping, verification without writes, content-bound lineage reconciliation, completion Git ancestry, corrected initial-No review recovery, nonempty ancestral review ranges, final-review identity/package validation, and terminal receipts remain fail-closed
+- `check-x-develop-adapter.sh`: complete-body v2 projection, immutable v1 upgrades, fence-aware mapping, verification without writes, content-bound lineage reconciliation, completion Git ancestry, corrected initial-No review recovery, nonempty ancestral review ranges, final-review identity/package validation, and terminal receipts remain fail-closed; checks Review Focus and exact interface/assertion preservation
 - `check-implement-handoff.sh` — `implement`/`x-develop` ownership, Git outcome reporting, and Mandatory Sync 5 terminal-gate contracts remain aligned
 - `check-skills-present.sh` — all 19 maxi-native skills and targeted support files exist
 - `check-revise.sh` — completed-spec reopening and change-authorization invariants remain aligned
@@ -118,7 +120,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-opencode-plugin.sh` — `.opencode/plugins/maxi.js` exports required hooks, has bootstrap caching and conditional injection
 - `check-bootstrap-parity.sh` — the `<EXTREMELY_IMPORTANT>` bootstrap preamble is identical across `hooks/session-start`, `.opencode/plugins/maxi.js`, and `.pi/extensions/maxi.ts`
 - `check-pi-extension.sh` — `.pi/extensions/maxi.ts` and `package.json` `pi` section are valid (Pi harness packaging)
-- `check-integration-harness.sh` — optional Codex integration harness stays runnable on macOS without GNU `timeout`, keeps prompt discovery guarded, and verifies one completed JSONL command result read the byte-checked installed skill snapshot
+- `check-integration-harness.sh`: optional Codex integration harness stays runnable on macOS without GNU `timeout`, keeps prompt discovery guarded, and verifies one completed JSONL command result read the byte-checked installed skill snapshot; recognizes complete installed Python reads and captured reservations
 - `integration/test-codex-timeout.sh` — macOS Perl deadline-supervisor regression runs in the fast tier, including material plugin staging and timeout status 124
 - `check-doc-consistency-skill.sh` — local doc-consistency skills stay aligned with the Mandatory Sync 5 rule
 - `check-release-skill.sh` — release instructions keep the fast-tier/doc-consistency gates, bump and stage all eight manifests, derive the plugin name from `.claude-plugin/plugin.json`, and leave marketplace pinning in commit 2

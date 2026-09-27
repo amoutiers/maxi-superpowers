@@ -44,6 +44,15 @@ updated: YYYY-MM-DD
   A durable rule requiring fresh authorization is allowed.
 -->
 
+## Review Focus
+
+<!--
+  After scanning the spec and task tests, include zero to five justified cases.
+  Each case names its owning task and test. If none remain, write exactly:
+  - No review focus remains after scanning the spec and task tests.
+  Keep exact interfaces, assertions, and verification commands in their tasks.
+-->
+
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*

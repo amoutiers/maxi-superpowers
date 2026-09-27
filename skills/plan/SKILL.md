@@ -21,7 +21,7 @@ Create or explicitly correct a technical implementation plan for an existing spe
 1. **Read artifacts** — before normal planning, record whether `plan.md` already exists; then load `spec.md` (FRs, SCs, user stories) and `constitution.md` (principles, constraints).
 2. **Constitution check** — before planning: does anything in the spec contradict constitution principles? Flag violations to the user before proceeding. (Do NOT silently discard violating requirements — surface them.)
 3. **Invoke /maxi:writing-plans** — **REQUIRED SUB-SKILL.** Invoke its instructions in the current agent; skill delegation does not require an extra planning agent. Pass the spec and constitution, canonical Maxi plan path, settled choices, requested destination and owner-only return context. Let writing-plans run its full planning process including file structure decisions and task decomposition. Its output is the canonical Maxi plan, without a duplicate plan or nested execution handoff. Trace every changed value through producer, mutation, persistence, reload and consumer; cover interacting paths and corresponding verification before returning.
-4. **Post-format into plan schema** — write output to `docs/maxi/specs/NNNN-slug/plan.md` following `plan-template.md` structure and the Global Constraints Protocol below. Set plan.md frontmatter: `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
+4. **Post-format into plan schema**: write output to `docs/maxi/specs/NNNN-slug/plan.md` following `plan-template.md` structure, the Global Constraints Protocol and Review Focus Protocol below. Keep lean upstream task bodies: interfaces and assertions remain in their owning tasks with verification commands; ordinary implementation bodies are unnecessary when the interface and test determine the code. Set plan.md frontmatter: `spec_slug` from spec, `created` and `updated` to today's ISO date. Additionally create any of these if writing-plans produced them: `research.md`, `data-model.md`, `contracts/` directory
 5. **ADR scan (post-planning)** — scan the just-written `plan.md` for non-obvious architectural choices. Look for: Tech Stack sections, storage/database/runtime/framework picks, phrases like "we chose X over Y because" or "considered A, B, chose C". For each detected choice, invoke `/maxi:x-adr` — it will draft the ADR, show it to the user, and write it only if the user consents. If the user declines all ADR proposals, the plan is still complete; ADR capture is opt-out, not mandatory. Do not invoke `/maxi:x-adr` for trivial choices (e.g., variable naming conventions, test library defaults).
 6. **Transition status** — update spec.md frontmatter `status → planned`; also set `updated: [today's ISO date]` on spec.md and on plan.md.
 7. **Design boundary** — under an outer specify/revise coordinator, return after writing the current `spec.md` and `plan.md`; the coordinator owns the single bounded review round. Suppress only the nested initial-review dispatch. For standalone normal first planning (no prior plan), Invoke `/maxi:review` exactly once for one design review of the current `spec.md` and `plan.md`; return its verdict without correction. A narrower phase-only request stops after the plan write. Standalone replanning returns after its owner write; only an authorized design coordinator continues through correction and review.
@@ -33,7 +33,7 @@ Use this owner mode only when the user explicitly requests a structural correcti
 
 1. Read the current `plan.md` before any write.
 2. Invoke `superpowers:writing-plans` for the correction.
-3. Post-format the corrected plan using the Global Constraints Protocol below.
+3. Post-format the corrected plan using the Global Constraints and Review Focus Protocols below.
 4. Return the spec status to `planned`.
 5. Return the corrected plan and `planned` status to the outer coordinator when supplied. Direct edit-only correction stops after this owner write.
 
@@ -50,6 +50,14 @@ Post-format every newly written or structurally corrected plan with exactly one 
 Exclude current worktree, HEAD, selected tasks, and stop point. Do not persist individual authorization for Git-history, remote-repository, deployment/infrastructure, data-publication, or secret-access mutations. A durable rule requiring fresh authorization is allowed, but an earlier authorization never carries forward.
 
 Do not add a reviewer predicate, artifact, status, ledger record, automatic dispatch, or any other execution mechanism for this protocol. Existing historical plans remain byte-unchanged unless an owning Maxi workflow explicitly rewrites them.
+
+## Review Focus Protocol
+
+After the writing-plans risk scan, retain exactly one `Review Focus` section in every new or structurally corrected plan. Write zero to five justified Review Focus cases, each naming its owning task and test. If the scan finds no case beyond tests already assigned to tasks, write exactly:
+
+- No review focus remains after scanning the spec and task tests.
+
+Keep the task's exact interface, assertion and verification command in its body. Do not invent risks to fill a quota or turn this section into a second review dispatch.
 
 ## Constitution Check Protocol
 

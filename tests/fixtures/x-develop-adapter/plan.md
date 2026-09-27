@@ -23,12 +23,18 @@ derived_from:
 - Keep the implementation Bash 3.2 compatible.
 - Keep all artifacts in one physical Git worktree.
 
+## Review Focus
+
+- Task 1: Verify that the parser interface and zero assertion survive task-brief extraction.
+
 ### Task 1: Preserve fenced headings
 
 **Files:**
 - Create: `src/one.txt`
 
 Write the complete first task body.
+
+Preserve `parse_count(text: str) -> int` and test `assert parse_count("0") == 0`.
 
     ```markdown
 ### Task 99: T099 Example

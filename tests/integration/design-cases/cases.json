@@ -53,6 +53,56 @@
     "max_reviews": 2
   },
   {
+    "name": "lean-plan-only",
+    "group": "lean",
+    "prompt": "Run /maxi:plan for the clarified 0001-line-counter spec. Plan only, then stop at the requested plan-owner destination. counter.py counts non-empty lines; check.py parses its decimal CLI output with parse_count(text: str) -> int, and the owning check.py task must test assert parse_count(\"0\") == 0. All product choices in the spec are settled. Scan for specific review risks; if none survive the scan, say so in Review Focus. Keep the plan lean and preserve interfaces and assertions in their owning task. Do not start review, tasks, analysis, implementation, a separate Superpowers plan, or a nested execution handoff. Do not commit or modify source files. Work only in this fixture.",
+    "owners": ["plan", "writing-plans"],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md",
+      "docs/maxi/specs/0001-line-counter/plan.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": ["status: planned"],
+      "docs/maxi/specs/0001-line-counter/plan.md": [
+        "Global Constraints",
+        "Review Focus",
+        "parse_count\\(text: str\\) -> int",
+        "assert parse_count\\(\\\"0\\\"\\) == 0"
+      ]
+    },
+    "seeded": true,
+    "review": false,
+    "answers": [],
+    "status": "clarified",
+    "max_reviews": 2
+  },
+  {
+    "name": "settled-sdd-design",
+    "group": "lean",
+    "prompt": "Run /maxi:specify with slug 0001-line-counter. A Python command line utility counts non-empty lines in one existing UTF-8 file path. Whitespace-only lines are empty. Print the decimal count followed by LF. An unreadable file produces concise stderr and nonzero exit. Use only the standard library, no network, configuration, or UI. counter.py owns line counting; check.py parses the CLI decimal output with parse_count(text: str) -> int and its owning task must assert parse_count(\"0\") == 0. Review Focus should cover the genuine producer-to-consumer risk that a changed whitespace rule could leave an expected count stale; name the owning task and test. All product choices and this design are approved. SDD execution is already selected for later implementation, after design gates. Complete the canonical design through owner-only writes and bounded independent review. Do not implement, commit, modify source files, create tasks or analysis, create a duplicate Superpowers artifact, or present a nested execution handoff. Work only in this fixture.",
+    "owners": ["specify", "clarify", "plan", "writing-plans", "review"],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md",
+      "docs/maxi/specs/0001-line-counter/plan.md",
+      "docs/maxi/specs/0001-line-counter/reviews/design-review.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": ["status: planned"],
+      "docs/maxi/specs/0001-line-counter/plan.md": [
+        "Global Constraints",
+        "Review Focus",
+        "(?i)Task [1-9].*(expected|fixture|whitespace)|(?:expected|fixture|whitespace).*Task [1-9]",
+        "parse_count\\(text: str\\) -> int",
+        "assert parse_count\\(\\\"0\\\"\\) == 0"
+      ]
+    },
+    "seeded": false,
+    "review": true,
+    "answers": [],
+    "status": null,
+    "max_reviews": 2
+  },
+  {
     "name": "questions",
     "group": "initial",
     "prompt": "Run /maxi:specify with slug 0001-line-counter for a Python file line-counter. Exactly three independent product choices remain: treatment of whitespace-only lines, path versus stdin input, and text versus JSON output. If JSON is chosen, the key name is a dependent choice. Ask the independent choices together, then the dependent follow-up. No other product decision is open: UTF-8 input, concise stderr and nonzero exit on unreadable input, stdlib only. Create the canonical spec and complete clarification only. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",

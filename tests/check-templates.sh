@@ -98,13 +98,19 @@ check_template \
   "$ROOT/skills/plan/plan-template.md" "plan-template.md" "true" \
   "spec_slug:" "created:" "updated:" \
   "--" \
-  "## Summary" "## Technical Context" "## Global Constraints" "## Constitution Check"
+  "## Summary" "## Technical Context" "## Global Constraints" "## Review Focus" "## Constitution Check"
 assert_not_grep "$ROOT/skills/plan/plan-template.md" "^slug:" "plan-template.md: no duplicate slug"
 if [ "$(grep -c '^## Global Constraints$' "$ROOT/skills/plan/plan-template.md")" -ne 1 ]; then
   echo "FAIL [plan-template.md: one Global Constraints section]" >&2
   failures=$((failures + 1))
 else
   echo "OK  [plan-template.md: one Global Constraints section]"
+fi
+if [ "$(grep -c '^## Review Focus$' "$ROOT/skills/plan/plan-template.md")" -ne 1 ]; then
+  echo "FAIL [plan-template.md: one Review Focus section]" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [plan-template.md: one Review Focus section]"
 fi
 assert_not_grep "$ROOT/skills/plan/plan-template.md" '^##+ Delivery Contract$' "plan-template.md: no delivery-contract section"
 

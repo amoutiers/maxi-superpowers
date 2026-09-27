@@ -450,6 +450,18 @@ assert_has "$PROJECTION" '**Spec:** `spec.md`' 'preamble preserves Spec'
 assert_has "$PROJECTION" '**Goal:** Exercise deterministic Maxi-to-SDD projection.' 'preamble preserves Goal'
 assert_has "$PROJECTION" '**Architecture:** One projection adapter with immutable workspaces.' 'preamble preserves Architecture'
 assert_has "$PROJECTION" '## Global Constraints' 'preamble preserves Global Constraints'
+assert_eq "$(grep -c '^## Review Focus$' "$PROJECTION")" 1 'one projected focus section'
+assert_has "$PROJECTION" 'parse_count(text: str) -> int' 'projection retains interface'
+assert_has "$PROJECTION" 'assert parse_count("0") == 0' 'projection retains assertion'
+EMPTY_FOCUS="$WORK/empty-focus"
+init_repo "$EMPTY_FOCUS"
+seed_case "$EMPTY_FOCUS"
+sed 's/^- Task 1: Verify that the parser interface and zero assertion survive task-brief extraction\.$/- No review focus remains after scanning the spec and task tests./' "$EMPTY_FOCUS/docs/maxi/specs/adapter-sample/plan.md" > "$EMPTY_FOCUS/plan.tmp"
+mv "$EMPTY_FOCUS/plan.tmp" "$EMPTY_FOCUS/docs/maxi/specs/adapter-sample/plan.md"
+run_project "$EMPTY_FOCUS"
+assert_eq "$PROJECT_STATUS" 0 'empty-after-scan projection succeeds'
+assert_eq "$(grep -c '^## Review Focus$' "$PROJECT_OUTPUT")" 1 'empty-after-scan projection retains one focus section'
+assert_has "$PROJECT_OUTPUT" '- No review focus remains after scanning the spec and task tests.' 'empty-after-scan note survives projection'
 line_t3="$(grep -n '^### Task 1: T003 ' "$PROJECTION" | cut -d: -f1)"
 line_t1="$(grep -n '^### Task 2: T001 ' "$PROJECTION" | cut -d: -f1)"
 line_t2="$(grep -n '^### Task 3: T002 ' "$PROJECTION" | cut -d: -f1)"
@@ -578,6 +590,8 @@ assert_has "$WORK/task-1-brief.md" 'src/three.txt' 'brief retains third-task fil
 assert_has "$WORK/task-1-brief.md" 'Write the complete third task body through end of file.' 'brief retains implementation detail'
 assert_has "$WORK/task-2-brief.md" 'Keep this line after the backtick fence.' 'brief survives fenced heading'
 assert_has "$WORK/task-2-brief.md" '### Task 99: T099 Example' 'brief retains native-shaped fenced heading'
+assert_has "$WORK/task-2-brief.md" 'parse_count(text: str) -> int' 'brief retains interface'
+assert_has "$WORK/task-2-brief.md" 'assert parse_count("0") == 0' 'brief retains assertion'
 assert_has "$WORK/task-3-brief.md" 'Keep this line after the tilde fence.' 'brief survives tilde fence'
 
 projection_hash="$(sha "$PROJECTION")"

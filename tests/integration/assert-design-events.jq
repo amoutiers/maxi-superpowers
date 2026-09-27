@@ -7,6 +7,10 @@ def commands:
 def reads_path($installed; $path):
   (.command | join(" ")) as $command |
   ($command | contains($path)) or
+  (($path | sub("/[a-z][a-z-]*/SKILL.md$"; "")) as $base |
+   ($path | split("/") | .[-2:] | join("/")) as $relative |
+   ($command | contains("python3 - <<") and contains("base=Path('" + $base + "')") and
+     contains("'" + $relative + "'") and contains("p=base/rel") and contains("p.read_text()"))) or
   (if ($path | endswith("/SKILL.md")) then
     ($path | split("/")) as $parts |
     (($parts[0:-2] | join("/")) + "/") as $prefix |
@@ -23,6 +27,9 @@ def reads_path($installed; $path):
 def invokes_helper($helper):
   (.command | join(" ")) as $command |
   any($command | split(" ")[]; . == $helper or . == ("\"" + $helper + "\"") or . == ("'" + $helper + "'")) or
+  ($command | contains("result=subprocess.run([") and contains("\"" + $helper + "\",") and
+    test(",[\\\\']+reserve[\\\\']+,str\\(review\\)") and
+    contains("capture_output=True") and contains("json.dumps(dict(")) or
   (if (.cwd // "" | test("^file:///[^%]+$")) then
     (.command[-1] | split(" ")) as $words |
     ($words[0] == "bash" and ($words[1] // "" | startswith("../")) and
@@ -30,6 +37,15 @@ def invokes_helper($helper):
      (((.cwd | ltrimstr("file://") | split("/") | .[0:-1] | join("/")) +
        "/" + ($words[1] | ltrimstr("../"))) == $helper))
    else false end);
+def reservation_lines:
+  (if (.command | join(" ") | contains("result=subprocess.run([")) then
+    (.aggregated_output | fromjson? | select(.code == 0 and .error == "") | .result)
+   else .aggregated_output end) |
+  split("\n")[] | select(test("^DESIGN_REVIEW_RESERVED operation_id=[a-f0-9]{64} pass=[12] report_sha256=[a-f0-9]{64}$"));
+def invokes_reservation($helper):
+  invokes_helper($helper) and
+  (if (.command | join(" ") | contains("result=subprocess.run([")) then true
+   else (.command | join(" ") | test("[[:space:]]reserve[[:space:]]|[[:space:]]reserve$")) end);
 def read_owner($installed; $owner):
   commands as $cmds |
   any($installed | to_entries[]; . as $skill |
@@ -49,6 +65,20 @@ require(all(.files | keys[]; . as $path | $input.allowed | index($path)); "dupli
 require(all(.required | to_entries[]; . as $required |
   ($input.files[$required.key] != null) and
   all($required.value[]; . as $pattern | $input.files[$required.key] | test($pattern; "i"))); "fixture output mismatch") |
+require(if .name == "lean-plan-only" or .name == "settled-sdd-design" then
+  (.files["docs/maxi/specs/0001-line-counter/plan.md"] // "") as $plan |
+  ([$plan | scan("(?m)^## Global Constraints$")] | length) == 1 and
+  ([$plan | scan("(?m)^## Review Focus$")] | length) == 1 and
+  ($plan | split("## Review Focus\n")[1] | split("\n## ")[0] | split("\n### Task ")[0]) as $focus |
+  ([$focus | scan("(?m)^- .+")] | length) as $focus_count |
+  $focus_count >= 1 and $focus_count <= 5 and
+  (if $focus | test("(?i)No review focus.*after scan") then $focus_count == 1
+   else all([$focus | scan("(?m)^- .+")][]; test("(?i)Task [1-9]") and test("(?i)test")) end) and
+  ($plan | test("(?im)^#{1,3} .*execution (handoff|options|menu)|^ready to execute|^choose (an )?execution" ) | not)
+  else true end; "lean plan has duplicate/missing sections or nested execution menu") |
+require(if .name == "lean-plan-only" or .name == "settled-sdd-design" then
+  all($messages[]; test("(?i)which execution (approach|method)|subagent-driven.{0,300}native|ready to execute|choose (an )?execution" ) | not)
+  else true end; "duplicate execution handoff in assistant messages") |
 require(all(.owners[]; . as $owner | any($input.sessions[]; read_owner($input.installed; $owner))); "absent completed installed-owner read evidence") |
 [.sessions[] | . as $session | .events[] | select(.type == "response_item") | .payload |
  select(.type == "function_call") | . + {agent:$session.agent, args:(.arguments | fromjson)}] as $calls |
@@ -67,8 +97,7 @@ $input |
    (any(["specify","clarify","plan","revise"][]; . as $owner |
       any($input.sessions[] | select(.agent == $identity); read_owner($input.installed; $owner))) or
     (read_owner($input.installed; "review") and any(commands[];
-      invokes_helper($input.helper) and
-      (.aggregated_output | test("^DESIGN_REVIEW_RESERVED "))))))} end end] as $allocations |
+      invokes_reservation($input.helper) and any(reservation_lines; startswith("DESIGN_REVIEW_RESERVED "))))))} end end] as $allocations |
 require(all($allocations[]; .reviewer or .owner); "unclassified allocation: incomplete review count") |
 require(all($reviewers[]; . as $id | any($allocations[]; .identity == $id)); "report reviewer is not a returned harness identity") |
 [$calls[] | select(.name == "followup_task") |
@@ -76,13 +105,11 @@ require(all($reviewers[]; . as $id | any($allocations[]; .identity == $id)); "re
  require(any($allocations[]; .identity == $target); "unmatched follow-up target") |
  require(any($outputs[]; .call_id == $call.call_id); "missing follow-up result") |
  select($reviewers | index($target))] as $reviews |
-[.sessions[] | commands[] | select(invokes_helper($input.helper) and
- (.command | join(" ") | test("[[:space:]]reserve[[:space:]]|[[:space:]]reserve$"))) |
- .aggregated_output | split("\n")[] | select(test("^DESIGN_REVIEW_RESERVED operation_id=[a-f0-9]{64} pass=[12] report_sha256=[a-f0-9]{64}$"))] as $reservations |
+[.sessions[] | commands[] | select(invokes_reservation($input.helper)) | reservation_lines] as $reservations |
 require(($reservations | length) <= (.max_reviews // 2) and ($reviews | length) == ($reservations | length); "review dispatch/reservation mismatch or excess") |
 require(if .review then ($reviews | length) > 0 else ($reviews | length) == 0 end; "missing or unauthorized review") |
 require(if .review then .verified else true end; "unverified outcome; final assistant claims are not proof") |
-require(if .name == "design-validation" or .name == "revision" then .outcome == "approved"
+require(if .name == "design-validation" or .name == "revision" or .name == "settled-sdd-design" then .outcome == "approved"
   else true end; "full design case requires approval, stopped is incomplete") |
 # Keep the independently checked machine outcome distinct from untrusted prose.
 [.files | to_entries[] | select(.key | endswith("/reviews/design-review.md")) | .value] as $reports |

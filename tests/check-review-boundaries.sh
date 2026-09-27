@@ -297,6 +297,8 @@ done
 assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Process' 'Invoke `/maxi:review` exactly once.*spec\.md.*plan\.md' "standalone initial plan has one review"
 assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Process' 'outer specify/revise coordinator.*return after writing' "coordinated plan returns to owner"
 assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Explicit Structural Plan Correction' 'Direct edit-only correction stops' "direct correction remains narrow"
+assert_grep "$ROOT/skills/plan/SKILL.md" 'zero to five justified.*Review Focus' "plan keeps a bounded review focus after a scan"
+assert_grep "$ROOT/skills/plan/SKILL.md" 'interfaces and assertions.*owning tasks' "plan keeps task-local interfaces and assertions"
 assert_correction_section_grep "$ROOT/skills/tasks/SKILL.md" '## Explicit Structural Tasks Correction' 'Correction recorded\. No review or successor phase was started' "tasks correction stays terminal"
 assert_section_grep "$ROOT/skills/tasks/SKILL.md" '## Process' 'missing or stale.*design review.*stop.*no write.*`/maxi:review`' "stale design review blocks tasks without writing"
 assert_grep "$ROOT/skills/review/SKILL.md" 'report-only.*one pass.*never correct' "public review stays report-only"

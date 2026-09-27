@@ -32,7 +32,7 @@ maxi-superpowers/
 │   ├── specify/
 │   │   └── spec-author.md   # canonical creation/existing-spec owner
 │   ├── clarify/
-│   ├── plan/
+│   ├── plan/                # plan owner and Review Focus template
 │   ├── review/              # explicit design-review owner
 │   │   ├── design-operation.md # shared destination and two-pass coordination
 │   │   ├── design-reviewer.md # dedicated artifact-review brief
@@ -124,6 +124,8 @@ See [delegation-map.md](delegation-map.md) for the complete mapping and [pipelin
 | `x-adr` | internal ADR creation and active-spec amendment workflow |
 
 Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
+
+Every new or structurally corrected `plan.md` also carries exactly one `Review Focus` section: zero to five justified cases after scanning the spec and task tests, each naming its owning task and test; an empty scan is stated explicitly. Task interfaces, assertions and verification commands stay in their owning task bodies through projection and brief extraction. Requested design destinations and owner-only returns still govern the upstream planning handoff.
 
 The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
 

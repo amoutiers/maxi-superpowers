@@ -221,6 +221,79 @@ if command -v jq >/dev/null 2>&1 && [ -f "$CHECKER" ]; then
     echo "FAIL [design checker: finite brace before command separator]" >&2
     failures=$((failures + 1))
   fi
+  python_read=$(cat <<'PYTHON_READ'
+python3 - <<'PY'
+from pathlib import Path
+base=Path('/installed')
+for rel in ['plan/SKILL.md','clarify/SKILL.md']:
+ p=base/rel
+ print(p.read_text())
+PY
+PYTHON_READ
+)
+  if jq --arg command "$python_read" '.sessions[0].events[0].payload.item.command[2] = $command' "$sample" | jq -e -f "$CHECKER" >/dev/null; then
+    echo "OK  [design checker: complete installed Python owner reads]"
+  else
+    echo "FAIL [design checker: complete installed Python owner reads]" >&2
+    failures=$((failures + 1))
+  fi
+  if jq --arg command "${python_read/p.read_text()/p.name}" '.sessions[0].events[0].payload.item.command[2] = $command' "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
+    echo "FAIL [design checker accepted Python owner names without content]" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [design checker rejects Python owner names without content]"
+  fi
+  for mutation in '/installed|/other' 'plan/SKILL.md|unknown/SKILL.md'; do
+    wrong_command="${python_read/${mutation%%|*}/${mutation#*|}}"
+    if jq --arg command "$wrong_command" '.sessions[0].events[0].payload.item.command[2] = $command' "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
+      echo "FAIL [design checker accepted Python owner read with wrong path: $mutation]" >&2
+      failures=$((failures + 1))
+    else
+      echo "OK  [design checker rejects Python owner read with wrong path: $mutation]"
+    fi
+  done
+  if jq --arg command "$python_read" '.sessions[0].events[0].payload.item.command[2] = $command | .sessions[0].events[0].payload.item.aggregated_output = "PLAN only"' "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
+    echo "FAIL [design checker accepted incomplete Python owner bytes]" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [design checker rejects incomplete Python owner bytes]"
+  fi
+  python_reserve=$(cat <<'PYTHON_RESERVE'
+python3 - <<'PY'
+import subprocess,json
+result=subprocess.run(['bash',"/installed/review/design-contract.sh",'reserve',str(review)],capture_output=True,text=True)
+print(json.dumps(dict(result=result.stdout,error=result.stderr,code=result.returncode)))
+PY
+PYTHON_RESERVE
+)
+  if jq --arg command "$python_reserve" '.sessions[0].events[1].payload.item |= (.command[2] = $command | .aggregated_output = ({result:.aggregated_output,error:"",code:0}|tojson))' "$sample" | jq -e -f "$CHECKER" >/dev/null; then
+    echo "OK  [design checker: captured installed reservation]"
+  else
+    echo "FAIL [design checker: captured installed reservation]" >&2
+    failures=$((failures + 1))
+  fi
+  for mutation in '.code = 1' '.error = "failed"' '.result = "not a reservation"'; do
+    if jq --arg command "$python_reserve" --arg mutation "$mutation" '.sessions[0].events[1].payload.item |= (.command[2] = $command | .aggregated_output = ({result:.aggregated_output,error:"",code:0}|tojson))' "$sample" | jq ".sessions[0].events[1].payload.item.aggregated_output |= (fromjson | $mutation | tojson)" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
+      echo "FAIL [design checker accepted invalid captured reservation: $mutation]" >&2
+      failures=$((failures + 1))
+    else
+      echo "OK  [design checker rejects invalid captured reservation: $mutation]"
+    fi
+  done
+  for wrong_command in "${python_reserve/design-contract.sh/design-contract.sh.bak}" "${python_reserve/reserve/preserve}" "${python_reserve/reserve/reserve!}" "${python_reserve/result=subprocess.run/result=wrong_run}"; do
+    if jq --arg command "$wrong_command" '.sessions[0].events[1].payload.item |= (.command[2] = $command | .aggregated_output = ({result:.aggregated_output,error:"",code:0}|tojson))' "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
+      echo "FAIL [design checker accepted wrong captured reservation call]" >&2
+      failures=$((failures + 1))
+    else
+      echo "OK  [design checker rejects wrong captured reservation call]"
+    fi
+  done
+  if jq '.name = "settled-sdd-design" | .required["docs/maxi/specs/0001-line-counter/plan.md"] = [] | .files["docs/maxi/specs/0001-line-counter/plan.md"] = "## Global Constraints\n- One rule.\n## Review Focus\n- Task 1 tests the risk.\n### Task 1: Implement\n- [ ] Step 1\n- [ ] Step 2\n- [ ] Step 3\n- [ ] Step 4\n- [ ] Step 5\n- [ ] Step 6\n"' "$sample" | jq -e -f "$CHECKER" >/dev/null; then
+    echo "OK  [design checker: focus ends before direct Task heading]"
+  else
+    echo "FAIL [design checker: focus absorbs task body]" >&2
+    failures=$((failures + 1))
+  fi
   if jq '.sessions[0].events[1].payload.item |= (.cwd = "file:///fixture" | .command[2] = "bash ../installed/review/design-contract.sh reserve")' "$sample" | jq -e -f "$CHECKER" >/dev/null; then
     echo "OK  [design checker: exact relative installed reservation helper]"
   else
@@ -256,6 +329,7 @@ if command -v jq >/dev/null 2>&1 && [ -f "$CHECKER" ]; then
 .sessions[0].events[0].payload.item.command[2] = "cat /installed/{plan,unknown}/SKILL.md; cat unrelated.txt"
 .sessions[0].events[0].payload.item.command[2] = "cat /installed/{plan,clarify}/SKILL.md;evil"
 .sessions[0].events[0].payload.item.aggregated_output = ""
+.sessions[0].events[1].payload.item.command[2] |= sub(" reserve"; " verify")
 .sessions[0].events[1].payload.item |= (.cwd = "file:///wrong/fixture" | .command[2] = "bash ../installed/review/design-contract.sh reserve")
 .sessions[0].events[1].payload.item |= (.cwd = "file:///fixture" | .command[2] = "bash ../other/review/design-contract.sh reserve")
 .sessions[0].events[1].payload.item |= (.command[2] = "bash ../installed/review/design-contract.sh reserve")
