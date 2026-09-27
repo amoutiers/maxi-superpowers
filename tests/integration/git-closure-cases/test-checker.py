@@ -91,6 +91,27 @@ class CheckerTest(unittest.TestCase):
         self.good_events[-2]["item"]["text"] = "The batch is ready to merge. I pushed it."
         self.check(False)
 
+    def test_retained_responses_reject_repeated_finisher_menu(self):
+        cases = json.loads((CHECKER.parent / "cases.json").read_text())
+        menu = ("\n\nImplementation complete. What would you like to do?\n\n"
+                "1. Merge back to main locally\n"
+                "2. Push and create a Pull Request\n"
+                "3. Keep the branch as-is (I'll handle it later)\n\n"
+                "Which option?")
+        for name, final in (
+                ("coordinator", "Morgan is the coordinator. The batch is ready."),
+                ("keep-resume", "Keep the branch until deployment acceptance completes.")):
+            case = next(case for case in cases if case["name"] == name)
+            self.evidence["case"].update(kind=case["kind"],
+                                          final_patterns=case["final_patterns"],
+                                          final_forbidden=case["final_forbidden"])
+            self.good_events[-2]["item"]["text"] = final
+            with self.subTest(case=name, response="retained"):
+                self.check(True)
+            self.good_events[-2]["item"]["text"] = final + menu
+            with self.subTest(case=name, response="repeated menu"):
+                self.check(False)
+
     def test_claimed_merge_without_ref_change(self):
         self.evidence["case"]["final_patterns"] = []
         for claim in (
