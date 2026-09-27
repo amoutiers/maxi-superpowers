@@ -1,7 +1,7 @@
 # Superpowers 6.4.2 Integration into Maxi
 
 - Date: 2026-09-27
-- State: Proposed design, awaiting user review
+- State: Design approved by the user on 2026-09-27; implementation plan requested
 - Baseline: Maxi `3fab96ac92a740ea8f9e3f91bf2231cf08ccb35d`, vendored Superpowers v6.3.0
 - Target: Superpowers v6.4.2, `8ca22dba9a94f28898bbce59f2537ff4d87c747d`
 
@@ -9,7 +9,7 @@
 
 Adapt Maxi to the new Superpowers release, repair demonstrated compatibility failures and preserve Maxi's evidence and workflow guarantees. The user requested an integration study and remediation proposal, then selected a Superpowers specification as the design artifact.
 
-This document follows the Superpowers design workflow. It does not create a Maxi pipeline feature or change any product pipeline status. Its proposed scope includes the engine upgrade, planning/review compatibility, OpenCode V2, Muse and Qwen. These scope choices await review of this document.
+This document follows the Superpowers design workflow. It does not create a Maxi pipeline feature or change any product pipeline status. Its approved scope includes the engine upgrade, planning/review compatibility, OpenCode V2, Muse and Qwen. Approval permits writing the implementation plan; execution remains a subsequent decision.
 
 Success means the exact upstream release is integrated without a vendored fork, completed work remains safely resumable, new plan content survives Maxi's wrappers, and each claimed harness has appropriate qualification evidence.
 
