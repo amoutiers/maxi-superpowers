@@ -154,6 +154,22 @@ assert_file_exists "$ROOT/tests/integration/run-codex-design-test.sh" "installed
 assert_grep "$RUN_ALL" 'run-codex-design-test.sh' "integration includes design behavior"
 assert_grep "$RUN_ALL" 'run-codex-git-closure-test.sh' "integration includes Git closure behavior"
 assert_file_exists "$ROOT/tests/integration/run-codex-git-closure-test.sh" "installed Git closure runner"
+UPGRADE_RUNNER="$ROOT/tests/integration/run-codex-upgrade-test.sh"
+UPGRADE_CHECKER="$ROOT/tests/integration/upgrade-cases/check-evidence.py"
+assert_file_exists "$UPGRADE_RUNNER" "installed upgrade lifecycle runner"
+assert_file_exists "$UPGRADE_CHECKER" "upgrade evidence checker"
+assert_grep "$RUN_ALL" 'run-codex-upgrade-test.sh' "integration includes the installed upgrade lifecycle"
+assert_grep "$UPGRADE_RUNNER" 'run-with-deadline.pl' "upgrade runner bounds Codex calls"
+assert_grep "$UPGRADE_RUNNER" 'installed-diff.txt' "upgrade runner byte checks staged skills"
+assert_grep "$UPGRADE_RUNNER" 'codex exec resume --json "\$THREAD"' "upgrade runner resumes the same session"
+assert_grep "$UPGRADE_RUNNER" 'pre-done-fixture' "upgrade runner retains the pre-done boundary"
+assert_grep "$UPGRADE_RUNNER" 'check-evidence.py' "upgrade runner checks retained evidence"
+if python3 "$ROOT/tests/integration/upgrade-cases/test-checker.py" >/dev/null; then
+  echo "OK  [upgrade evidence checker regressions]"
+else
+  echo "FAIL [upgrade evidence checker regressions]" >&2
+  failures=$((failures + 1))
+fi
 assert_file_exists "$ROOT/tests/integration/git-closure-cases/check-evidence.py" "Git closure evidence checker"
 assert_file_exists "$ROOT/tests/integration/git-closure-cases/cases.json" "Git closure case matrix"
 if python3 "$ROOT/tests/integration/git-closure-cases/test-checker.py" >/dev/null; then

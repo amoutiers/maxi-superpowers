@@ -70,6 +70,15 @@ else
   RESULTS+=("FAIL/INCOMPLETE: Git closure behavior")
 fi
 
+echo "Testing: installed upgrade lifecycle"
+if "$SCRIPT_DIR/run-codex-upgrade-test.sh"; then
+  PASSED=$((PASSED + 1))
+  RESULTS+=("PASS: installed upgrade lifecycle")
+else
+  FAILED=$((FAILED + 1))
+  RESULTS+=("FAIL/INCOMPLETE: installed upgrade lifecycle")
+fi
+
 echo "=== Summary ==="
 for result in "${RESULTS[@]}"; do
   echo "  $result"
