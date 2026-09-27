@@ -74,6 +74,8 @@ Removing an anchored incomplete `TNNN` during structural correction fails before
 
 Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.
 
+The existing final reviewer receives the complete canonical spec and plan, including `Review Focus`. The complete `Declined to judge` output stays in `maxi-final-review.md`; controller dispositions use ordinary `Ruling:` ledger lines, hash-bound by the terminal receipt and returned with lineage.
+
 Skills read this to enforce phase gating. Never bypass it.
 
 ## Pipeline Documentation — Mandatory Sync

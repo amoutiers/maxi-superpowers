@@ -57,6 +57,7 @@ C1="$(git -C "$HISTORY" rev-parse --short=7 HEAD~2)"
 C2="$(git -C "$HISTORY" rev-parse --short=7 HEAD~1)"
 C3="$(git -C "$HISTORY" rev-parse --short=7 HEAD)"
 COMPLETE_1_CLEAN="Task 1: complete (commits $C0..$C1, review clean)"
+COMPLETE_1_NATIVE="Task 1: complete (commits $C0..$C1, tests: passed)"
 COMPLETE_1_PARKED="Task 1: complete (commits $C0..$C1, 2 parked)"
 COMPLETE_2_CLEAN="Task 2: complete (commits $C1..$C2, review clean)"
 COMPLETE_2_PARKED="Task 2: complete (commits $C1..$C2, 2 parked)"
@@ -766,7 +767,7 @@ for projection_anchor_case in absent malformed duplicate mismatch; do
 done
 
 # Any completion-like current-ledger record must use one exact upstream form.
-for completion_case in bare duplicate wrong-number fenced-number bad-sha free-annotation zero-parked suffix; do
+for completion_case in bare duplicate wrong-number fenced-number bad-sha free-annotation native zero-parked suffix; do
   COMPLETION_REPO="$WORK/completion-$completion_case"
   init_repo "$COMPLETION_REPO"
   seed_case "$COMPLETION_REPO"
@@ -780,6 +781,7 @@ for completion_case in bare duplicate wrong-number fenced-number bad-sha free-an
     wrong-number) printf 'Task 4: complete (commits 1111111..2222222, review clean)\n' >> "$COMPLETION_LEDGER" ;;
     bad-sha) printf 'Task 1: complete (commits 111111..2222222, review clean)\n' >> "$COMPLETION_LEDGER" ;;
     free-annotation) printf 'Task 1: complete (commits 1111111..2222222, locally approved)\n' >> "$COMPLETION_LEDGER" ;;
+    native) printf '%s\n' "$COMPLETE_1_NATIVE" >> "$COMPLETION_LEDGER" ;;
     zero-parked) printf 'Task 1: complete (commits 1111111..2222222, 0 parked)\n' >> "$COMPLETION_LEDGER" ;;
     suffix) printf 'Task 1: complete (commits 1111111..2222222, review clean) trailing\n' >> "$COMPLETION_LEDGER" ;;
   esac
@@ -1108,7 +1110,7 @@ assert_eq "$(sha "$STALE_TASKS")" "$stale_tasks_before" 'stale predecessor rejec
 assert_eq "$(cat "$STALE_STATE")" "$stale_state_before" 'stale predecessor rejection keeps active pointer unchanged'
 
 # Reconciliation rejects bare and malformed completion records before writing.
-for completion_case in bare malformed; do
+for completion_case in bare malformed native; do
   RECONCILE_REPO="$WORK/reconcile-$completion_case"
   init_repo "$RECONCILE_REPO"
   seed_case "$RECONCILE_REPO"
@@ -1119,6 +1121,7 @@ for completion_case in bare malformed; do
   case "$completion_case" in
     bare) printf 'Task 1: complete\n' >> "$RECONCILE_LEDGER" ;;
     malformed) printf 'Task 1: complete (commits 1111111..2222222, 0 parked)\n' >> "$RECONCILE_LEDGER" ;;
+    native) printf '%s\n' "$COMPLETE_1_NATIVE" >> "$RECONCILE_LEDGER" ;;
   esac
   reconcile_before="$(sha "$RECONCILE_TASKS")"
   set +e
@@ -1164,7 +1167,7 @@ assert_has "$TERM_PROJECTION" '### Task 1: T001 ' 'terminal successor retains ch
 assert_has "$TERM_PROJECTION" '### Task 2: T002 ' 'terminal successor retains remaining pending task'
 TERM_LEDGER="$TERM/.superpowers/sdd/$(basename "$TERM_PROJECTION" .md)/progress.md"
 mkdir -p "$(dirname "$TERM_LEDGER")"
-printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002\nMaxi projection SHA256: %s\n%s\n%s\nTask 2: Ruling: successor workspace ruling\n' "$TERM_PROJECTION" "$(sha "$TERM_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$TERM_LEDGER"
+printf '# SDD ledger — plan: %s\nMaxi selection: T001 T002\nMaxi projection SHA256: %s\n%s\n%s\nTask 2: Ruling: successor workspace ruling\nRuling: deferred startup behavior; reason: host unavailable\n' "$TERM_PROJECTION" "$(sha "$TERM_PROJECTION")" "$COMPLETE_1_CLEAN" "$COMPLETE_2_PARKED" > "$TERM_LEDGER"
 bash "$RECONCILE" --projection "$TERM_PROJECTION" --ledger "$TERM_LEDGER" --tasks "$TERM/docs/maxi/specs/adapter-sample/tasks.md" >/dev/null
 printf 'reviewed implementation\n' >> "$TERM/app.txt"
 git -C "$TERM" add app.txt
@@ -1217,12 +1220,16 @@ TERM_TASKS="$TERM/docs/maxi/specs/adapter-sample/tasks.md"
   echo '### Recommendations'
   echo 'None.'
   echo
+  echo '### Declined to judge'
+  echo '- Startup behavior: host unavailable.'
+  echo
   echo '### Assessment'
   echo
   echo '**Ready to merge?** Yes'
   echo
   echo '**Reasoning:** The complete Git range satisfies the projection and has no blocking findings.'
 } > "$FINAL_REVIEW"
+final_review_before="$(sha "$FINAL_REVIEW")"
 
 # A valid-looking range header is not a review package, even with matching hashes.
 TRUNCATED_PACKAGE="$(dirname "$TERM_LEDGER")/review-truncated.diff"
@@ -1271,7 +1278,7 @@ set -e
 
 # Receipt creation rejects bare and malformed completion evidence.
 cp "$TERM_LEDGER" "$TERM_LEDGER.canonical"
-for completion_case in bare malformed; do
+for completion_case in bare malformed native; do
   case "$completion_case" in
     bare)
       awk -v first="$COMPLETE_1_CLEAN" -v second="$COMPLETE_2_PARKED" '
@@ -1283,6 +1290,12 @@ for completion_case in bare malformed; do
     malformed)
       awk -v first="$COMPLETE_1_CLEAN" '
         $0 == first { print "Task 1: complete (commits 111111..2222222, review clean)"; next }
+        { print }
+      ' "$TERM_LEDGER.canonical" > "$TERM_LEDGER"
+      ;;
+    native)
+      awk -v first="$COMPLETE_1_CLEAN" -v native="$COMPLETE_1_NATIVE" '
+        $0 == first { print native; next }
         { print }
       ' "$TERM_LEDGER.canonical" > "$TERM_LEDGER"
       ;;
@@ -1303,6 +1316,9 @@ assert_has "$RECEIPT" "reviewer_dispatch_identity: $REVIEWER_IDENTITY" 'receipt 
 assert_has "$RECEIPT" "reviewer_dispatch_identity_sha256: $(sha "$REVIEWER_IDENTITY")" 'receipt binds reviewer dispatch identity hash'
 assert_has "$RECEIPT" "reviewer_context: $CODEX_REVIEWER_CONTEXT" 'receipt binds Codex reviewer task path'
 RESULT_OUTPUT="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT")"
+assert_eq "$(sha "$FINAL_REVIEW")" "$final_review_before" 'terminal record preserves complete final review bytes'
+assert_has "$FINAL_REVIEW" '### Declined to judge' 'persisted final review retains declined section'
+assert_has "$FINAL_REVIEW" '- Startup behavior: host unavailable.' 'persisted final review retains declined behavior'
 
 # A foreign upstream plan-path must not redirect any Maxi consumer to a
 # suffixed SDD workspace. Snapshot both current and predecessor evidence.
@@ -1528,9 +1544,13 @@ mv "$FINAL_REVIEW.codex" "$FINAL_REVIEW"
 
 assert_has "$RECEIPT" 'Task 1: parked — deferred option — Ruling: first workspace ruling' 'receipt aggregates entire predecessor Ruling line'
 assert_has "$RECEIPT" 'Task 2: Ruling: successor workspace ruling' 'receipt aggregates entire successor Ruling line'
+grep -Fxq 'Ruling: deferred startup behavior; reason: host unavailable' "$RECEIPT" && ok 'receipt retains exact declined-behavior ruling' || fail 'receipt retains exact declined-behavior ruling'
+grep -hF 'Ruling:' "$TERM_OLD_LEDGER" "$TERM_LEDGER" > "$(dirname "$RECEIPT")/expected-rulings"
+assert_has "$RECEIPT" "rulings_sha256: $(sha "$(dirname "$RECEIPT")/expected-rulings")" 'receipt hashes exact complete ruling lines'
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'READY_TO_FINISH' 'matching receipt emits READY_TO_FINISH'
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'Task 1: parked — deferred option — Ruling: first workspace ruling' 'result returns entire predecessor Ruling line with success'
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'Task 2: Ruling: successor workspace ruling' 'result returns entire successor Ruling line with success'
+assert_has <(printf '%s\n' "$RESULT_OUTPUT") 'Ruling: deferred startup behavior; reason: host unavailable' 'result returns declined-behavior ruling with success'
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") "LINEAGE: $TERM_OLD" 'result returns predecessor lineage with success'
 assert_has <(printf '%s\n' "$RESULT_OUTPUT") "LINEAGE: $TERM_PROJECTION" 'result returns current lineage with success'
 
@@ -1540,12 +1560,18 @@ mv "$RECEIPT.ruling-mutated.tmp" "$RECEIPT.ruling-mutated"
 ruling_mutated_result="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT.ruling-mutated" 2>/dev/null || true)"
 assert_not_has <(printf '%s\n' "$ruling_mutated_result") 'READY_TO_FINISH' 'mutated entire Ruling line invalidates ready'
 
+cp "$TERM_LEDGER" "$TERM_LEDGER.ruling-canonical"
+sed 's/Ruling: deferred startup behavior; reason: host unavailable/Ruling: deferred startup behavior; reason: host available/' "$TERM_LEDGER.ruling-canonical" > "$TERM_LEDGER"
+changed_ruling_result="$(bash "$RESULT" --tasks "$TERM_TASKS" --receipt "$RECEIPT" 2>/dev/null || true)"
+assert_not_has <(printf '%s\n' "$changed_ruling_result") 'READY_TO_FINISH' 'changed persisted declined-behavior ruling invalidates ready'
+mv "$TERM_LEDGER.ruling-canonical" "$TERM_LEDGER"
+
 # Rewriting receipt hashes must not bless bare, malformed, or incomplete evidence.
 cp "$TERM_LEDGER" "$TERM_LEDGER.canonical"
 cp "$RECEIPT" "$RECEIPT.canonical"
 REHASH_DIR="$(dirname "$RECEIPT")/rehash"
 mkdir -p "$REHASH_DIR"
-for completion_case in bare malformed incomplete; do
+for completion_case in bare malformed native incomplete; do
   case "$completion_case" in
     bare)
       awk -v first="$COMPLETE_1_CLEAN" -v second="$COMPLETE_2_PARKED" '
@@ -1557,6 +1583,12 @@ for completion_case in bare malformed incomplete; do
     malformed)
       awk -v first="$COMPLETE_1_CLEAN" '
         $0 == first { print "Task 1: complete (commits 1111111..2222222, 0 parked)"; next }
+        { print }
+      ' "$TERM_LEDGER.canonical" > "$TERM_LEDGER"
+      ;;
+    native)
+      awk -v first="$COMPLETE_1_CLEAN" -v native="$COMPLETE_1_NATIVE" '
+        $0 == first { print native; next }
         { print }
       ' "$TERM_LEDGER.canonical" > "$TERM_LEDGER"
       ;;

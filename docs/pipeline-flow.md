@@ -79,7 +79,7 @@ flowchart TD
     PLAN -.->|"delegates"| WRITING_PLANS
     PLAN -.->|"arch choice detected"| ADR
     IMPLEMENT -.->|"unplanned fork"| ADR
-    DEVELOP -.->|"upstream SDD final review"| CODE_REVIEW
+    DEVELOP -.->|"SDD final review with spec and plan"| CODE_REVIEW
     REVIEW -->|"explicit fresh artifact review"| DESIGN_REVIEW
     PLAN -->|"explicit correction\nreturns to planned"| PLAN
     TASKS -->|"explicit correction\nreturns to tasked"| TASKS
@@ -120,6 +120,7 @@ Design approval uses `maxi-design-review-v1` with exact spec/plan hashes and the
 - Completion reuse requires the latest selection of that TNNN to be complete, with an unchanged exact plan hash and canonical task line. A changed plan conservatively reexecutes completed tasks; a changed task line reexecutes that task. Older completions cannot override a newer pending selection. Reconciliation clears stale checked boxes for selected incomplete tasks before every dispatch. Every projection's exact distributed bytes are SHA-256-bound by its ordinary SDD ledger; missing, duplicate, malformed, or mismatched projection-byte anchors fail closed across the current and predecessor lineage. Before projection reuse or publication, any upstream `plan-path` marker must contain the physical repository-relative projection path followed by one LF. An absent marker is allowed only for a fresh empty workspace or independently anchored legacy lineage. This shared gate also precedes reconciliation and both terminal consumers; `--verify-only` never writes the marker.
 - Removing an anchored incomplete `TNNN` during structural correction fails before successor creation and leaves the active-projection pointer unchanged.
 - Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.
+- The existing final reviewer receives the complete canonical spec and plan, including `Review Focus`. The complete `Declined to judge` output stays in `maxi-final-review.md`; controller dispositions use ordinary `Ruling:` ledger lines, hash-bound by the terminal receipt and returned with lineage.
 - The three fixed boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
 - **Lifecycle skills** (`park`, `resume`, `cancel`, `revise`) operate on any in-flight spec — they are orthogonal to the main forward pipeline.
 - `/maxi:revise` is the only skill that makes `status:` go backwards. `RESUME` restores to the exact prior status stored in `parked_from:` — the `CLARIFY` node in the diagram is illustrative.
