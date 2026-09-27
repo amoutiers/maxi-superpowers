@@ -284,7 +284,7 @@ PY
 run_stage migration 'Run /maxi:implement for the analyzed, already-completed historical adapter-sample. The v1 projection and its two completion records are seeded fixture inputs backed by genuine original Git commits. Upgrade through the installed project-tasks helper to an empty v2 successor. Do not reexecute historical tasks. Obtain a fresh actual independent whole-branch final review of the original nonempty Git range, supplying the reviewer complete exact spec and plan including Review Focus plus the review package. Persist actual identity/verdict and a new terminal receipt beside the active projection progress.md with the exact filename terminal-receipt.md, using record-terminal.sh --output. Then run the installed result-contract in a separate shell command containing only the verifier invocation, and report its actual READY_TO_FINISH output. This user-requested boundary stops before writing done or invoking branch finishing; leave spec status implementing so the runner can independently revalidate the receipt.' "$MIGRATION"
 
 python3 - "$ROOT" "$OUTPUT" "$RUNTIME" "$INSTALLED" "$FIXTURE" "$MIGRATION" "$BASE" "$MIG_BASE" "$MIG_HEAD" "$MIG_OLD" "$MIG_OLD_LEDGER" <<'PY'
-import hashlib, importlib.util, json, pathlib, re, subprocess, sys
+import importlib.util, json, pathlib, re, subprocess, sys
 root, output, runtime, installed, fixture, migration = map(pathlib.Path, sys.argv[1:7])
 base, migration_base, migration_head = sys.argv[7:10]
 migration_old, migration_old_ledger = map(pathlib.Path, sys.argv[10:12])
@@ -292,33 +292,11 @@ module_path = root / 'tests/integration/upgrade-cases/check-evidence.py'
 spec = importlib.util.spec_from_file_location('upgrade_checker', module_path)
 checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checker)
-def sha(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 def head(repo, ref):
     return subprocess.check_output(['git', '-C', str(repo), 'rev-parse', '--verify',
                                     f'{ref}^{{commit}}'], text=True).strip()
 def read_stage(name):
     return json.loads((output / 'stages' / name / 'sessions.json').read_text())
-def task_review(name):
-    sessions = read_stage(name)
-    for child in sessions:
-        if child['agent'] == '/root':
-            continue
-        text = '\n'.join(str(e.get('payload', {}).get('last_agent_message') or '')
-                         for e in child['events'])
-        if '### Spec Compliance' not in text or '**Task quality:**' not in text:
-            continue
-        for event in child['events']:
-            item = event.get('payload', {}).get('item') or {}
-            if item.get('type') != 'CommandExecution' or item.get('exit_code') != 0:
-                continue
-            command = ' '.join(item.get('command') or [])
-            for match in re.findall(r'/[^\s\'";]+\.diff', command):
-                package = pathlib.Path(match)
-                if package.is_file() and package.read_text() in item.get('aggregated_output', ''):
-                    return {'stage': name, 'context': child['agent'], 'package': str(package),
-                            'package_sha256': sha(package)}
-    raise ValueError(f'missing observed {name} task reviewer/package')
 projection = pathlib.Path((fixture / '.superpowers/sdd/active-0001-upgrade').read_text().strip())
 workspace = fixture / '.superpowers/sdd' / projection.stem
 ledger = workspace / 'progress.md'
@@ -356,7 +334,12 @@ evidence = {
     'design_context': design_match[0],
     'pre_done_fixture': str(runtime / 'pre-done-fixture'),
     'postturn_verifier': postturn,
-    'task_reviews': [task_review('first-task'), task_review('resume')],
+    'task_reviews': [
+        checker.collect_task_review(read_stage('first-task'), 'first-task',
+                                    fixture, workspace, *endpoints[0]),
+        checker.collect_task_review(read_stage('resume'), 'resume',
+                                    fixture, workspace, *endpoints[1]),
+    ],
     'migration': {
         'fixture': str(migration), 'base': migration_base, 'head': migration_head,
         'old_projection': str(migration_old), 'old_ledger': str(migration_old_ledger),

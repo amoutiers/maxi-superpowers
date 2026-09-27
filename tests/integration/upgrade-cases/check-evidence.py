@@ -75,6 +75,60 @@ def native_reads(sessions, context, paths):
             "reviewer did not receive complete exact artifact bytes")
 
 
+def normalized_task_quality(report):
+    # Codex can place the final period inside the Markdown emphasis.
+    return report.replace("**Task quality: Approved.**", "**Task quality:** Approved")
+
+
+def collect_task_review(sessions, stage, fixture, workspace, base, end):
+    """Bind a task's real reviewer to its exact committed-range package read."""
+    fixture = fixture.resolve()
+    workspace = workspace.resolve()
+    require(workspace.is_relative_to(fixture), "task workspace left fixture")
+    package = workspace / f"review-{base[:7]}..{end[:7]}.diff"
+    require(package.is_file() and package.resolve().is_relative_to(workspace),
+            "task review package is missing or outside workspace")
+    relative = str(package.relative_to(fixture))
+    expected_commands = (["cat", relative], ["cat", str(package)])
+    package_bytes = package.read_bytes()
+    matches = []
+    for child in sessions:
+        context = child.get("agent")
+        if context == "/root":
+            continue
+        if child.get("cwd") != str(fixture):
+            continue
+        reports = [event.get("payload", {}).get("last_agent_message", "")
+                   for event in child.get("events", [])
+                   if event.get("type") == "event_msg" and
+                   event.get("payload", {}).get("type") == "task_complete"]
+        if not any("### Spec Compliance" in report and
+                   "**Task quality:**" in normalized_task_quality(report)
+                   for report in reports):
+            continue
+        for event in child.get("events", []):
+            payload = event.get("payload", {})
+            item = payload.get("item") or {}
+            command = item.get("command")
+            if (event.get("type") != "event_msg" or payload.get("completed_at_ms") is None or
+                    item.get("type") != "CommandExecution" or
+                    item.get("exit_code") != 0 or not isinstance(command, list) or
+                    len(command) != 3 or command[0] not in {"/bin/zsh", "/bin/bash"} or
+                    command[1] != "-lc"):
+                continue
+            try:
+                words = shlex.split(command[2])
+            except ValueError:
+                continue
+            output = item.get("aggregated_output")
+            if (words in expected_commands and isinstance(output, str) and
+                    package_bytes in output.encode("utf-8")):
+                matches.append({"stage": stage, "context": context,
+                                "package": str(package), "package_sha256": digest(package)})
+    require(len(matches) == 1, f"missing or duplicate observed {stage} task reviewer/package")
+    return matches[0]
+
+
 def reviewer_reads(sessions, context, spec_path, plan_path, spec_bytes, plan_bytes):
     native_reads(sessions, context, {spec_path: spec_bytes, plan_path: plan_bytes})
 
@@ -414,11 +468,11 @@ def task_review(stage, review, annotation, ledger, task_number):
                if event.get("type") == "event_msg" and
                event.get("payload", {}).get("type") == "task_complete"]
     require(len(reports) == 1 and "### Spec Compliance" in reports[0] and
-            "**Task quality:**" in reports[0],
+            "**Task quality:**" in normalized_task_quality(reports[0]),
             "task reviewer gave no spec and quality verdict")
     if annotation == "review clean":
         require("✅ Spec compliant" in reports[0] and
-                "**Task quality:** Approved" in reports[0],
+                "**Task quality:** Approved" in normalized_task_quality(reports[0]),
                 "clean completion contradicts task reviewer")
     else:
         parked = int(annotation.split()[0])

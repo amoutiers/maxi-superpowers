@@ -427,6 +427,52 @@ def make_complete(directory):
 
 
 class UpgradeEvidenceTest(unittest.TestCase):
+    def test_collect_task_review_binds_relative_package_and_native_verdict(self):
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = Path(temp).resolve() / "fixture"
+            workspace = fixture / ".superpowers/sdd/task-workspace"
+            workspace.mkdir(parents=True)
+            package = workspace / "review-abc1234..def5678.diff"
+            package.write_bytes(b"# Review package\nexact diff bytes\n")
+            report = ("### Spec Compliance\n\n- ✅ Spec compliant\n\n"
+                      "### Assessment\n\n**Task quality: Approved.** Clear implementation.\n")
+            child = {"agent": "/root/task_reviewer", "cwd": str(fixture), "events": [
+                {"type": "event_msg", "payload": {"item": {
+                    "type": "CommandExecution", "command": ["/bin/zsh", "-lc",
+                        f"cat {package.relative_to(fixture)}"], "exit_code": 0,
+                    "aggregated_output": package.read_text()}, "completed_at_ms": 1}},
+                {"type": "event_msg", "payload": {"type": "task_complete",
+                                                 "last_agent_message": report}},
+            ]}
+            sessions = [{"agent": "/root", "cwd": str(fixture), "events": []}, child]
+            observed = checker.collect_task_review(
+                sessions, "first-task", fixture, workspace, "abc1234", "def5678")
+            self.assertEqual(observed["package"], str(package))
+            self.assertEqual(observed["package_sha256"], sha(package))
+            parked = json.loads(json.dumps(sessions))
+            parked[1]["events"][1]["payload"]["last_agent_message"] = report.replace(
+                "**Task quality: Approved.**", "**Task quality:** Needs fixes")
+            self.assertEqual(checker.collect_task_review(
+                parked, "first-task", fixture, workspace, "abc1234", "def5678")["context"],
+                "/root/task_reviewer")
+            for label, change in (
+                ("wrong cwd", lambda c: c.update(cwd=str(fixture.parent))),
+                ("wrong path", lambda c: c["events"][0]["payload"]["item"].update(
+                    command=["/bin/zsh", "-lc", "cat ../outside/review-abc1234..def5678.diff"])),
+                ("wrong output", lambda c: c["events"][0]["payload"]["item"].update(
+                    aggregated_output="# Review package\nwrong bytes\n")),
+                ("missing completion", lambda c: c["events"][0]["payload"].pop(
+                    "completed_at_ms")),
+                ("missing verdict", lambda c: c["events"][1]["payload"].update(
+                    last_agent_message=report.replace("**Task quality: Approved.**", ""))),
+            ):
+                with self.subTest(label=label):
+                    bad = json.loads(json.dumps(sessions))
+                    change(bad[1])
+                    with self.assertRaises(ValueError):
+                        checker.collect_task_review(
+                            bad, "first-task", fixture, workspace, "abc1234", "def5678")
+
     def assert_rejected(self, root, label):
         result = subprocess.run([sys.executable, str(CHECKER), str(root)],
                                 capture_output=True, text=True)
@@ -436,6 +482,17 @@ class UpgradeEvidenceTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp).resolve()
             make_complete(root)
+            result = subprocess.run([sys.executable, str(CHECKER), str(root)],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_task_review_accepts_observed_markdown_approval_variant(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            make_complete(root)
+            sessions = root / "stages/resume/sessions.json"
+            sessions.write_text(sessions.read_text().replace(
+                "**Task quality:** Approved", "**Task quality: Approved.**"))
             result = subprocess.run([sys.executable, str(CHECKER), str(root)],
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
