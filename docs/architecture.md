@@ -2,7 +2,7 @@
 
 ## Plugin Overview
 
-maxi-superpowers vendors superpowers v6.4.2 and currently supports Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. Newly imported upstream host surfaces require separate Maxi integration and native qualification. The plugin has two layers:
+maxi-superpowers vendors superpowers v6.4.2 and has packaging surfaces for Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, Muse, OpenCode, Pi, Qwen Code, and Hermes Agent. Native qualification remains host-specific. The plugin has two layers:
 
 1. **Spec-driven pipeline**: 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. The forward pipeline reads project artifacts and enforces its documented prerequisites; lifecycle and migration skills use only the prerequisites named by their own contracts.
 2. **Superpowers implementation engine**: 15 vendored superpowers v6.4.2 skills (`brainstorming`, `writing-plans`, `executing-plans`, `diagnosing-superpowers`, and others) perform delegated work. The 19 Maxi-native skills retain pipeline ownership; imported Native mode is outside Maxi's SDD completion contract.
@@ -19,6 +19,7 @@ maxi-superpowers/
 ├── .cursor-plugin/          # Cursor manifest (skills + hooks path)
 ├── .devin-plugin/           # Devin CLI metadata-only manifest
 ├── .kimi-plugin/            # Kimi Code declarative skill/bootstrap manifest
+├── .muse-plugin/            # Muse native plugin and local marketplace manifests
 ├── .hermes-plugin/          # Hermes manifest + gated Python adapter
 ├── .opencode/               # OpenCode V1/V2 plugin (maxi.js) + INSTALL.md
 ├── index.js                 # OpenCode package-root re-export
@@ -184,7 +185,7 @@ bash scripts/sync-superpowers.sh
 
 ## Harness Strategy
 
-Maxi's current fourteen-host inventory is addressed through executable adapters, declarative manifests, native discovery, or marketplace-only distribution. [ADR-0031](maxi/adr/0031-align-superpowers-v6-4-model.md) governs the v6.4.2 adaptation. The OpenCode V2 adapter uses its native skill and context hooks; native qualification determines its supported lifecycle. Muse and Qwen remain pending Maxi integration and native qualification:
+Maxi's sixteen-host inventory is addressed through executable adapters, declarative manifests, native discovery, or marketplace-only distribution. [ADR-0031](maxi/adr/0031-align-superpowers-v6-4-model.md) governs the v6.4.2 adaptation. The OpenCode V2 adapter uses its native skill and context hooks. Muse packaging and Qwen's Claude marketplace conversion are integrated, with native limits recorded below:
 
 | Harness | Mechanism |
 |---|---|
@@ -199,8 +200,10 @@ Maxi's current fourteen-host inventory is addressed through executable adapters,
 | GitHub Copilot CLI | Marketplace-only distribution path; the installed root uses `hooks/hooks.json` and the `COPILOT_CLI` branch of `hooks/session-start` |
 | Grok Build CLI | Marketplace-only distribution path; no dedicated Maxi root manifest or runtime adapter in this repository |
 | Kimi Code | `.kimi-plugin/plugin.json` exposes `skills/`, loads `using-maxi` through `sessionStart.skill`, and carries the Kimi tool mapping inline |
+| Muse | `.muse-plugin/plugin.json` declares all 34 skills and a Bash `SessionStart` hook; the local `./` marketplace remains unqualified on the available plugin-disabled binaries |
 | OpenCode | `package.json` points to root `index.js`, which re-exports `.opencode/plugins/maxi.js`; V1 and V2 inject into root sessions whose project has `docs/maxi/`, and V2 registers all 34 skills with native paths |
 | Pi | `package.json` `pi` section loads `.pi/extensions/maxi.ts`, which gates first-session and post-compaction injection on `docs/maxi/` |
+| Qwen Code | A separate Claude marketplace root converts the unchanged Maxi source under `plugins/maxi`; `hooks/hooks.json` loads the gated Bash hook |
 | Hermes Agent | `.hermes-plugin/plugin.yaml` loads `.hermes-plugin/__init__.py`; the adapter registers every skill and injects a short first-turn bootstrap only when `docs/maxi/` exists |
 
 Gemini and Kimi are declarative bootstrap surfaces: their manifests cannot inspect the current working directory before loading `GEMINI.md` or `using-maxi`, so installation may expose that bootstrap outside Maxi projects. All executable adapters retain the `docs/maxi/` gate.
@@ -211,7 +214,7 @@ Hook ownership:
 
 - `hooks/hooks.json`: root manifest for Claude Code and Antigravity, and the shared marketplace hook path used by GitHub Copilot CLI. Runs the unified `hooks/session-start`.
 - `hooks/hooks-cursor.json`: Cursor manifest (Cursor `sessionStart` event, `additional_context` snake_case). Runs the unified `hooks/session-start`.
-- `hooks/session-start`: the single env-aware hook. Detects `CURSOR_PLUGIN_ROOT` (`additional_context`), `CLAUDE_PLUGIN_ROOT` without `COPILOT_CLI` (`hookSpecificOutput.additionalContext`), and falls back to the SDK-standard top-level `additionalContext`. Gated on `docs/maxi/` (silent outside a maxi project).
+- `hooks/session-start`: the single env-aware hook. Detects `CURSOR_PLUGIN_ROOT` (`additional_context`), then `MUSE_PLUGIN_ROOT`, `QWEN_PROJECT_DIR`, or `CLAUDE_PLUGIN_ROOT` without `COPILOT_CLI` (`hookSpecificOutput.additionalContext`), and falls back to top-level `additionalContext`. Gated on `docs/maxi/` (silent outside a maxi project).
 - `hooks/run-hook.cmd`: cross-platform polyglot wrapper for the hook scripts.
 
 The package is validated by the fast tier (`check-plugin-manifest.sh`, `check-declarative-harnesses.sh`, `check-hermes-plugin.sh`, `check-codex-plugin.sh`, `check-hooks.sh`, `check-cursor-hooks.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`, `check-pi-extension.sh`). The bootstrap preamble is identical across the bash hook, the OpenCode plugin, and the Pi extension (parity-guarded).

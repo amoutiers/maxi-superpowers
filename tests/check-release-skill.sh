@@ -36,6 +36,7 @@ if [ -f "$SKILL" ]; then
     .devin-plugin/plugin.json \
     .hermes-plugin/plugin.yaml \
     .kimi-plugin/plugin.json \
+    .muse-plugin/plugin.json \
     gemini-extension.json \
     package.json; do
     if grep -Fq "$manifest" <<<"$BUMP_SECTION"; then
@@ -63,11 +64,47 @@ if [ -f "$SKILL" ]; then
   assert_not_grep "$SKILL" 'git tag.*--vX.Y.Z' "release skill: never creates a plugin-prefixed tag"
   assert_grep "$SKILL" 'git push origin "vX.Y.Z"' "release skill: pushes only the canonical version tag"
 
-  if grep -Fq 'git add .claude-plugin/marketplace.json .agents/plugins/marketplace.json' <<<"$MARKETPLACE_SECTION"; then
-    echo "OK  [release skill: stages marketplaces in commit 2]"
+  if grep -Fq 'git add .claude-plugin/marketplace.json .agents/plugins/marketplace.json .muse-plugin/marketplace.json' <<<"$MARKETPLACE_SECTION"; then
+    echo "OK  [release skill: stages all marketplaces in commit 2]"
   else
-    echo "FAIL [release skill: stages marketplaces in commit 2]" >&2
+    echo "FAIL [release skill: stages all marketplaces in commit 2]" >&2
     failures=$((failures + 1))
+  fi
+  if grep -Fq '.muse-plugin/marketplace.json' <<<"$MARKETPLACE_SECTION"; then
+    echo "OK  [release skill: updates Muse marketplace version in commit 2]"
+  else
+    echo "FAIL [release skill: updates Muse marketplace version in commit 2]" >&2
+    failures=$((failures + 1))
+  fi
+
+  # Execute the release skill's actual marketplace update against a local fixture.
+  release_js="$(sed -n '/^node -e "$/,/^" "\$RELEASE_SHA"$/p' "$SKILL" | sed '1d;$d')"
+  if [ -z "$release_js" ]; then
+    echo "FAIL [release skill: marketplace update snippet extractable]" >&2
+    failures=$((failures + 1))
+  elif ! command -v node >/dev/null 2>&1; then
+    echo "SKIP [release skill: marketplace update behavior] (node not installed)"
+  else
+    fixture="$(mktemp -d)"
+    mkdir -p "$fixture/.claude-plugin" "$fixture/.agents/plugins" "$fixture/.muse-plugin"
+    printf '%s\n' '{"name":"maxi","version":"9.8.7"}' > "$fixture/.claude-plugin/plugin.json"
+    printf '%s\n' '{"plugins":[{"name":"decoy","source":{"source":"github","commit":"keep"}},{"name":"maxi","source":{"source":"github","commit":"old"}}]}' > "$fixture/.claude-plugin/marketplace.json"
+    printf '%s\n' '{"plugins":[{"name":"decoy","source":{"source":"github","commit":"keep"}},{"name":"maxi","source":{"source":"local","path":"./plugins/maxi"}}]}' > "$fixture/.agents/plugins/marketplace.json"
+    printf '%s\n' '{"plugins":[{"name":"maxi","version":"1.0.0","source":"./"}]}' > "$fixture/.muse-plugin/marketplace.json"
+    if (cd "$fixture" && node -e "$release_js" '1234567'); then
+      if jq -e '.plugins[0] == {"name":"decoy","source":{"source":"github","commit":"keep"}} and .plugins[1].source.commit == "1234567"' "$fixture/.claude-plugin/marketplace.json" >/dev/null &&
+        jq -e '.plugins[0] == {"name":"decoy","source":{"source":"github","commit":"keep"}} and .plugins[1].source == {"source":"local","path":"./plugins/maxi"}' "$fixture/.agents/plugins/marketplace.json" >/dev/null &&
+        jq -e '.plugins[0] == {"name":"maxi","version":"9.8.7","source":"./"}' "$fixture/.muse-plugin/marketplace.json" >/dev/null; then
+        echo "OK  [release skill: matches plugin identity and updates only supported fields]"
+      else
+        echo "FAIL [release skill: marketplace update behavior]" >&2
+        failures=$((failures + 1))
+      fi
+    else
+      echo "FAIL [release skill: marketplace update snippet executes]" >&2
+      failures=$((failures + 1))
+    fi
+    rm -rf "$fixture"
   fi
 fi
 

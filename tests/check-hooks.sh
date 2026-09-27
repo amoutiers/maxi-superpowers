@@ -12,6 +12,7 @@ source "$ROOT/tests/lib/test-helpers.sh"
 HOOKS_DIR="$ROOT/hooks"
 HOOKS_JSON="$HOOKS_DIR/hooks.json"
 CURSOR_HOOKS_JSON="$HOOKS_DIR/hooks-cursor.json"
+MUSE_PLUGIN="$ROOT/.muse-plugin/plugin.json"
 failures=0
 
 # --- root manifest: hooks.json (Claude Code + Antigravity) ---
@@ -103,6 +104,38 @@ else
   failures=$((failures + 1))
 fi
 
+# Muse and Qwen require the nested SessionStart output observed in native sessions.
+for label in muse muse-with-claude qwen; do
+  case "$label" in
+    muse) out="$(cd "$TMP_PROJ" && MUSE_PLUGIN_ROOT="$ROOT" bash "$HOOK")" ;;
+    muse-with-claude) out="$(cd "$TMP_PROJ" && MUSE_PLUGIN_ROOT="$ROOT" CLAUDE_PLUGIN_ROOT="$ROOT" bash "$HOOK")" ;;
+    qwen) out="$(cd "$TMP_PROJ" && QWEN_PROJECT_DIR="$TMP_PROJ" bash "$HOOK")" ;;
+  esac
+  if printf '%s' "$out" | jq -e 'keys == ["hookSpecificOutput"] and .hookSpecificOutput.hookEventName == "SessionStart" and (.hookSpecificOutput.additionalContext | contains("You have maxi."))' >/dev/null 2>&1; then
+    echo "OK  [session-start: $label nested shape]"
+  else
+    echo "FAIL [session-start: $label nested shape]" >&2
+    failures=$((failures + 1))
+  fi
+done
+
+if [ -f "$MUSE_PLUGIN" ]; then
+  muse_interpreter="$(jq -r '.capabilities.hooks[] | select(.event == "SessionStart") | .command[0]' "$MUSE_PLUGIN")"
+  muse_script="$(jq -r '.capabilities.hooks[] | select(.event == "SessionStart") | .command[1]' "$MUSE_PLUGIN")"
+  if [ -n "$muse_interpreter" ] && [ -n "$muse_script" ]; then
+    declared_out="$(cd "$TMP_PROJ" && MUSE_PLUGIN_ROOT="$ROOT" "$muse_interpreter" "$ROOT/$muse_script")"
+    if printf '%s' "$declared_out" | jq -e '.hookSpecificOutput.hookEventName == "SessionStart" and (.hookSpecificOutput.additionalContext | contains("You have maxi."))' >/dev/null 2>&1; then
+      echo "OK  [Muse declared Bash command runs the hook]"
+    else
+      echo "FAIL [Muse declared Bash command runs the hook]" >&2
+      failures=$((failures + 1))
+    fi
+  else
+    echo "FAIL [Muse declared Bash command has two arguments]" >&2
+    failures=$((failures + 1))
+  fi
+fi
+
 # Silent outside a maxi project
 empty_out="$(cd "$TMP_EMPTY" && bash "$HOOK")"
 if [ -z "$empty_out" ]; then
@@ -111,5 +144,18 @@ else
   echo "FAIL [session-start: silent outside a maxi project]: got output" >&2
   failures=$((failures + 1))
 fi
+for label in muse qwen; do
+  if [ "$label" = muse ]; then
+    empty_out="$(cd "$TMP_EMPTY" && MUSE_PLUGIN_ROOT="$ROOT" bash "$HOOK")"
+  else
+    empty_out="$(cd "$TMP_EMPTY" && QWEN_PROJECT_DIR="$TMP_EMPTY" bash "$HOOK")"
+  fi
+  if [ -z "$empty_out" ]; then
+    echo "OK  [session-start: $label silent outside a maxi project]"
+  else
+    echo "FAIL [session-start: $label emitted outside a maxi project]" >&2
+    failures=$((failures + 1))
+  fi
+done
 
 summary_and_exit "hooks checks"

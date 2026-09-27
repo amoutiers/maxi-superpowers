@@ -2,7 +2,7 @@
 
 ![maxi-superpowers](assets/logo.svg)
 
-A spec-driven development plugin for Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. Its 19 maxi-native skills turn "build me X" into a disciplined pipeline — **constitution → spec → clarify → plan → tasks → analyze → implement** — and gate each phase so nothing ships without the design artifacts to back it. Under the hood it delegates implementation to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
+A spec-driven development plugin for Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, Muse, OpenCode, Pi, Qwen Code, and Hermes Agent. Its 19 maxi-native skills turn "build me X" into a disciplined pipeline: **constitution → spec → clarify → plan → tasks → analyze → implement**. Each phase requires the design artifacts for the next. Implementation delegates to [superpowers](https://github.com/obra/superpowers) (TDD, subagents, code review).
 
 **Why maxi?**
 
@@ -28,8 +28,10 @@ A spec-driven development plugin for Claude Code, Antigravity, Codex App, Codex 
 | GitHub Copilot CLI | Marketplace-only distribution path using the shared root `hooks/hooks.json` → gated `hooks/session-start` |
 | Grok Build CLI | Marketplace-only distribution path; no dedicated in-repo manifest or adapter |
 | Kimi Code | Declarative `.kimi-plugin/plugin.json` with `sessionStart.skill: using-maxi` and inline tool mapping |
+| Muse | `.muse-plugin/plugin.json` with all 34 skills and a gated Bash `SessionStart` hook; native plugin loading remains unqualified |
 | OpenCode | `package.json` → root `index.js` → `.opencode/plugins/maxi.js`, with V1/V2 exports and root-session `docs/maxi/` gating |
 | Pi | `package.json` `pi` section → `.pi/extensions/maxi.ts`, gated at session start and after compaction |
+| Qwen Code | Claude marketplace conversion from a separate marketplace root, using the gated `hooks/hooks.json` fallback |
 | Hermes Agent | `.hermes-plugin/plugin.yaml` → `.hermes-plugin/__init__.py`, with a short gated first-turn bootstrap |
 
 Gemini and Kimi are declarative surfaces. Their manifests cannot inspect the current working directory before loading `GEMINI.md` or `using-maxi`, so the bootstrap may load outside projects containing `docs/maxi/`. Executable adapters remain gated.
@@ -72,6 +74,37 @@ Antigravity runs the plugin's session-start hook (the root `hooks/hooks.json`), 
 
 ### For Cursor
 Install from Cursor's plugin marketplace. `.cursor-plugin/plugin.json` points Cursor to the skills directory and `hooks/hooks-cursor.json`; the hook emits Cursor's `additional_context` shape.
+
+### For Muse
+
+`.muse-plugin/plugin.json` declares all 34 skills and the gated Bash session hook. Both public Muse binaries checked during this adaptation reject plugin commands with `plugins are not available in this build`, so native plugin installation, discovery and the local `./` marketplace catalog remain unqualified. The pinned catalog follows the vendored Superpowers format; the [current Muse marketplace guide](https://meta-models.github.io/muse-code-sdk/next/guides/plugins/concepts/marketplaces-and-updates/) describes a different catalog format.
+
+The [Muse manifest reference](https://meta-models.github.io/muse-code-sdk/next/guides/plugins/reference/manifest/) disallows symlinks in a plugin package. For future validation on a plugin-enabled host, stage only the declared regular files outside this checkout:
+
+```bash
+stage=$(mktemp -d)
+mkdir -p "$stage/.muse-plugin" "$stage/hooks"
+cp .muse-plugin/plugin.json "$stage/.muse-plugin/"
+cp -R skills "$stage/skills"
+cp hooks/session-start "$stage/hooks/"
+test -z "$(find "$stage" -type l -print -quit)"
+```
+
+This staging leaves the checkout's existing symlinks intact. It is a local package inventory check, not a native installation result.
+
+### For Qwen Code
+
+Qwen Code 0.24.6 converts the Claude marketplace surface and discovers all 34 Maxi skills when the unchanged checkout is placed under `plugins/maxi` of a separate local marketplace. Installing this multi-harness repository root directly selects its Gemini manifest in that version. A local marketplace can be assembled from a clean checkout:
+
+```bash
+marketplace=$(mktemp -d)
+mkdir -p "$marketplace/.claude-plugin" "$marketplace/plugins/maxi"
+git archive HEAD | tar -x -C "$marketplace/plugins/maxi"
+printf '%s\n' '{"name":"maxi-local","owner":{"name":"maxi-superpowers contributors"},"plugins":[{"name":"maxi","source":"./plugins/maxi"}]}' > "$marketplace/.claude-plugin/marketplace.json"
+qwen extensions install "$marketplace" --consent --scope user
+```
+
+Select `maxi` in the interactive marketplace menu, then verify the enabled extension with `qwen extensions list`. A noninteractive command returning zero at the selection menu does not prove installation. The converted extension retains `hooks/hooks.json`; Qwen loads it when its generated manifest has no inline hooks. The session hook injects Maxi context only in projects containing `docs/maxi/`.
 
 ### For OpenCode
 Add the package to `opencode.json`. OpenCode V1 uses `plugin`:

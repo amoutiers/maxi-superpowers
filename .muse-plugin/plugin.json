@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "name": "maxi",
+  "displayName": "Maxi",
+  "version": "2.7.3",
+  "description": "Spec-driven development pipeline for Muse",
+  "compat": {
+    "source": "native",
+    "manifestDir": ".muse-plugin"
+  },
+  "capabilities": {
+    "skills": [
+      {
+        "id": "analyze",
+        "path": "skills/analyze/SKILL.md"
+      },
+      {
+        "id": "board",
+        "path": "skills/board/SKILL.md"
+      },
+      {
+        "id": "brainstorming",
+        "path": "skills/brainstorming/SKILL.md"
+      },
+      {
+        "id": "cancel",
+        "path": "skills/cancel/SKILL.md"
+      },
+      {
+        "id": "clarify",
+        "path": "skills/clarify/SKILL.md"
+      },
+      {
+        "id": "constitution",
+        "path": "skills/constitution/SKILL.md"
+      },
+      {
+        "id": "diagnosing-superpowers",
+        "path": "skills/diagnosing-superpowers/SKILL.md"
+      },
+      {
+        "id": "dispatching-parallel-agents",
+        "path": "skills/dispatching-parallel-agents/SKILL.md"
+      },
+      {
+        "id": "executing-plans",
+        "path": "skills/executing-plans/SKILL.md"
+      },
+      {
+        "id": "finishing-a-development-branch",
+        "path": "skills/finishing-a-development-branch/SKILL.md"
+      },
+      {
+        "id": "implement",
+        "path": "skills/implement/SKILL.md"
+      },
+      {
+        "id": "migrate-adr",
+        "path": "skills/migrate-adr/SKILL.md"
+      },
+      {
+        "id": "migrate-from-brownfield",
+        "path": "skills/migrate-from-brownfield/SKILL.md"
+      },
+      {
+        "id": "migrate-from-speckit",
+        "path": "skills/migrate-from-speckit/SKILL.md"
+      },
+      {
+        "id": "park",
+        "path": "skills/park/SKILL.md"
+      },
+      {
+        "id": "plan",
+        "path": "skills/plan/SKILL.md"
+      },
+      {
+        "id": "receiving-code-review",
+        "path": "skills/receiving-code-review/SKILL.md"
+      },
+      {
+        "id": "requesting-code-review",
+        "path": "skills/requesting-code-review/SKILL.md"
+      },
+      {
+        "id": "resume",
+        "path": "skills/resume/SKILL.md"
+      },
+      {
+        "id": "review",
+        "path": "skills/review/SKILL.md"
+      },
+      {
+        "id": "revise",
+        "path": "skills/revise/SKILL.md"
+      },
+      {
+        "id": "specify",
+        "path": "skills/specify/SKILL.md"
+      },
+      {
+        "id": "subagent-driven-development",
+        "path": "skills/subagent-driven-development/SKILL.md"
+      },
+      {
+        "id": "systematic-debugging",
+        "path": "skills/systematic-debugging/SKILL.md"
+      },
+      {
+        "id": "tasks",
+        "path": "skills/tasks/SKILL.md"
+      },
+      {
+        "id": "test-driven-development",
+        "path": "skills/test-driven-development/SKILL.md"
+      },
+      {
+        "id": "using-git-worktrees",
+        "path": "skills/using-git-worktrees/SKILL.md"
+      },
+      {
+        "id": "using-maxi",
+        "path": "skills/using-maxi/SKILL.md"
+      },
+      {
+        "id": "using-superpowers",
+        "path": "skills/using-superpowers/SKILL.md"
+      },
+      {
+        "id": "verification-before-completion",
+        "path": "skills/verification-before-completion/SKILL.md"
+      },
+      {
+        "id": "writing-plans",
+        "path": "skills/writing-plans/SKILL.md"
+      },
+      {
+        "id": "writing-skills",
+        "path": "skills/writing-skills/SKILL.md"
+      },
+      {
+        "id": "x-adr",
+        "path": "skills/x-adr/SKILL.md"
+      },
+      {
+        "id": "x-develop",
+        "path": "skills/x-develop/SKILL.md"
+      }
+    ],
+    "commands": [],
+    "hooks": [
+      {
+        "id": "session-start",
+        "event": "SessionStart",
+        "command": [
+          "bash",
+          "hooks/session-start"
+        ],
+        "timeoutMs": 5000
+      }
+    ],
+    "mcpServers": [],
+    "reminders": []
+  }
+}

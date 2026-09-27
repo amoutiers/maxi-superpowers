@@ -93,6 +93,7 @@ Hermes YAML manifest uses `version:`:
 .devin-plugin/plugin.json    # Devin plugin manifest
 .hermes-plugin/plugin.yaml   # Hermes plugin manifest
 .kimi-plugin/plugin.json     # Kimi Code plugin manifest
+.muse-plugin/plugin.json     # Muse plugin manifest
 gemini-extension.json        # Gemini extension manifest
 package.json                 # npm and Pi package manifest
 ```
@@ -102,34 +103,40 @@ package.json                 # npm and Pi package manifest
 ```bash
 git add CHANGELOG.md .claude-plugin/plugin.json .codex-plugin/plugin.json \
   .cursor-plugin/plugin.json .devin-plugin/plugin.json .hermes-plugin/plugin.yaml \
-  .kimi-plugin/plugin.json gemini-extension.json package.json
+  .kimi-plugin/plugin.json .muse-plugin/plugin.json gemini-extension.json package.json
 git commit -m "chore(release): vX.Y.Z"
 ```
 
 ### 7. Update marketplace metadata and commit (commit 2 of 2)
 
-Get the SHA of commit 1, update marketplace metadata, then make a second commit. The tag goes on this second commit.
+Get the SHA of commit 1, update marketplace metadata and the Muse marketplace version, then make a second commit. The tag goes on this second commit. Read the plugin name and version from `.claude-plugin/plugin.json`; select that named entry in each marketplace. Pin only remote object sources. The Muse source is the local `./` string and has no commit pin.
 
 ```bash
 RELEASE_SHA=$(git rev-parse HEAD)
 node -e "
   const fs = require('fs');
   const releaseSha = process.argv[1];
-  for (const p of ['.claude-plugin/marketplace.json', '.agents/plugins/marketplace.json']) {
-    if (!fs.existsSync(p)) continue;
-    const d = JSON.parse(fs.readFileSync(p, 'utf8'));
-    const source = d.plugins?.[0]?.source;
-    if (source && source.source !== 'local') {
+  const plugin = JSON.parse(fs.readFileSync('.claude-plugin/plugin.json', 'utf8'));
+  const paths = ['.claude-plugin/marketplace.json', '.agents/plugins/marketplace.json', '.muse-plugin/marketplace.json'];
+  const documents = paths.map(p => [p, JSON.parse(fs.readFileSync(p, 'utf8'))]);
+  for (const [p, d] of documents) {
+    const entry = d.plugins?.find(item => item.name === plugin.name);
+    if (!entry) throw new Error('Plugin ' + plugin.name + ' missing from ' + p);
+    if (p === '.muse-plugin/marketplace.json') entry.version = plugin.version;
+    const source = entry.source;
+    if (source && typeof source === 'object' && source.source !== 'local') {
       source.commit = releaseSha;
     }
+  }
+  for (const [p, d] of documents) {
     fs.writeFileSync(p, JSON.stringify(d, null, 2) + '\n');
   }
 " "$RELEASE_SHA"
-git add .claude-plugin/marketplace.json .agents/plugins/marketplace.json
+git add .claude-plugin/marketplace.json .agents/plugins/marketplace.json .muse-plugin/marketplace.json
 git commit -m "chore(release): pin marketplace.json to vX.Y.Z"
 ```
 
-Commit-pinned marketplace entries now point to commit 1 (version bump + CHANGELOG). That is intentional — users who install from a pinned marketplace get the plugin code from commit 1, which has everything they need.
+Commit-pinned marketplace entries now point to commit 1 (version bump + CHANGELOG). Users who install from a pinned marketplace get that code. The Muse marketplace keeps its local `./` source and receives the new version in commit 2.
 
 ### 8. Tag and push
 
@@ -162,5 +169,5 @@ echo "Action running at: https://github.com/${REMOTE}/actions"
 | Relying on the Action to pin marketplace.json | Update marketplace metadata locally in step 7, before tagging |
 | One commit for everything | Two commits: (1) version+CHANGELOG, (2) marketplace.json pin — tag on commit 2 |
 | `git status` without `--porcelain` | `--porcelain` catches untracked files that plain `git status` calls "clean" |
-| Only bumping a subset of manifests | Bump and stage all eight manifests listed in step 5 |
+| Only bumping a subset of manifests | Bump and stage all nine manifests listed in step 5 |
 | Creating a plugin-prefixed tag | Create and push only the canonical `vX.Y.Z` tag |

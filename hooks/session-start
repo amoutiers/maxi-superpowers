@@ -2,11 +2,12 @@
 # SessionStart hook for maxi plugin
 #
 # One unified hook for all harnesses that run a session-start shell hook
-# (Claude Code, Antigravity, Cursor, Copilot CLI). Codex and OpenCode use
+# (Claude Code, Antigravity, Cursor, Copilot CLI, Muse, Qwen). Codex and OpenCode use
 # their own discovery mechanisms and do not call this hook.
 #
 # Output format is selected by environment:
 #   - Cursor sets CURSOR_PLUGIN_ROOT (may also set CLAUDE_PLUGIN_ROOT) → additional_context
+#   - Muse sets MUSE_PLUGIN_ROOT and Qwen sets QWEN_PROJECT_DIR → hookSpecificOutput.additionalContext
 #   - Claude Code sets CLAUDE_PLUGIN_ROOT without COPILOT_CLI → hookSpecificOutput.additionalContext
 #   - Copilot CLI (sets COPILOT_CLI=1) or unknown → additionalContext (SDK standard)
 
@@ -46,8 +47,8 @@ session_context="<EXTREMELY_IMPORTANT>\nYou have maxi.\n\n**Below is the full co
 if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
   # Cursor sets CURSOR_PLUGIN_ROOT (may also set CLAUDE_PLUGIN_ROOT)
   printf '{\n  "additional_context": "%s"\n}\n' "$session_context"
-elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
-  # Claude Code sets CLAUDE_PLUGIN_ROOT without COPILOT_CLI
+elif [ -n "${MUSE_PLUGIN_ROOT:-}" ] || [ -n "${QWEN_PROJECT_DIR:-}" ] || { [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; }; then
+  # Muse and Qwen take the native nested shape even when Claude markers coexist.
   printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"
 else
   # Copilot CLI (sets COPILOT_CLI=1) or unknown platform — SDK standard format

@@ -2,7 +2,7 @@
 
 ## Overview
 
-maxi-superpowers vendors 15 skills from superpowers v6.4.2 via git subtree and adds 19 Maxi-native skills: 13 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `review`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration skills (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). The current Maxi host inventory covers Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, OpenCode, Pi, and Hermes Agent. Upstream v6.4.2 host additions are imported but require separate Maxi integration and native qualification.
+maxi-superpowers vendors 15 skills from superpowers v6.4.2 via git subtree and adds 19 Maxi-native skills: 13 user-facing commands (`constitution`, `specify`, `clarify`, `plan`, `review`, `tasks`, `analyze`, `implement`, `board`, `cancel`, `park`, `resume`, `revise`), 2 internal pipeline skills (`x-adr`, `x-develop`), 1 session skill (`using-maxi`), and 3 migration skills (`migrate-from-speckit`, `migrate-from-brownfield`, `migrate-adr`). The current Maxi host inventory covers Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, Muse, OpenCode, Pi, Qwen Code, and Hermes Agent. Native qualification remains host-specific.
 
 ## Git
 
@@ -111,10 +111,10 @@ Run `bash tests/run-all.sh` after changes.
 - `check-revise.sh` — completed-spec reopening and change-authorization invariants remain aligned
 - `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
-- `check-declarative-harnesses.sh` — Cursor, Kimi, Devin, and Gemini manifests match `package.json`, Kimi/Gemini bootstrap wiring is complete, and Pi remains project-gated
+- `check-declarative-harnesses.sh`: Cursor, Kimi, Devin, Gemini, and Muse manifests match `package.json`; Muse declares all 34 skill paths and a symlink-free staged package; Kimi/Gemini bootstrap wiring and Pi gating remain checked
 - `check-hermes-plugin.sh` — Hermes registers every skill, injects the short first-turn bootstrap only in Maxi projects, and stays below the 10,000-character limit
 - `check-codex-plugin.sh` — `.codex-plugin/plugin.json` (`hooks: {}`), `.agents/plugins/marketplace.json`, and `plugins/maxi` are valid for Codex plugin installation
-- `check-hooks.sh` — `hooks/hooks.json` (Claude Code + Antigravity) and `hooks/hooks-cursor.json` manifests are valid; the unified `hooks/session-start` exists, is executable, and emits the right JSON shape per harness; stale per-harness wrappers and the `.antigravity-plugin/` directory are gone
+- `check-hooks.sh`: Claude, Cursor, Muse, and Qwen session-start shapes and the `docs/maxi/` gate are checked; the Muse manifest runs the unified hook with Bash; stale wrappers and `.antigravity-plugin/` remain absent
 - `check-cursor-hooks.sh` — `hooks/hooks-cursor.json` is a valid Cursor `sessionStart` manifest invoking `hooks/session-start`
 - `check-vendored-doc.sh` — `VENDORED.md` has required version/date lines (regression guard for `bump-superpowers.sh`)
 - `check-sync-script.sh` — `sync-superpowers.sh` copies vendor skills and leaves maxi-native skills untouched
@@ -127,7 +127,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-integration-harness.sh`: optional Codex integration harness stays runnable on macOS without GNU `timeout`, keeps prompt discovery guarded, and verifies one completed JSONL command result read the byte-checked installed skill snapshot; recognizes complete installed Python reads and captured reservations
 - `integration/test-codex-timeout.sh` — macOS Perl deadline-supervisor regression runs in the fast tier, including material plugin staging and timeout status 124
 - `check-doc-consistency-skill.sh` — local doc-consistency skills stay aligned with the Mandatory Sync 5 rule
-- `check-release-skill.sh` — release instructions keep the fast-tier/doc-consistency gates, bump and stage all eight manifests, derive the plugin name from `.claude-plugin/plugin.json`, and leave marketplace pinning in commit 2
+- `check-release-skill.sh`: release instructions keep the fast-tier/doc-consistency gates, bump and stage all nine plugin manifests, select the canonical plugin by name, and update three marketplaces in commit 2 while preserving Muse's local source
 - `check-skill-count.sh` — maxi-native skill count, documented review contracts, and Mandatory Sync 5 durable-plan sentence match the filesystem
 - `check-status-consistency.sh` — the 10 FSM statuses are consistent across spec-template, board, and AGENTS.md
 - `check-artifact-link-convention.sh` — the duplicated artifact-link block is byte-identical to the canonical fixture
