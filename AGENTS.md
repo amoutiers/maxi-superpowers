@@ -24,6 +24,8 @@ Every newly written `plan.md` carries exactly one `Global Constraints` section c
 
 Every new or structurally corrected `plan.md` also carries exactly one `Review Focus` section: zero to five justified cases after scanning the spec and task tests, each naming its owning task and test; an empty scan is stated explicitly. Task interfaces, assertions and verification commands stay in their owning task bodies through projection and brief extraction. Requested design destinations and owner-only returns still govern the upstream planning handoff.
 
+The plan owner loads the complete registered installed writing-plans skill before drafting or structural correction; an unavailable skill stops planning.
+
 ## Vendored Skills
 
 `skills/` contains a mix of vendored (from superpowers) and maxi-native skills.

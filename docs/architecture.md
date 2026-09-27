@@ -127,6 +127,8 @@ Every newly written `plan.md` carries exactly one `Global Constraints` section c
 
 Every new or structurally corrected `plan.md` also carries exactly one `Review Focus` section: zero to five justified cases after scanning the spec and task tests, each naming its owning task and test; an empty scan is stated explicitly. Task interfaces, assertions and verification commands stay in their owning task bodies through projection and brief extraction. Requested design destinations and owner-only returns still govern the upstream planning handoff.
 
+The plan owner loads the complete registered installed writing-plans skill before drafting or structural correction; an unavailable skill stops planning.
+
 The 10-state FSM remains unchanged. The three fixed review boundaries are design review after the normal plan write, readiness review in `/maxi:analyze` before implementation, and the upstream SDD final implementation review. They are gates, not statuses or automatic phase transitions.
 
 A passing readiness review is valid only when `analysis.md` carries `maxi-readiness-v2` and its recorded structural spec/tasks hashes, exact plan hash, and `review_inputs_sha256` match the current artifacts and decision inputs; `/maxi:implement` verifies this with an explicit project root before every new or resumed dispatch and otherwise stops for `/maxi:analyze`.
