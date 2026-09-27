@@ -3,14 +3,25 @@ def require($ok; $why): if $ok then . else error($why) end;
 def commands:
   [.events[] | .payload | select(.completed_at_ms != null)
    | .item | select(.type == "CommandExecution" and .exit_code == 0)];
+def python_path_names($command; $base):
+  [$command | scan("(?m)(?:^|[;\\n])[[:space:]]*([a-z][a-z0-9_]*)=Path\\('([^']+)'\\)") |
+    .[0] as $name | select(.[1] == $base and
+      ([$command | scan("(?m)(?:^|[[:space:];])" + $name + "=")] | length) == 1) | $name];
 # Only finite comma-separated installed skill names; never evaluate shell text.
 def reads_path($installed; $path):
   (.command | join(" ")) as $command |
   ($command | contains($path)) or
   (($path | sub("/[a-z][a-z-]*/SKILL.md$"; "")) as $base |
    ($path | split("/") | .[-2:] | join("/")) as $relative |
-   ($command | contains("python3 - <<") and contains("base=Path('" + $base + "')") and
-     contains("'" + $relative + "'") and contains("p=base/rel") and contains("p.read_text()"))) or
+   ($command | contains("python3 - <<") and contains("'" + $relative + "'") and
+     contains("p.read_text()") and
+     any(python_path_names($command; $base)[];
+       . as $name | ($command | contains("p=" + $name + "/rel")))) or
+   (any([$command | scan("(?m)(?:^|[[:space:];])([a-z][a-z0-9_]*)=(/[^[:space:];]+)")][];
+     .[0] as $name | .[1] == $base and
+     ([$command | scan("(?m)(?:^|[[:space:];])" + $name + "=")] | length) == 1 and
+     any($command | split("\n")[]; startswith("cat ") and
+       contains("\"$" + $name + "/" + $relative + "\""))))) or
   (if ($path | endswith("/SKILL.md")) then
     ($path | split("/")) as $parts |
     (($parts[0:-2] | join("/")) + "/") as $prefix |
@@ -30,6 +41,13 @@ def invokes_helper($helper):
   ($command | contains("result=subprocess.run([") and contains("\"" + $helper + "\",") and
     test(",[\\\\']+reserve[\\\\']+,str\\(review\\)") and
     contains("capture_output=True") and contains("json.dumps(dict(")) or
+  (($helper | sub("/review/design-contract.sh$"; "")) as $base |
+   $command | contains("out=subprocess.check_output([") and
+     contains(",'reserve',") and contains("text=True") and
+     contains("print(json.dumps(") and
+     any(python_path_names($command; $base)[];
+       . as $name |
+       ($command | contains("str(" + $name + "/'review/design-contract.sh')")))) or
   (if (.cwd // "" | test("^file:///[^%]+$")) then
     (.command[-1] | split(" ")) as $words |
     ($words[0] == "bash" and ($words[1] // "" | startswith("../")) and
@@ -40,11 +58,14 @@ def invokes_helper($helper):
 def reservation_lines:
   (if (.command | join(" ") | contains("result=subprocess.run([")) then
     (.aggregated_output | fromjson? | select(.code == 0 and .error == "") | .result)
+   elif (.command | join(" ") | contains("out=subprocess.check_output([")) then
+    (.aggregated_output | fromjson? | .reservation)
    else .aggregated_output end) |
   split("\n")[] | select(test("^DESIGN_REVIEW_RESERVED operation_id=[a-f0-9]{64} pass=[12] report_sha256=[a-f0-9]{64}$"));
 def invokes_reservation($helper):
   invokes_helper($helper) and
-  (if (.command | join(" ") | contains("result=subprocess.run([")) then true
+  (if ((.command | join(" ") | contains("result=subprocess.run([")) or
+      (.command | join(" ") | contains("out=subprocess.check_output(["))) then true
    else (.command | join(" ") | test("[[:space:]]reserve[[:space:]]|[[:space:]]reserve$")) end);
 def read_owner($installed; $owner):
   commands as $cmds |
@@ -59,7 +80,20 @@ require(any(.cli[]; .type == "turn.completed") and
   all(.cli[]; .type != "turn.failed" and .type != "error"); "incomplete CLI turn") |
 require((.sessions | length) > 0 and all(.sessions[]; (.events | length) > 0); "missing session evidence") |
 [.cli[] | select(.type == "item.completed" and .item.type == "agent_message") | .item.text] as $messages |
-require(([$messages[] | scan("\\?")] | length) <= .max_questions; "unexpected user questions; inspect transcript") |
+[.sessions[] | select(.agent == "/root") | .events[] | select(.type == "event_msg" and .payload.type == "task_complete") | .payload] as $final_turns |
+[.sessions[] | select(.agent == "/root") | .events[] | select(.type == "turn_context") | .payload.turn_id] as $turn_ids |
+(if .name == "questions" then ([$final_turns[].last_agent_message | scan("\\?")] | length)
+ else ([$messages[] | scan("\\?")] | length) end) as $question_count |
+require(if .name == "questions" then
+  ($final_turns | length) == ([.cli[] | select(.type == "turn.completed")] | length) and
+  ($final_turns | length) == ((.answers | length) + 1) and
+  $turn_ids == ($final_turns | map(.turn_id)) and
+  ($turn_ids | unique | length) == ($turn_ids | length) and
+  all($final_turns[]; (.turn_id | type) == "string" and (.turn_id | length) > 0 and
+    (.last_agent_message | type) == "string" and (.last_agent_message | length) > 0) and
+  ($final_turns[-1].last_agent_message | test("\\?") | not)
+  else true end; "incomplete scripted final-turn evidence") |
+require($question_count <= .max_questions; "unexpected user questions; inspect transcript") |
 require(all(.changes[]; . as $path | $input.allowed | index($path)); "unauthorized write or successor") |
 require(all(.files | keys[]; . as $path | $input.allowed | index($path)); "duplicate or unauthorized artifact") |
 require(all(.required | to_entries[]; . as $required |
@@ -136,4 +170,4 @@ require(if .outcome == "approved" then
   else true end; "absent or inconsistent completed independent reviewer verdict") |
 {result:(if .review then .outcome else "verified" end), review_dispatches:($reviews | length), reservations:($reservations | length),
  user_turns:([.cli[] | select(.type == "turn.completed")] | length),
- questions:([$messages[] | scan("\\?")] | length), duplicate_documents:0}
+ questions:$question_count, duplicate_documents:0}

@@ -263,7 +263,7 @@
   {
     "name": "missing-continuity",
     "group": "boundaries",
-    "prompt": "Resume the existing coordinated design operation for 0001-line-counter after its first review reservation. The report has been lost. Do not treat this as a new request or rebuild continuity; stop safely. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "prompt": "Continue the existing coordinated design operation for 0001-line-counter through the installed /maxi:review owner after its first review reservation. This is the same operation, not a fresh review request. Establish continuity from the existing artifacts and stop safely if it cannot be verified. Do not rebuild or reset the operation, dispatch a new review, implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
     "owners": [
       "review"
     ],
