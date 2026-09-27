@@ -122,7 +122,11 @@ class CheckerTest(unittest.TestCase):
                 "The work is merged into main.",
                 "The batch was found to be merged already.",
                 "Local integration completed.",
-                "The batch was merged. It could be merged again."):
+                "The batch was merged. It could be merged again.",
+                "The integrated result was verified.",
+                "Followed by verification of the integrated result.",
+                "The batch was merged. What remains: explicit integration authorization, followed by verification of the integrated result.",
+                "What remains: explicit integration authorization, followed by verification of the integrated result. The batch is integrated in main."):
             self.good_events[-2]["item"]["text"] = claim
             with self.subTest(claim=claim):
                 self.check(False)
@@ -130,7 +134,8 @@ class CheckerTest(unittest.TestCase):
                 "I did not merge the batch. Please decide.",
                 "The batch has not yet been merged. Please decide.",
                 "No branches were merged. Please decide.",
-                "No local integration completed. Please decide."):
+                "No local integration completed. Please decide.",
+                "No merge, push, or cleanup performed. What remains: explicit integration authorization, followed by verification of the integrated result."):
             self.good_events[-2]["item"]["text"] = negative
             with self.subTest(negative=negative):
                 self.check(True)

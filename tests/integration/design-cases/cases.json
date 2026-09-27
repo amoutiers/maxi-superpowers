@@ -133,7 +133,7 @@
   {
     "name": "revision",
     "group": "revision",
-    "prompt": "Run /maxi:revise for 0001-line-counter. I authorize changing whitespace-only lines to empty and the associated plan through design validation. Correct the rejected producer inversion, persisted fixture provenance, reload, and ownership defects together. Record one consolidated old-to-new mapping tied to counter.py, expected_count.txt and check.py. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "prompt": "Run /maxi:revise for 0001-line-counter. I authorize changing whitespace-only lines to empty and the associated plan through design validation. Correct the rejected producer inversion, persisted fixture provenance, reload, and ownership defects together. Record one consolidated old-to-new mapping tied to counter.py, expected_count.txt and check.py. For native evidence, run the installed review/design-contract.sh reserve helper in a separate completed shell command using its absolute path and leave its DESIGN_REVIEW_RESERVED line visible in the captured output. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
     "owners": [
       "revise",
       "plan",

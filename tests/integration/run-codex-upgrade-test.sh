@@ -216,6 +216,12 @@ updated: 2026-09-27
 - [ ] T001 First historical file (plan Task 1)
 - [ ] T002 Second historical file (plan Task 2)
 EOF
+printf '# Readiness\n\nHistorical completed tasks are valid.\n' > "$MIG_DIR/readiness-candidate.md"
+INPUTS="$(bash "$INSTALLED/review/review-inputs.sh" hash "$MIGRATION")"
+bash "$INSTALLED/analyze/readiness-contract.sh" stamp \
+  "$MIG_DIR/readiness-candidate.md" "$MIG_DIR/analysis.md" "$MIG_DIR/spec.md" \
+  "$MIG_DIR/plan.md" "$MIG_DIR/tasks.md" pass 0 "$MIGRATION" "$INPUTS"
+rm "$MIG_DIR/readiness-candidate.md"
 printf '.superpowers/\n' > "$MIGRATION/.gitignore"
 cat > "$MIGRATION/AGENTS.md" <<'EOF'
 # Historical fixture instructions
@@ -251,13 +257,30 @@ MIG_OLD_LEDGER="$MIGRATION/.superpowers/sdd/$(basename "$MIG_OLD" .md)/progress.
 cat "$MIG_LINES" >> "$MIG_OLD_LEDGER"
 sed 's/^- \[ \]/- [x]/' "$MIG_DIR/tasks.md" > "$MIG_DIR/tasks.tmp"
 mv "$MIG_DIR/tasks.tmp" "$MIG_DIR/tasks.md"
-printf '# Readiness\n\nHistorical completed tasks are valid.\n' > "$MIG_DIR/readiness-candidate.md"
-INPUTS="$(bash "$INSTALLED/review/review-inputs.sh" hash "$MIGRATION")"
-bash "$INSTALLED/analyze/readiness-contract.sh" stamp \
-  "$MIG_DIR/readiness-candidate.md" "$MIG_DIR/analysis.md" "$MIG_DIR/spec.md" \
-  "$MIG_DIR/plan.md" "$MIG_DIR/tasks.md" pass 0 "$MIGRATION" "$INPUTS"
 sed 's/^status: analyzed$/status: implementing/' "$MIG_DIR/spec.md" > "$MIG_DIR/spec.tmp"
 mv "$MIG_DIR/spec.tmp" "$MIG_DIR/spec.md"
+bash "$INSTALLED/analyze/readiness-contract.sh" verify \
+  "$MIG_DIR/analysis.md" "$MIG_DIR/spec.md" "$MIG_DIR/plan.md" \
+  "$MIG_DIR/tasks.md" "$MIGRATION" > "$OUTPUT/migration-readiness.txt"
+[ "$(cat "$OUTPUT/migration-readiness.txt")" = READINESS_VERIFIED ]
+python3 - "$MIGRATION" <<'PY'
+from pathlib import Path
+import subprocess
+import sys
+
+root = Path(sys.argv[1])
+spec_dir = Path('docs/maxi/specs/adapter-sample')
+analysis = str(spec_dir / 'analysis.md')
+subprocess.run(['git', '-C', str(root), 'ls-files', '--error-unmatch', analysis],
+               check=True, stdout=subprocess.DEVNULL)
+assert not (root / spec_dir / 'readiness-candidate.md').exists()
+status = subprocess.check_output(['git', '-C', str(root), 'status',
+                                  '--porcelain=v1', '-z', '--untracked-files=all'])
+assert set(status.decode().rstrip('\0').split('\0')) == {
+    ' M ' + str(spec_dir / 'spec.md'),
+    ' M ' + str(spec_dir / 'tasks.md'),
+}, status
+PY
 run_stage migration 'Run /maxi:implement for the analyzed, already-completed historical adapter-sample. The v1 projection and its two completion records are seeded fixture inputs backed by genuine original Git commits. Upgrade through the installed project-tasks helper to an empty v2 successor. Do not reexecute historical tasks. Obtain a fresh actual independent whole-branch final review of the original nonempty Git range, supplying the reviewer complete exact spec and plan including Review Focus plus the review package. Persist actual identity/verdict and a new terminal receipt beside the active projection progress.md with the exact filename terminal-receipt.md, using record-terminal.sh --output. Then run the installed result-contract in a separate shell command containing only the verifier invocation, and report its actual READY_TO_FINISH output. This user-requested boundary stops before writing done or invoking branch finishing; leave spec status implementing so the runner can independently revalidate the receipt.' "$MIGRATION"
 
 python3 - "$ROOT" "$OUTPUT" "$RUNTIME" "$INSTALLED" "$FIXTURE" "$MIGRATION" "$BASE" "$MIG_BASE" "$MIG_HEAD" "$MIG_OLD" "$MIG_OLD_LEDGER" <<'PY'

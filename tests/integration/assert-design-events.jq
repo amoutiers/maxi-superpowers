@@ -17,11 +17,20 @@ def reads_path($installed; $path):
      contains("p.read_text()") and
      any(python_path_names($command; $base)[];
        . as $name | ($command | contains("p=" + $name + "/rel")))) or
-   (any([$command | scan("(?m)(?:^|[[:space:];])([a-z][a-z0-9_]*)=(/[^[:space:];]+)")][];
-     .[0] as $name | .[1] == $base and
-     ([$command | scan("(?m)(?:^|[[:space:];])" + $name + "=")] | length) == 1 and
-     any($command | split("\n")[]; startswith("cat ") and
-       contains("\"$" + $name + "/" + $relative + "\""))))) or
+  (any([$command | scan("(?m)(?:^|[[:space:];])([a-z][a-z0-9_]*)=(/[^[:space:];]+)")][];
+    .[0] as $name | .[1] == $base and
+    ([$command | scan("(?m)(?:^|[[:space:];])" + $name + "=")] | length) == 1 and
+    any($command | split("\n")[]; startswith("cat ") and
+      contains("\"$" + $name + "/" + $relative + "\""))))) or
+  (($path | sub("/[a-z][a-z-]*/SKILL.md$"; "")) as $base |
+   ($path | split("/") | .[-2:] | join("/")) as $relative |
+   any([$command | scan("(?s)for f in ([A-Za-z0-9_./ -]+); do (.*?) done")][];
+      . as $loop |
+      ($loop[0] | split(" ") | map(select(length > 0))) as $names |
+      $loop[1] == ("p=" + $base + "/$f; test -f \"$p\" && test ! -L \"$p\" && cat \"$p\";") and
+      ($names | length) > 0 and
+      all($names[]; test("^[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*/[A-Za-z][A-Za-z0-9.-]*$")) and
+      ($names | index($relative) != null))) or
   (if ($path | endswith("/SKILL.md")) then
     ($path | split("/")) as $parts |
     (($parts[0:-2] | join("/")) + "/") as $prefix |

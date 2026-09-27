@@ -25,6 +25,9 @@ PENDING_RESULT = re.compile(
     r"can|could|will|would|should|may|might|must)\s+"
     r"(?:(?:still|only|later|eventually)\s+)?be\s+"
     r"(?P<result>merged|integrated|fast-forwarded)\b", re.I)
+FUTURE_VERIFICATION = re.compile(
+    r"\bWhat remains:\s+explicit integration authorization,\s+"
+    r"followed by verification of the (?P<result>integrated) result\b", re.I)
 COMPLETED_RESULT = re.compile(
     r"\b(?:merge|integration)\s+(?:(?:was|is|has been|had been)\s+)?"
     r"(?:succeeded|completed)\b", re.I)
@@ -60,7 +63,8 @@ def names_installed_skill(item, installed):
 
 def merge_claimed(final):
     negated = {match.span("result") for match in NEGATED_RESULT.finditer(final)}
-    pending = {match.span("result") for match in PENDING_RESULT.finditer(final)}
+    pending = {match.span("result") for pattern in (PENDING_RESULT, FUTURE_VERIFICATION)
+               for match in pattern.finditer(final)}
     negated_completed = {match.span("result") for match in NEGATED_COMPLETED.finditer(final)}
     return (any(match.span() not in negated | pending
                 for match in MERGED_RESULT.finditer(final)) or

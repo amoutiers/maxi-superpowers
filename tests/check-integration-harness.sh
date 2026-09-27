@@ -262,6 +262,31 @@ PYTHON_READ
   else
     echo "OK  [design checker rejects Python owner names without content]"
   fi
+  shell_read='for f in plan/SKILL.md clarify/SKILL.md; do p=/installed/$f; test -f "$p" && test ! -L "$p" && cat "$p"; done'
+  if jq --arg command "$shell_read" '.sessions[0].events[0].payload.item.command[2] = $command' "$sample" | jq -e -f "$CHECKER" >/dev/null; then
+    echo "OK  [design checker: finite installed shell owner reads]"
+  else
+    echo "FAIL [design checker: finite installed shell owner reads]" >&2
+    failures=$((failures + 1))
+  fi
+  for wrong in \
+    "${shell_read/\/installed\/\$f/\/other\/\$f}" \
+    "${shell_read/plan\/SKILL.md/other\/SKILL.md}" \
+    "${shell_read/ && cat \"\$p\"/}"; do
+    if jq --arg command "$wrong" '.sessions[0].events[0].payload.item.command[2] = $command' "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
+      echo "FAIL [design checker accepted an invalid shell owner read]" >&2
+      failures=$((failures + 1))
+    else
+      echo "OK  [design checker rejects invalid shell owner read]"
+    fi
+  done
+  decoy_shell_read='for f in plan/SKILL.md clarify/SKILL.md; do :; done; for f in other/SKILL.md; do p=/installed/$f; test -f "$p" && test ! -L "$p" && cat "$p"; done'
+  if jq --arg command "$decoy_shell_read" '.sessions[0].events[0].payload.item.command[2] = $command' "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
+    echo "FAIL [design checker joined a decoy file list to another loop's cat]" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [design checker binds installed read to one finite loop]"
+  fi
   for mutation in '/installed|/other' 'plan/SKILL.md|unknown/SKILL.md'; do
     wrong_command="${python_read/${mutation%%|*}/${mutation#*|}}"
     if jq --arg command "$wrong_command" '.sessions[0].events[0].payload.item.command[2] = $command' "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
