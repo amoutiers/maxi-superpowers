@@ -38,6 +38,7 @@ def status_file(path, status):
 def record_stage(root, installed, name, owners, thread, review=None, proof=None,
                  reviewer_paths=()):
     stage_dir = root / "stages" / name
+    fixture = root / ("migration-fixture" if name == "migration" else "fixture")
     stage_dir.mkdir(parents=True, exist_ok=True)
     root_events = []
     cli = [{"type": "thread.started", "thread_id": thread}, {"type": "turn.started"}]
@@ -50,26 +51,26 @@ def record_stage(root, installed, name, owners, thread, review=None, proof=None,
         cli.append({"type": "item.completed", "item": {"type": "command_execution",
                     "status": "completed", "exit_code": 0, "command": command,
                     "aggregated_output": skill.read_text()}})
-    sessions = [{"agent": "/root", "events": root_events}]
+    sessions = [{"agent": "/root", "cwd": str(fixture), "events": root_events}]
     if review:
         context, spec, plan, final = review
         root_events.extend([
-            {"type": "response_item", "payload": {"type": "function_call", "name": "spawn_agent",
+            {"type": "response_item", "timestamp": "2026-09-27T11:00:00.000Z", "payload": {"type": "function_call", "name": "spawn_agent",
                 "call_id": "alloc", "arguments": json.dumps({"task_name": context.rsplit("/", 1)[1],
                                                      "message": "Identity only"})}},
-            {"type": "response_item", "payload": {"type": "function_call_output",
+            {"type": "response_item", "timestamp": "2026-09-27T11:00:01.000Z", "payload": {"type": "function_call_output",
                 "call_id": "alloc", "output": json.dumps({"task_name": context})}},
-            {"type": "response_item", "payload": {"type": "function_call", "name": "followup_task",
+            {"type": "response_item", "timestamp": "2026-09-27T11:00:02.000Z", "payload": {"type": "function_call", "name": "followup_task",
                 "call_id": "review", "arguments": json.dumps({"target": context,
                     "message": f"Review this spec:\n{spec}\nThis plan:\n{plan}"})}},
-            {"type": "response_item", "payload": {"type": "function_call_output",
+            {"type": "response_item", "timestamp": "2026-09-27T11:00:03.000Z", "payload": {"type": "function_call_output",
                 "call_id": "review", "output": ""}},
         ])
         child_events = [
-            {"type": "event_msg", "payload": {"type": "item_completed", "turn_id": "identity-turn",
+            {"type": "event_msg", "timestamp": "2026-09-27T10:59:59.000Z", "payload": {"type": "item_completed", "turn_id": "identity-turn",
                 "completed_at_ms": 1, "item": {"type": "AgentMessage", "phase": "final_answer",
                     "content": [{"type": "Text", "text": "Identity ready"}]}}},
-            {"type": "event_msg", "payload": {"type": "task_complete", "turn_id": "identity-turn",
+            {"type": "event_msg", "timestamp": "2026-09-27T10:59:59.500Z", "payload": {"type": "task_complete", "turn_id": "identity-turn",
                 "last_agent_message": "Identity ready"}},
         ]
         for path, content in reviewer_paths:
@@ -77,13 +78,13 @@ def record_stage(root, installed, name, owners, thread, review=None, proof=None,
                 "type": "CommandExecution", "command": ["/bin/zsh", "-lc", f"cat {path}"],
                 "exit_code": 0, "aggregated_output": content}, "completed_at_ms": 2}})
         child_events.extend([
-            {"type": "event_msg", "payload": {"type": "item_completed", "turn_id": "review-turn",
+            {"type": "event_msg", "timestamp": "2026-09-27T11:00:04.000Z", "payload": {"type": "item_completed", "turn_id": "review-turn",
                 "completed_at_ms": 2, "item": {"type": "AgentMessage", "phase": "final_answer",
                     "content": [{"type": "Text", "text": final}]}}},
-            {"type": "event_msg", "payload": {"type": "task_complete", "turn_id": "review-turn",
+            {"type": "event_msg", "timestamp": "2026-09-27T11:00:05.000Z", "payload": {"type": "task_complete", "turn_id": "review-turn",
                 "last_agent_message": final}},
         ])
-        sessions.append({"agent": context, "events": child_events})
+        sessions.append({"agent": context, "cwd": str(fixture), "events": child_events})
     if proof:
         command, output = proof
         command = ["/bin/zsh", "-lc", shlex.join(command)]
@@ -100,9 +101,9 @@ def record_stage(root, installed, name, owners, thread, review=None, proof=None,
             "command": ["/bin/zsh", "-lc", f"grep '^status: done$' {spec_path}"],
             "exit_code": 0, "aggregated_output": "status: done\n"}, "completed_at_ms": 4}})
         root_events.append({"type": "event_msg", "payload": {"type": "task_complete",
-            "turn_id": "resume-turn", "last_agent_message": "Git outcome: deliberately retained"}})
+            "turn_id": "resume-turn", "last_agent_message": "Git outcome: **deliberately retained**"}})
     cli.extend([{"type": "item.completed", "item": {"type": "agent_message",
-                "text": "Git outcome: deliberately retained" if name == "resume" else "Stage complete"}},
+                "text": "Git outcome: **deliberately retained**" if name == "resume" else "Stage complete"}},
                 {"type": "turn.completed"}])
     (stage_dir / "cli.jsonl").write_text("".join(json.dumps(item) + "\n" for item in cli))
     (stage_dir / "sessions.json").write_text(json.dumps(sessions))
@@ -122,7 +123,7 @@ def add_task_review(root, stage, context, package):
     report = ("### Spec Compliance\n\n- ✅ Spec compliant\n\n### Strengths\n\n"
               "The file matches the task.\n\n### Issues\n\nNone.\n\n"
               "### Assessment\n\n**Task quality:** Approved\n")
-    sessions.append({"agent": context, "events": [
+    sessions.append({"agent": context, "cwd": str(root / "fixture"), "events": [
         {"type": "event_msg", "payload": {"item": {
             "type": "CommandExecution", "command": ["/bin/zsh", "-lc", f"cat {package}"],
             "exit_code": 0, "aggregated_output": package.read_text()}, "completed_at_ms": 1}},
@@ -135,6 +136,40 @@ def add_task_review(root, stage, context, package):
     path.write_text(json.dumps(sessions))
     return {"stage": stage, "context": context, "package": str(package),
             "package_sha256": sha(package)}
+
+
+def add_task_execution(root, stage, fixture, workspace, number, endpoint):
+    brief = workspace / f"task-{number}-brief.md"
+    brief.write_text(f"### Task {number}: fixture implementation brief\n")
+    sessions_path = root / "stages" / stage / "sessions.json"
+    sessions = json.loads(sessions_path.read_text())
+    root_events = next(item["events"] for item in sessions if item["agent"] == "/root")
+    context = f"/root/task{number}_implementer"
+    allocation = [
+        {"type": "response_item", "timestamp": "2026-09-27T10:58:00.000Z",
+         "payload": {"type": "function_call", "name": "spawn_agent", "call_id": f"task{number}",
+                     "arguments": json.dumps({"task_name": context.rsplit("/", 1)[1],
+                                              "message": "Implement fixture task"})}},
+        {"type": "response_item", "timestamp": "2026-09-27T10:58:01.000Z",
+         "payload": {"type": "function_call_output", "call_id": f"task{number}",
+                     "output": json.dumps({"task_name": context})}},
+    ]
+    index = next((index for index, event in enumerate(root_events)
+                  if event.get("payload", {}).get("name") == "spawn_agent"), len(root_events))
+    root_events[index:index] = allocation
+    relative = brief.relative_to(fixture)
+    child = {"agent": context, "cwd": str(fixture), "events": [
+        {"type": "event_msg", "timestamp": "2026-09-27T10:58:02.000Z",
+         "payload": {"completed_at_ms": 2, "item": {"type": "CommandExecution", "exit_code": 0,
+                     "command": ["/bin/zsh", "-lc", f"cat {relative}"],
+                     "aggregated_output": brief.read_text()}}},
+        {"type": "event_msg", "timestamp": "2026-09-27T10:58:03.000Z",
+         "payload": {"completed_at_ms": 3, "item": {"type": "CommandExecution", "exit_code": 0,
+                     "command": ["/bin/zsh", "-lc", "git commit -m fixture"],
+                     "aggregated_output": f"[main {endpoint[:7]}] fixture task\n"}}},
+    ]}
+    sessions.append(child)
+    sessions_path.write_text(json.dumps(sessions))
 
 
 def make_migration(root, installed):
@@ -290,6 +325,9 @@ def make_complete(directory):
                      str(fixture / ".superpowers/sdd/active-0001-upgrade"), cwd=fixture)
     workspace = fixture / ".superpowers/sdd" / Path(projection).stem
     ledger = workspace / "progress.md"
+    for number in (1, 2):
+        (workspace / f"task-{number}-brief.md").write_text(
+            f"### Task {number}: fixture implementation brief\n")
     (fixture / "core.py").write_text("def count_nonempty(text):\n    return 1\n")
     run("git", "-C", str(fixture), "add", "core.py")
     run("git", "-C", str(fixture), "commit", "-qm", "first task")
@@ -365,6 +403,8 @@ def make_complete(directory):
                  (["bash", str(installed / "x-develop/result-contract.sh"), "--tasks", str(tasks),
                    "--receipt", str(receipt)], result_output + "\n"),
                  reviewer_paths=((spec, resume_spec), (plan, resume_plan)))
+    add_task_execution(root, "first-task", fixture, workspace, 1, first)
+    add_task_execution(root, "resume", fixture, workspace, 2, head)
     task_reviews = [
         add_task_review(root, "first-task", "/root/task_one_reviewer", task_one_package),
         add_task_review(root, "resume", "/root/task_two_reviewer", task_two_package),
@@ -439,6 +479,22 @@ class UpgradeEvidenceTest(unittest.TestCase):
             last.write_bytes(old + b"Task 1: selected\n")
             self.assert_rejected(root, "replayed completed task")
             last.write_bytes(old)
+            first_sessions = root / "stages/first-task/sessions.json"
+            resume_sessions = root / "stages/resume/sessions.json"
+            first_events = json.loads(first_sessions.read_text())
+            resume_original = resume_sessions.read_bytes()
+            resumed = json.loads(resume_original)
+            resumed.append(next(item for item in first_events
+                                if item["agent"] == "/root/task1_implementer"))
+            resume_sessions.write_text(json.dumps(resumed))
+            self.assert_rejected(root, "Task 1 execution actor replayed")
+            resume_sessions.write_bytes(resume_original)
+            resumed = json.loads(resume_original)
+            task_two = next(item for item in resumed if item["agent"] == "/root/task2_implementer")
+            task_two["events"][-1]["payload"]["item"]["aggregated_output"] = "unrelated commit\n"
+            resume_sessions.write_text(json.dumps(resumed))
+            self.assert_rejected(root, "Task 2 actor did not prove commit endpoint")
+            resume_sessions.write_bytes(resume_original)
             sessions = root / "stages/resume/sessions.json"
             old = sessions.read_bytes()
             events = json.loads(old)
@@ -651,6 +707,11 @@ class UpgradeEvidenceTest(unittest.TestCase):
         ]
         sessions = [{"agent": "/root", "events": root_events},
                     {"agent": "/root/reviewer", "events": child_events}]
+        for index, event in enumerate(root_events):
+            event["timestamp"] = f"2026-09-27T11:00:0{index}.000Z"
+        for index, event in enumerate(child_events):
+            event["timestamp"] = (f"2026-09-27T10:59:5{index}.000Z" if index < 2 else
+                                  f"2026-09-27T11:00:0{index + 2}.000Z")
         checker.review_dispatch(sessions, "/root/reviewer", "full spec", "full plan", final)
         root_events[2]["payload"]["arguments"] = json.dumps({"target": "/root/other", "message": "Review full spec and full plan"})
         with self.assertRaises(ValueError):
@@ -663,6 +724,77 @@ class UpgradeEvidenceTest(unittest.TestCase):
         sessions.pop()
         with self.assertRaises(ValueError):
             checker.review_dispatch(sessions, "/root/reviewer", "full spec", "full plan", final)
+
+    def test_review_dispatch_accepts_native_single_turn_relative_followup(self):
+        final = "Critical: None.\n\nImportant: None.\n\nVERDICT: approved"
+        root_events = [
+            {"type": "response_item", "timestamp": "2026-09-27T11:00:00.000Z",
+             "payload": {"type": "function_call", "name": "spawn_agent", "call_id": "a",
+                         "arguments": json.dumps({"task_name": "design_reviewer", "message": "Identity only"})}},
+            {"type": "response_item", "timestamp": "2026-09-27T11:00:01.000Z",
+             "payload": {"type": "function_call_output", "call_id": "a",
+                         "output": json.dumps({"task_name": "/root/design_reviewer"})}},
+            {"type": "response_item", "timestamp": "2026-09-27T11:00:02.000Z",
+             "payload": {"type": "function_call", "name": "followup_task", "call_id": "b",
+                         "arguments": json.dumps({"target": "design_reviewer", "message": "Review full spec and full plan"})}},
+            {"type": "response_item", "timestamp": "2026-09-27T11:00:03.000Z",
+             "payload": {"type": "function_call_output", "call_id": "b", "output": ""}},
+        ]
+        child_events = [
+            {"type": "event_msg", "timestamp": "2026-09-27T11:00:04.000Z",
+             "payload": {"type": "item_completed", "turn_id": "one-turn", "completed_at_ms": 4,
+                         "item": {"type": "AgentMessage", "phase": "final_answer",
+                                  "content": [{"type": "Text", "text": final}]}}},
+            {"type": "event_msg", "timestamp": "2026-09-27T11:00:05.000Z",
+             "payload": {"type": "task_complete", "turn_id": "one-turn",
+                         "last_agent_message": final}},
+        ]
+        sessions = [{"agent": "/root", "events": root_events},
+                    {"agent": "/root/design_reviewer", "events": child_events}]
+        self.assertEqual(checker.reviewer_terminal(sessions, "/root/design_reviewer"), final)
+        self.assertEqual(checker.review_dispatch(sessions, "/root/design_reviewer",
+                                                 "full spec", "full plan", final), [final])
+        child_events[-1]["timestamp"] = "2026-09-27T10:59:59.000Z"
+        with self.assertRaises(ValueError):
+            checker.review_dispatch(sessions, "/root/design_reviewer",
+                                    "full spec", "full plan", final)
+        child_events[-1]["timestamp"] = "2026-09-27T11:00:05.000Z"
+        del root_events[2]["timestamp"]
+        with self.assertRaises(ValueError):
+            checker.review_dispatch(sessions, "/root/design_reviewer",
+                                    "full spec", "full plan", final)
+        root_events[2]["timestamp"] = "2026-09-27T11:00:02.000Z"
+        nested = "/root/a/design_reviewer"
+        root_events[1]["payload"]["output"] = json.dumps({"task_name": nested})
+        sessions[1]["agent"] = nested
+        with self.assertRaises(ValueError):
+            checker.review_dispatch(sessions, nested, "full spec", "full plan", final)
+        root_events[2]["payload"]["arguments"] = json.dumps(
+            {"target": "a/design_reviewer", "message": "Review full spec and full plan"})
+        self.assertEqual(checker.review_dispatch(sessions, nested, "full spec", "full plan", final),
+                         [final])
+
+    def test_terminal_proof_accepts_native_pwd_bound_paths(self):
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = Path(temp).resolve()
+            tasks = fixture / "docs/maxi/specs/0001-upgrade/tasks.md"
+            receipt = fixture / ".superpowers/sdd/example/terminal-receipt.md"
+            helper = SKILLS / "x-develop/result-contract.sh"
+            command = ["/bin/zsh", "-lc", f'bash {helper} '
+                       '--tasks "$PWD/docs/maxi/specs/0001-upgrade/tasks.md" '
+                       '--receipt "$PWD/.superpowers/sdd/example/terminal-receipt.md"']
+            event = {"type": "event_msg", "payload": {"completed_at_ms": 1, "item": {
+                "type": "CommandExecution", "command": command, "exit_code": 0,
+                "aggregated_output": "LINEAGE: example\nREADY_TO_FINISH\n"}}}
+            sessions = [{"agent": "/root", "cwd": str(fixture), "events": [event]}]
+            self.assertEqual(checker.terminal_proof(sessions, SKILLS, tasks, receipt, fixture), 0)
+            sessions[0]["cwd"] = str(fixture.parent)
+            with self.assertRaises(ValueError):
+                checker.terminal_proof(sessions, SKILLS, tasks, receipt, fixture)
+            sessions[0]["cwd"] = str(fixture)
+            event["payload"]["item"]["command"][-1] += " ; echo unrelated"
+            with self.assertRaises(ValueError):
+                checker.terminal_proof(sessions, SKILLS, tasks, receipt, fixture)
 
 
 if __name__ == "__main__":

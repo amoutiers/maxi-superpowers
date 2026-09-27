@@ -24,6 +24,8 @@ export CODEX_HOME="$RUNTIME/codex-home" PYTHONDONTWRITEBYTECODE=1
 mkdir -p "$CODEX_HOME" "$RUNTIME/marketplace/plugins/maxi" \
   "$RUNTIME/marketplace/.agents/plugins" "$RUNTIME/pre-done-fixture" \
   "$RUNTIME/migration-pre-done-fixture"
+mkdir -p "$RUNTIME/pre-done-fixture/.git" \
+  "$RUNTIME/migration-pre-done-fixture/.git"
 ln -s "$USER_CODEX_HOME/auth.json" "$CODEX_HOME/auth.json"
 cp -R "$ROOT/.codex-plugin" "$ROOT/skills" "$RUNTIME/marketplace/plugins/maxi/"
 cp "$ROOT/.agents/plugins/marketplace.json" \
@@ -96,7 +98,8 @@ for path in sessions_root.rglob('*.jsonl'):
         raise SystemExit('native session shrank')
     new = [json.loads(line) for line in lines[old:] if line.startswith('{')]
     if new:
-        sessions.append({'agent': meta['payload'].get('agent_path') or '/root', 'events': new})
+        sessions.append({'agent': meta['payload'].get('agent_path') or '/root',
+                         'cwd': str(fixture), 'events': new})
         (native / path.name).write_text('\n'.join(lines) + '\n')
     offsets[key] = len(lines)
 (output / 'sessions.json').write_text(json.dumps(sessions))
@@ -106,15 +109,18 @@ PY
 
 run_stage() {
   local name="$1" prompt="$2" repo="${3:-$FIXTURE}" dir="$OUTPUT/stages/$1" code=0
+  local writable="$RUNTIME/pre-done-fixture"
+  [ "$name" = migration ] && writable="$RUNTIME/migration-pre-done-fixture"
   mkdir -p "$dir/snapshot"
   printf '%s\n' "$prompt" > "$dir/prompt.txt"
   if [ "$name" = design ] || [ "$name" = migration ]; then
-    local writable="$RUNTIME/pre-done-fixture"
-    [ "$name" = migration ] && writable="$RUNTIME/migration-pre-done-fixture"
     (cd "$repo"; run_bounded "$dir/raw.log" codex exec --json --sandbox workspace-write \
-      --add-dir "$writable" --cd "$repo" "$prompt") || code=$?
+      --add-dir "$repo/.git" --add-dir "$writable" --add-dir "$writable/.git" \
+      --cd "$repo" "$prompt") || code=$?
   else
-    (cd "$repo"; run_bounded "$dir/raw.log" codex exec resume --json "$THREAD" "$prompt") || code=$?
+    local roots="sandbox_workspace_write.writable_roots=[\"$repo/.git\",\"$writable\",\"$writable/.git\"]"
+    (cd "$repo"; run_bounded "$dir/raw.log" codex exec resume --json -c "$roots" \
+      "$THREAD" "$prompt") || code=$?
   fi
   tr -d '\000' < "$dir/raw.log" | awk '/^\{/' > "$dir/cli.jsonl"
   collect_native "$name" "$repo"
@@ -153,7 +159,15 @@ PROJECTION="$(cat "$FIXTURE/.superpowers/sdd/active-0001-upgrade")"
 WORKSPACE="$FIXTURE/.superpowers/sdd/$(basename "$PROJECTION" .md)"
 cp "$WORKSPACE/progress.md" "$OUTPUT/stages/first-task/snapshot/progress.md"
 git -C "$FIXTURE" rev-parse HEAD > "$OUTPUT/stages/first-task/snapshot/head.txt"
-run_stage resume "Resume /maxi:implement for 0001-upgrade in this same Codex session. Execute only pending Task 2, independently review and reconcile it, then obtain the one fresh whole-branch final review over actual Git history. Supply that reviewer the full exact spec.md and plan.md, including Review Focus, and the real byte-exact review package; persist its actual identity, verdicts, any declined-behavior rulings, and terminal receipt. Write the receipt beside the active projection's progress.md with the exact filename terminal-receipt.md, using record-terminal.sh --output. Run the installed result-contract in a separate command and observe READY_TO_FINISH. Immediately after READY_TO_FINISH and before the implementing-to-done write, copy the complete physical fixture, including .git and ignored .superpowers evidence, into the empty external directory $RUNTIME/pre-done-fixture; it is an authorized additional writable directory for this session. Then let implement persist done. After the done write, run one separate read-only command to print the status line from $SPEC_DIR/spec.md so the native order is observable. For finishing, the user chooses option 3: keep this dedicated branch and external fixture locally, with no merge, push, or PR. Carry out that Git closure flow and report the actual deliberately retained outcome. Do not replay Task 1 or edit core.py."
+if ! grep -q '^status: implementing$' "$SPEC_DIR/spec.md" ||
+   ! grep -q '^- \[x\] T001 ' "$SPEC_DIR/tasks.md" ||
+   ! grep -q '^- \[ \] T002 ' "$SPEC_DIR/tasks.md" ||
+   ! grep -Eq '^Task 1: complete \(commits [0-9a-f]{7}\.\.[0-9a-f]{7}, (review clean|[1-9][0-9]* parked)\)$' "$WORKSPACE/progress.md" ||
+   [ "$(git -C "$FIXTURE" rev-parse HEAD)" = "$BASE" ]; then
+  echo "INCOMPLETE: first-task; evidence: $OUTPUT/stages/first-task" >&2
+  exit 1
+fi
+run_stage resume "Resume /maxi:implement for 0001-upgrade in this same Codex session. Execute only pending Task 2, independently review and reconcile it, then obtain the one fresh whole-branch final review over actual Git history. Supply that reviewer the full exact spec.md and plan.md, including Review Focus, and the real byte-exact review package; persist its actual identity, verdicts, any declined-behavior rulings, and terminal receipt. Write the receipt beside the active projection's progress.md with the exact filename terminal-receipt.md, using record-terminal.sh --output. Run the installed result-contract in a separate command and observe READY_TO_FINISH. Immediately after READY_TO_FINISH and before the implementing-to-done write, copy the complete physical fixture, including .git and ignored .superpowers evidence, into the prepared external directory $RUNTIME/pre-done-fixture using Python shutil.copytree with dirs_exist_ok=True. That directory contains only an empty .git subdirectory, and both it and its .git are authorized writable roots. Confirm the copied .git and .superpowers exist and copied Git HEAD matches. Then let implement persist done. After the done write, run one separate read-only command to print the status line from $SPEC_DIR/spec.md so the native order is observable. For finishing, the user chooses option 3: keep this dedicated branch and external fixture locally, with no merge, push, or PR. Carry out that Git closure flow and report the actual deliberately retained outcome. Do not replay Task 1 or edit core.py."
 PROJECTION="$(cat "$FIXTURE/.superpowers/sdd/active-0001-upgrade")"
 WORKSPACE="$FIXTURE/.superpowers/sdd/$(basename "$PROJECTION" .md)"
 cp "$WORKSPACE/progress.md" "$OUTPUT/stages/resume/snapshot/progress.md"
@@ -244,7 +258,7 @@ bash "$INSTALLED/analyze/readiness-contract.sh" stamp \
   "$MIG_DIR/plan.md" "$MIG_DIR/tasks.md" pass 0 "$MIGRATION" "$INPUTS"
 sed 's/^status: analyzed$/status: implementing/' "$MIG_DIR/spec.md" > "$MIG_DIR/spec.tmp"
 mv "$MIG_DIR/spec.tmp" "$MIG_DIR/spec.md"
-run_stage migration 'Run /maxi:implement for the analyzed, already-completed historical adapter-sample. The v1 projection and its two completion records are seeded fixture inputs backed by genuine original Git commits. Upgrade through the installed project-tasks helper to an empty v2 successor. Do not reexecute historical tasks. Obtain a fresh actual independent whole-branch final review of the original nonempty Git range, supplying the reviewer complete exact spec and plan including Review Focus plus the review package. Persist actual identity/verdict and a new terminal receipt beside the active projection progress.md with the exact filename terminal-receipt.md, using record-terminal.sh --output. Then run the installed result-contract and report READY_TO_FINISH. This user-requested boundary stops before writing done or invoking branch finishing; leave spec status implementing so the runner can independently revalidate the receipt.' "$MIGRATION"
+run_stage migration 'Run /maxi:implement for the analyzed, already-completed historical adapter-sample. The v1 projection and its two completion records are seeded fixture inputs backed by genuine original Git commits. Upgrade through the installed project-tasks helper to an empty v2 successor. Do not reexecute historical tasks. Obtain a fresh actual independent whole-branch final review of the original nonempty Git range, supplying the reviewer complete exact spec and plan including Review Focus plus the review package. Persist actual identity/verdict and a new terminal receipt beside the active projection progress.md with the exact filename terminal-receipt.md, using record-terminal.sh --output. Then run the installed result-contract in a separate shell command containing only the verifier invocation, and report its actual READY_TO_FINISH output. This user-requested boundary stops before writing done or invoking branch finishing; leave spec status implementing so the runner can independently revalidate the receipt.' "$MIGRATION"
 
 python3 - "$ROOT" "$OUTPUT" "$RUNTIME" "$INSTALLED" "$FIXTURE" "$MIGRATION" "$BASE" "$MIG_BASE" "$MIG_HEAD" "$MIG_OLD" "$MIG_OLD_LEDGER" <<'PY'
 import hashlib, importlib.util, json, pathlib, re, subprocess, sys

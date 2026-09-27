@@ -2,6 +2,7 @@
 """Verify retained evidence from the installed Maxi upgrade lifecycle."""
 import json
 import hashlib
+from datetime import datetime
 from pathlib import Path
 import re
 import subprocess
@@ -87,6 +88,8 @@ def review_dispatch(sessions, context, spec, plan, final):
     calls = {}
     state = "start"
     followups = []
+    followup_times = []
+    aliases = {context, context.removeprefix("/root/")}
     for event in roots[0].get("events", []):
         if event.get("type") != "response_item":
             continue
@@ -100,7 +103,7 @@ def review_dispatch(sessions, context, spec, plan, final):
                 raise ValueError("duplicate reviewer dispatch call")
             arguments = json.loads(payload.get("arguments", "{}"))
             calls[call_id] = (name, arguments)
-            if name == "followup_task" and arguments.get("target") == context:
+            if name == "followup_task" and arguments.get("target") in aliases:
                 message = arguments.get("message", "")
                 if (state not in {"allocated", "dispatched"} or
                         not isinstance(message, str) or not message or
@@ -108,6 +111,7 @@ def review_dispatch(sessions, context, spec, plan, final):
                          (spec not in message or plan not in message))):
                     raise ValueError("reviewer follow-up identity or context mismatch")
                 followups.append(call_id)
+                followup_times.append(event.get("timestamp"))
                 state = "followup-pending"
         elif payload.get("type") == "function_call_output" and call_id in calls:
             name, arguments = calls[call_id]
@@ -116,7 +120,7 @@ def review_dispatch(sessions, context, spec, plan, final):
                 if state != "start" or spec in arguments.get("message", "") or plan in arguments.get("message", ""):
                     raise ValueError("reviewer allocation was not an identity handshake")
                 state = "allocated"
-            elif name == "followup_task" and arguments.get("target") == context:
+            elif name == "followup_task" and arguments.get("target") in aliases:
                 if state != "followup-pending" or output not in {
                         "", '{"status":"running"}', '{"status":"completed"}'}:
                     raise ValueError("missing reviewer follow-up result")
@@ -138,13 +142,33 @@ def review_dispatch(sessions, context, spec, plan, final):
             completed[payload.get("turn_id")] = "".join(part.get("text", "") for part in item.get("content", [])
                                                          if part.get("type") == "Text")
         elif payload.get("type") == "task_complete":
-            terminal.append((payload.get("turn_id"), payload.get("last_agent_message")))
-    if (len(terminal) != len(followups) + 1 or len(completed) != len(terminal) or
-            len({turn for turn, _ in terminal}) != len(terminal) or
-            any(completed.get(turn) != message for turn, message in terminal) or
-            terminal[0][1] == final or terminal[-1][1] != final):
+            terminal.append((payload.get("turn_id"), payload.get("last_agent_message"),
+                             event.get("timestamp")))
+    if (not 1 <= len(terminal) <= len(followups) + 1 or
+            len(completed) != len(terminal) or
+            len({turn for turn, _, _ in terminal}) != len(terminal) or
+            any(completed.get(turn) != message for turn, message, _ in terminal) or
+            terminal[-1][1] != final):
         raise ValueError("missing or inconsistent reviewer native terminal")
-    return [message for _, message in terminal[1:]]
+    def native_time(stamp):
+        try:
+            parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        except (AttributeError, ValueError):
+            raise ValueError("missing or invalid native reviewer timestamp") from None
+        if parsed.tzinfo is None:
+            raise ValueError("native reviewer timestamp has no timezone")
+        return parsed
+    followup_times = [native_time(stamp) for stamp in followup_times]
+    terminals = [(message, native_time(stamp)) for _, message, stamp in terminal]
+    if followup_times != sorted(followup_times):
+        raise ValueError("reviewer follow-ups out of order")
+    reviews = [(message, stamp) for message, stamp in terminals
+               if stamp > followup_times[0]]
+    if (not reviews or any(not any(start < stamp <= end for _, stamp in reviews)
+                           for start, end in zip(followup_times, followup_times[1:])) or
+            not any(stamp > followup_times[-1] for _, stamp in reviews)):
+        raise ValueError("reviewer terminal preceded its follow-up")
+    return [message for message, _ in reviews]
 
 
 def reviewer_terminal(sessions, context):
@@ -153,7 +177,7 @@ def reviewer_terminal(sessions, context):
                 for event in session.get("events", [])
                 if event.get("type") == "event_msg" and
                 event.get("payload", {}).get("type") == "task_complete"]
-    require(2 <= len(messages) <= 3 and isinstance(messages[-1], str),
+    require(1 <= len(messages) <= 3 and isinstance(messages[-1], str),
             "missing reviewer terminal message")
     return messages[-1]
 
@@ -302,12 +326,19 @@ def ancestral_range(root, base, head):
             "empty or nonancestor review range")
 
 
-def terminal_proof(sessions, installed, tasks, receipt):
+def terminal_proof(sessions, installed, tasks, receipt, fixture):
     helper = str(installed / "x-develop/result-contract.sh")
+    require(fixture.is_absolute() and str(fixture.resolve(strict=True)) == str(fixture),
+            "terminal fixture cwd is not physical")
+    task_relative = tasks.relative_to(fixture)
+    receipt_relative = receipt.relative_to(fixture)
     expected = ["bash", helper, "--tasks", str(tasks), "--receipt", str(receipt)]
+    pwd_bound = ["bash", helper, "--tasks", f"$PWD/{task_relative}",
+                 "--receipt", f"$PWD/{receipt_relative}"]
     for session in sessions:
         if session.get("agent") != "/root":
             continue
+        require(session.get("cwd") == str(fixture), "terminal proof session cwd changed")
         for index, event in enumerate(session.get("events", [])):
             payload = event.get("payload", {})
             item = payload.get("item", {})
@@ -323,7 +354,7 @@ def terminal_proof(sessions, installed, tasks, receipt):
                          raw[:2] == ["/bin/zsh", "-lc"] else [])
             except ValueError:
                 continue
-            if words == expected and item.get("aggregated_output", "").splitlines().count(
+            if words in (expected, pwd_bound) and item.get("aggregated_output", "").splitlines().count(
                     "READY_TO_FINISH") == 1:
                 return index
     raise ValueError("missing exact installed terminal verifier result")
@@ -349,7 +380,8 @@ def finish_order(sessions, ready_index, spec):
     require(observed, "done status was not observed after terminal verification")
     require(any(index > observed[-1] and event.get("type") == "event_msg" and
                 event.get("payload", {}).get("type") == "task_complete" and
-                "Git outcome:" in event.get("payload", {}).get("last_agent_message", "")
+                re.search(r"Git outcome:\s*(?:\*\*)?deliberately retained(?:\*\*)?",
+                          event.get("payload", {}).get("last_agent_message", ""))
                 for index, event in enumerate(events)),
             "Git closure was not reported after done")
 
@@ -397,6 +429,71 @@ def task_review(stage, review, annotation, ledger, task_number):
     native_reads(sessions, context, {package: package.read_text()})
 
 
+def task_execution(stage, fixture, workspace, number, endpoint):
+    brief = workspace / f"task-{number}-brief.md"
+    require(brief.is_file(), f"missing Task {number} brief")
+    relative = str(brief.relative_to(fixture))
+    body = brief.read_text()
+    roots = [session for session in stage["sessions"] if session.get("agent") == "/root"]
+    require(len(roots) == 1, "missing implementation controller")
+    require(roots[0].get("cwd") == str(fixture), "implementation controller cwd changed")
+    calls = {}
+    issued = {}
+    for event in roots[0]["events"]:
+        if event.get("type") != "response_item":
+            continue
+        payload = event.get("payload", {})
+        call_id = payload.get("call_id")
+        if payload.get("type") == "function_call" and payload.get("name") == "spawn_agent":
+            calls[call_id] = event.get("timestamp")
+        elif payload.get("type") == "function_call_output" and call_id in calls:
+            try:
+                context = json.loads(payload.get("output", "")).get("task_name")
+            except (AttributeError, ValueError):
+                continue
+            if isinstance(context, str):
+                require(context not in issued, "duplicate implementation actor allocation")
+                issued[context] = event.get("timestamp")
+    matched = []
+    for session in stage["sessions"]:
+        context = session.get("agent")
+        if context not in issued:
+            continue
+        require(session.get("cwd") == str(fixture), "implementation actor cwd changed")
+        reads = []
+        commits = []
+        for event in session.get("events", []):
+            payload = event.get("payload", {})
+            item = payload.get("item", {})
+            command = item.get("command")
+            if (event.get("type") != "event_msg" or
+                    payload.get("completed_at_ms") is None or
+                    item.get("type") != "CommandExecution" or
+                    item.get("exit_code") != 0 or not isinstance(command, list)):
+                continue
+            rendered = " ".join(command)
+            output = item.get("aggregated_output", "")
+            if relative in rendered and body in output:
+                reads.append(event.get("timestamp"))
+            if re.search(r"\bgit\s+commit\b", rendered) and endpoint[:7] in output:
+                commits.append(event.get("timestamp"))
+        if reads and commits:
+            matched.append((context, issued[context], reads, commits))
+    require(len(matched) == 1, f"Task {number} native execution is not bound to one actor")
+    context, allocation, reads, commits = matched[0]
+    def stamp(value):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except (AttributeError, ValueError):
+            raise ValueError("missing or invalid task execution timestamp") from None
+        require(parsed.tzinfo is not None, "task execution timestamp has no timezone")
+        return parsed
+    require(any(stamp(allocation) < stamp(read) < stamp(commit)
+                for read in reads for commit in commits),
+            f"Task {number} actor did not read brief before its commit")
+    return context
+
+
 def check_migration(evidence, stage, installed):
     fixture = Path(evidence["fixture"]).resolve(strict=True)
     require(git(fixture, "rev-parse", "--show-toplevel") == str(fixture) and
@@ -434,7 +531,7 @@ def check_migration(evidence, stage, installed):
             field(receipt, "reviewer_context") == evidence["context"] and
             field(receipt, "projection") == str(successor),
             "migration receipt is not bound to original history")
-    terminal_proof(stage["sessions"], installed, Path(evidence["tasks"]), receipt)
+    terminal_proof(stage["sessions"], installed, Path(evidence["tasks"]), receipt, fixture)
     result = subprocess.run(["bash", str(installed / "x-develop/result-contract.sh"),
                              "--tasks", evidence["tasks"], "--receipt", str(receipt)],
                             cwd=fixture, capture_output=True, text=True)
@@ -534,6 +631,12 @@ def check(directory):
     for number, (review, annotation) in enumerate(
             zip(reviews, (first_annotation, second_annotation)), 1):
         task_review(stages[review["stage"]], review, annotation, last_ledger, number)
+    workspace = Path(evidence["ledger"]).parent
+    first_actor = task_execution(stages["first-task"], fixture, workspace, 1, first)
+    second_actor = task_execution(stages["resume"], fixture, workspace, 2, second)
+    require(first_actor != second_actor and
+            all(session.get("agent") != first_actor for session in stages["resume"]["sessions"]),
+            "Task 1 execution actor was replayed during resume")
     require(git(fixture, "show", f"{first}:core.py") == (fixture / "core.py").read_text().strip(),
             "first task core.py was modified during resume")
     receipt = Path(evidence["receipt"])
@@ -553,7 +656,7 @@ def check(directory):
                             reviewed_head, "HEAD"]).returncode == 0,
             "final review does not descend from task completion")
     ready_index = terminal_proof(stages["resume"]["sessions"], installed,
-                                 Path(evidence["tasks"]), receipt)
+                                 Path(evidence["tasks"]), receipt, fixture)
     finish_order(stages["resume"]["sessions"], ready_index,
                  fixture / "docs/maxi/specs/0001-upgrade/spec.md")
     boundary_proof(fixture, Path(evidence["pre_done_fixture"]), evidence["projection"],
@@ -575,7 +678,8 @@ def check(directory):
                         (json.loads(line) for line in (directory / "stages/resume/cli.jsonl").read_text().splitlines())
                         if event.get("type") == "item.completed" and
                         event.get("item", {}).get("type") == "agent_message"]
-    require(any("Git outcome: deliberately retained" in message for message in closure_messages),
+    require(any(re.search(r"Git outcome:\s*(?:\*\*)?deliberately retained(?:\*\*)?",
+                          message) for message in closure_messages),
             "Git closure outcome is absent")
     check_migration(evidence["migration"], stages["migration"], installed)
     return {"result": "verified", "reviewed_head": reviewed_head}
