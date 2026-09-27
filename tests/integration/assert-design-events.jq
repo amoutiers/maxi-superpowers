@@ -4,8 +4,8 @@ def commands:
   [.events[] | .payload | select(.completed_at_ms != null)
    | .item | select(.type == "CommandExecution" and .exit_code == 0)];
 def python_path_names($command; $base):
-  [$command | scan("(?m)(?:^|[;\\n])[[:space:]]*([a-z][a-z0-9_]*)=Path\\('([^']+)'\\)") |
-    .[0] as $name | select(.[1] == $base and
+  [$command | scan("(?m)(?:^|[;\\n])[[:space:]]*([a-z][a-z0-9_]*)=Path\\((['\"])([^'\"]+)\\2\\)") |
+    .[0] as $name | select(.[2] == $base and
       ([$command | scan("(?m)(?:^|[[:space:];])" + $name + "=")] | length) == 1) | $name];
 # Only finite comma-separated installed skill names; never evaluate shell text.
 def reads_path($installed; $path):
@@ -38,16 +38,6 @@ def reads_path($installed; $path):
 def invokes_helper($helper):
   (.command | join(" ")) as $command |
   any($command | split(" ")[]; . == $helper or . == ("\"" + $helper + "\"") or . == ("'" + $helper + "'")) or
-  ($command | contains("result=subprocess.run([") and contains("\"" + $helper + "\",") and
-    test(",[\\\\']+reserve[\\\\']+,str\\(review\\)") and
-    contains("capture_output=True") and contains("json.dumps(dict(")) or
-  (($helper | sub("/review/design-contract.sh$"; "")) as $base |
-   $command | contains("out=subprocess.check_output([") and
-     contains(",'reserve',") and contains("text=True") and
-     contains("print(json.dumps(") and
-     any(python_path_names($command; $base)[];
-       . as $name |
-       ($command | contains("str(" + $name + "/'review/design-contract.sh')")))) or
   (if (.cwd // "" | test("^file:///[^%]+$")) then
     (.command[-1] | split(" ")) as $words |
     ($words[0] == "bash" and ($words[1] // "" | startswith("../")) and
@@ -55,18 +45,31 @@ def invokes_helper($helper):
      (((.cwd | ltrimstr("file://") | split("/") | .[0:-1] | join("/")) +
        "/" + ($words[1] | ltrimstr("../"))) == $helper))
    else false end);
+def python_helper_expressions($command; $helper):
+  ($helper | rtrimstr("/design-contract.sh")) as $review_dir |
+  ($helper | rtrimstr("/review/design-contract.sh")) as $skills_dir |
+  (["\"" + $helper + "\"", "'" + $helper + "'"] +
+   [python_path_names($command; $review_dir)[] | "str(" + . + "/'design-contract.sh')"] +
+   [python_path_names($command; $skills_dir)[] | "str(" + . + "/'review/design-contract.sh')"]);
+def python_reservation_call($helper):
+  (.command | join(" ")) as $command |
+  any(python_helper_expressions($command; $helper)[]; . as $expression |
+    any(["subprocess.run(['bash',", "subprocess.check_output(['bash',"][]; . as $prefix |
+      $command | contains($prefix + $expression + ",'reserve',")));
 def reservation_lines:
-  (if (.command | join(" ") | contains("result=subprocess.run([")) then
-    (.aggregated_output | fromjson? | select(.code == 0 and .error == "") | .result)
-   elif (.command | join(" ") | contains("out=subprocess.check_output([")) then
-    (.aggregated_output | fromjson? | .reservation)
+  (.aggregated_output | try fromjson catch null) as $decoded |
+  (if ($decoded | type) == "object" and
+       ($decoded | has("result") or has("code") or has("error")) then
+     ($decoded | select(.code == 0 and .error == "") | .result)
+   elif ($decoded | type) == "object" and ($decoded | has("reservation")) then
+     $decoded.reservation
    else .aggregated_output end) |
+  select(type == "string") |
   split("\n")[] | select(test("^DESIGN_REVIEW_RESERVED operation_id=[a-f0-9]{64} pass=[12] report_sha256=[a-f0-9]{64}$"));
 def invokes_reservation($helper):
-  invokes_helper($helper) and
-  (if ((.command | join(" ") | contains("result=subprocess.run([")) or
-      (.command | join(" ") | contains("out=subprocess.check_output(["))) then true
-   else (.command | join(" ") | test("[[:space:]]reserve[[:space:]]|[[:space:]]reserve$")) end);
+  python_reservation_call($helper) or
+  (invokes_helper($helper) and
+   (.command | join(" ") | test("[[:space:]]reserve[[:space:]]|[[:space:]]reserve$")));
 def read_owner($installed; $owner):
   commands as $cmds |
   any($installed | to_entries[]; . as $skill |

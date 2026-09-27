@@ -394,6 +394,47 @@ PYTHON_CHECK_OUTPUT
   else
     echo "OK  [design checker rejects wrong JSON reservation result]"
   fi
+  python_raw_captured=$(cat <<'PYTHON_RAW_CAPTURED'
+python3 - <<'PY'
+import subprocess
+from pathlib import Path
+b=Path('/installed/review')
+result=subprocess.run(['bash',str(b/'design-contract.sh'),'reserve',str(review)],text=True,capture_output=True)
+print(result.stdout); print(result.stderr); result.check_returncode()
+PY
+PYTHON_RAW_CAPTURED
+)
+  python_raw_direct=$(cat <<'PYTHON_RAW_DIRECT'
+python3 - <<'PY'
+import subprocess
+from pathlib import Path
+b=Path("/installed/review")
+subprocess.run(['bash',str(b/'design-contract.sh'),'reserve',str(review)],check=True)
+PY
+PYTHON_RAW_DIRECT
+)
+  for command in "$python_raw_captured" "$python_raw_direct"; do
+    if jq --arg command "$command" '.sessions[0].events[1].payload.item.command[2] = $command' "$sample" | jq -e -f "$CHECKER" >/dev/null; then
+      echo "OK  [design checker: observed raw subprocess reservation]"
+    else
+      echo "FAIL [design checker: observed raw subprocess reservation]" >&2
+      failures=$((failures + 1))
+    fi
+  done
+  for wrong_command in "${python_raw_direct/installed/other}" "${python_raw_direct/str(b/str(other}" "${python_raw_direct/design-contract.sh/design-contract.sh.bak}" "${python_raw_direct/reserve/preserve}" "${python_raw_direct/reserve/reserve!}" "${python_raw_direct/subprocess.run/wrong_run}" "${python_raw_direct/subprocess.run/b=Path('other'); subprocess.run}"; do
+    if jq --arg command "$wrong_command" '.sessions[0].events[1].payload.item.command[2] = $command' "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
+      echo "FAIL [design checker accepted wrong raw subprocess reservation]" >&2
+      failures=$((failures + 1))
+    else
+      echo "OK  [design checker rejects wrong raw subprocess reservation]"
+    fi
+  done
+  if jq --arg command "$python_raw_direct" '.sessions[0].events[1].payload.item |= (.command[2] = $command | .aggregated_output = "{\"reservation\":broken}")' "$sample" | jq -e -f "$CHECKER" >/dev/null 2>&1; then
+    echo "FAIL [design checker accepted malformed raw reservation output]" >&2
+    failures=$((failures + 1))
+  else
+    echo "OK  [design checker rejects malformed raw reservation output]"
+  fi
   if jq '.name = "settled-sdd-design" | .required["docs/maxi/specs/0001-line-counter/plan.md"] = [] | .files["docs/maxi/specs/0001-line-counter/plan.md"] = "## Global Constraints\n- One rule.\n## Review Focus\n- Task 1 tests the risk.\n### Task 1: Implement\n- [ ] Step 1\n- [ ] Step 2\n- [ ] Step 3\n- [ ] Step 4\n- [ ] Step 5\n- [ ] Step 6\n"' "$sample" | jq -e -f "$CHECKER" >/dev/null; then
     echo "OK  [design checker: focus ends before direct Task heading]"
   else
