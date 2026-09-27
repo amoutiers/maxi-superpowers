@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "name": "maxi",
   "displayName": "Maxi",
-  "version": "2.7.3",
+  "version": "2.8.0",
   "description": "Spec-driven development pipeline for Muse",
   "compat": {
     "source": "native",

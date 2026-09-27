@@ -1,4 +1,56 @@
 
+## [2.8.0] - 2026-09-27
+
+### Features
+
+- Report explicit Git closure outcomes
+- Retain lean planning through Maxi design owners
+- Preserve upstream review context and dispositions
+- Support OpenCode V2 with Maxi project gating
+- Add Muse and Qwen integration surfaces
+
+### Bug Fixes
+
+- Preserve migration reviews with nonempty Git ranges
+- Validate SDD workspace ownership before evidence reuse
+- Load installed planning skill before Maxi plan writes
+
+### Documentation
+
+- Record Git closure design and execution plan
+- Mark Git closure implementation done
+- Specify superpowers 6.4 adaptation design
+- Plan superpowers 6.4 remediation and adaptation
+- Record approved superpowers v6.4 adaptation decision
+- Record superpowers 6.4 adaptation qualification
+
+### Testing
+
+- Add installed Git closure integration matrix
+- Tighten Git closure evidence assertions
+- Reject false Git closure evidence
+- Distinguish pending Git integration wording
+- Correct Git closure case evidence
+- Reject repeated finishing menu for retained cases
+- Verify installed design traces against observed commands
+- Normalize installed review reservations
+- Qualify the installed superpowers upgrade lifecycle
+- Harden installed upgrade lifecycle evidence
+- Qualify installed upgrade evidence collectors
+- Bind native task reviews to exact packages
+
+### Internal
+
+- Adopt superpowers v6.4.2
+
+
+### Qualification limits
+
+- Installed Codex lifecycle, resume and completed-v1 migration were verified from real native traces and corrected evidence collection. Original failed integration invocations remain documented; no clean monolithic integration run is claimed.
+- OpenCode V1/V2 and Qwen host behavior was qualified with local deterministic providers.
+- Muse plugin installation and marketplace behavior remain unqualified because both tested public builds disable plugin commands. Manifests and the verified hook surface are included.
+- Details: [qualification report](docs/superpowers/qualification/2026-09-27-superpowers-6-4-adaptation.md).
+
 ## [2.7.3] - 2026-09-20
 
 ### Bug Fixes

@@ -1,6 +1,6 @@
 {
   "name": "maxi-superpowers",
-  "version": "2.7.3",
+  "version": "2.8.0",
   "description": "Spec-driven development pipeline for coding agents: constitution → specify → clarify → plan → tasks → analyze → implement",
   "type": "module",
   "main": "index.js",
