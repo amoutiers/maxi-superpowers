@@ -176,7 +176,14 @@ def check(path):
     for pattern in case.get("final_patterns", []):
         require(re.search(pattern, final, re.I | re.S), f"final response misses {pattern}")
     for pattern in case.get("final_forbidden", []):
-        require(not re.search(pattern, final, re.I | re.S), f"final response contains {pattern}")
+        matches = list(re.finditer(pattern, final, re.I | re.S))
+        if pattern == "pushed|published":
+            negated = {m.span("result") for m in re.finditer(
+                r"\b(?:(?:nothing|no changes|no work|no commits?)\s+"
+                r"(?:(?:was|were|has been|have been)\s+)?|(?:not|never)\s+)"
+                r"(?P<result>pushed|published)\b", final, re.I)}
+            matches = [m for m in matches if m.span() not in negated]
+        require(not matches, f"final response contains {pattern}")
     for relative in case["protected"]:
         protected = root / relative
         require(protected.is_file() and

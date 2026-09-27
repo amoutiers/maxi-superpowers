@@ -84,6 +84,13 @@ class CheckerTest(unittest.TestCase):
             "{using-superpowers,finishing-a-development-branch}/SKILL.md'")
         self.check(False)
 
+    def test_negated_push_is_not_a_push_claim(self):
+        self.evidence["case"]["final_forbidden"] = ["pushed|published"]
+        self.good_events[-2]["item"]["text"] = "The batch is ready to merge. Nothing pushed."
+        self.check(True)
+        self.good_events[-2]["item"]["text"] = "The batch is ready to merge. I pushed it."
+        self.check(False)
+
     def test_claimed_merge_without_ref_change(self):
         self.evidence["case"]["final_patterns"] = []
         for claim in (
