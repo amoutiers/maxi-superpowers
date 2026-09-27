@@ -1,12 +1,12 @@
 ---
 adr: 0021
 slug: 0021-align-superpowers-v6-3-model
-status: accepted
+status: superseded
 created: 2026-08-19
 updated: 2026-08-19
 decider: "Antoine Moutiers"
 supersedes: 0016
-superseded_by: null
+superseded_by: 0031
 ---
 
 # ADR-0021: Align Superpowers v6.3.0 Execution and Harness Model
