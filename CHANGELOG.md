@@ -1,4 +1,11 @@
 
+## [2.8.1] - 2026-10-17
+
+### Bug Fixes
+
+- Bind Maxi engine skills and pace Codex reconciliation
+
+
 ## [2.8.0] - 2026-09-27
 
 ### Features
