@@ -1,4 +1,45 @@
 
+## [2.9.0] - 2026-10-17
+
+### Features
+
+- Govern specification intake on Superpowers v7
+- Add native Antigravity package and discovery bootstrap
+
+### Bug Fixes
+
+- Harden root hooks and register Hermes descriptions
+- Preserve canonical installed review evidence
+
+### Documentation
+
+- Specify Superpowers v7 adaptation and accepted architecture
+- Record superpowers v7 local qualification
+- Complete Superpowers v7 adaptation
+
+### Testing
+
+- Qualify v7 builder and guarded design intake evidence
+- Accept observed full-read forms in installed evidence
+- Standardize Codex fixture read recording
+- Require completed builders and retain upgrade proof
+- Join retained native reviewer identities
+
+### Internal
+
+- Begin Superpowers v7 implementation
+- Record verified v7 intake task completion
+- Record verified hook and Hermes task completion
+- Record verified Antigravity task completion
+- Record verified installed harness task completion
+
+### Qualification limits
+
+- Installed Codex qualification covers v7 intake, completed independent builders, initial/revision design, two-task pause/resume and completed-v1 continuation. Original native and collector exits remain separate from corrected offline checker replays.
+- The fresh upgrade archive retains both complete receipts, four Git review packages and their native/Git dependencies. Evidence remains local, as documented in the qualification report.
+- Antigravity qualification covers the observed CLI discovery and project check. Windows native execution, authenticated Hermes and other unexercised hosts, and Antigravity IDE lifecycle remain unqualified.
+- Details: [qualification report](docs/superpowers/qualification/2026-10-17-superpowers-7-adaptation.md).
+
 ## [2.8.1] - 2026-10-17
 
 ### Bug Fixes
