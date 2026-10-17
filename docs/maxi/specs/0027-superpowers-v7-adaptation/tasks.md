@@ -57,7 +57,7 @@ The installed owner snapshot and existing bump/sync tooling are available. The i
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T005 [US3] Run installed v7, initial/revision design and tests/integration/run-codex-upgrade-test.sh qualification; record native host evidence and source identities in docs/superpowers/qualification/2026-10-17-superpowers-7-adaptation.md, reconcile current claims and run doc-consistency (depends on T004) (plan Task 5)
+- [x] T005 [US3] Run installed v7, initial/revision design and tests/integration/run-codex-upgrade-test.sh qualification; record native host evidence and source identities in docs/superpowers/qualification/2026-10-17-superpowers-7-adaptation.md, reconcile current claims and run doc-consistency (depends on T004) (plan Task 5)
 
 **Checkpoint**: Qualification, explicit host limits and current documentation are recorded before the sole final implementation review.
 

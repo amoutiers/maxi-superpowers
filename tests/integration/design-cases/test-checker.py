@@ -20,9 +20,19 @@ SPECIFIED = ('---\nslug: 0001-line-counter\nstatus: specified\n---\n'
 
 def command(text, output):
     return {'type': 'event_msg', 'payload': {'type': 'item_completed', 'completed_at_ms': 2,
+            'thread_id': 'child-id', 'turn_id': 'builder-turn',
             'item': {'type': 'CommandExecution', 'command': ['/bin/zsh', '-lc', text],
                      'cwd': 'file:///fixture', 'status': 'completed', 'exit_code': 0,
                      'aggregated_output': output}}}
+
+
+def builder_completion(message='nothing important left'):
+    return [
+        {'type': 'event_msg', 'payload': {'type': 'item_completed', 'thread_id': 'child-id',
+         'turn_id': 'builder-turn', 'completed_at_ms': 3, 'item': {'type': 'AgentMessage',
+          'phase': 'final_answer', 'content': [{'type': 'Text', 'text': message}]}}},
+        {'type': 'event_msg', 'payload': {'type': 'task_complete', 'turn_id': 'builder-turn',
+         'completed_at': 1, 'last_agent_message': message}}]
 
 
 def fixture():
@@ -39,7 +49,7 @@ def fixture():
         'source': {'subagent': {'thread_spawn': {'parent_thread_id': 'parent-id', 'depth': 1,
                                               'agent_path': '/root/builder'}}},
         'events': [command('cat ' + PROMPT, data['installed'][PROMPT]),
-                   command('cat /fixture/' + SPEC, SPECIFIED)]})
+                   command('cat /fixture/' + SPEC, SPECIFIED)] + builder_completion()})
     return data
 
 
@@ -59,6 +69,40 @@ class BuilderEvidence(unittest.TestCase):
         self.assertEqual(result['builder_checks'], 1)
         self.assertEqual(result['review_dispatches'], 1)
         self.assertEqual(result['reservations'], 1)
+
+    def test_builder_completion_must_follow_reads_and_join_unique_native_message(self):
+        mutations = ('missing-both', 'missing-terminal', 'missing-message', 'failed',
+                     'inconsistent', 'duplicate-terminal', 'duplicate-message', 'wrong-turn',
+                     'wrong-thread', 'pending-message', 'unfinished-terminal',
+                     'result-before-reads', 'read-after-message', 'foreign-turn-read',
+                     'foreign-thread-read', 'terminal-before-message')
+        for mutation in mutations:
+            with self.subTest(mutation=mutation):
+                data = fixture()
+                events = data['sessions'][-1]['events']
+                if mutation == 'missing-both': del events[2:]
+                elif mutation == 'missing-terminal': events.pop()
+                elif mutation == 'missing-message': events.pop(2)
+                elif mutation == 'failed': events[-1]['payload']['type'] = 'task_failed'
+                elif mutation == 'inconsistent': events[-1]['payload']['last_agent_message'] = 'different answer'
+                elif mutation == 'duplicate-terminal': events.append(copy.deepcopy(events[-1]))
+                elif mutation == 'duplicate-message': events.insert(3, copy.deepcopy(events[2]))
+                elif mutation == 'wrong-turn': events[-1]['payload']['turn_id'] = 'foreign-turn'
+                elif mutation == 'wrong-thread': events[2]['payload']['thread_id'] = 'foreign-child'
+                elif mutation == 'pending-message': events[2]['payload']['completed_at_ms'] = None
+                elif mutation == 'unfinished-terminal': events[-1]['payload'].pop('completed_at')
+                elif mutation == 'result-before-reads': events[:] = events[2:] + events[:2]
+                elif mutation == 'read-after-message': events.insert(3, events.pop(1))
+                elif mutation == 'foreign-turn-read': events[1]['payload']['turn_id'] = 'foreign-turn'
+                elif mutation == 'foreign-thread-read': events[1]['payload']['thread_id'] = 'foreign-child'
+                else: events[2]['payload']['completed_at_ms'] = 2000
+                self.check(data, 'unclassified allocation')
+
+    def test_builder_questions_are_a_valid_completed_result(self):
+        data = fixture()
+        data['sessions'][-1]['events'][2:] = builder_completion(
+            'Should unreadable files report their path? This changes CLI error output.')
+        self.assertEqual(self.check(data)['builder_checks'], 1)
 
     def test_event_time_spec_can_differ_from_final_clarified_body(self):
         data = fixture()
@@ -83,7 +127,7 @@ class BuilderEvidence(unittest.TestCase):
                         self.check(data)
                         data['sessions'][-1]['events'] = [command(
                             prefix + quote + PROMPT + quote + ' ' + quote + operand + quote,
-                            data['installed'][PROMPT] + SPECIFIED)]
+                            data['installed'][PROMPT] + SPECIFIED)] + builder_completion()
                         self.check(data)
         for text in ('cat ' + PROMPT + ' ' + SPEC,
                      'cat ' + PROMPT + ' /fixture/docs/../docs/maxi/specs/0001-line-counter/spec.md'):
@@ -91,7 +135,7 @@ class BuilderEvidence(unittest.TestCase):
                 data = fixture()
                 event = command(text, data['installed'][PROMPT] + SPECIFIED)
                 event['payload']['item']['cwd'] = cwd
-                data['sessions'][-1]['events'] = [event]
+                data['sessions'][-1]['events'] = [event] + builder_completion()
                 self.check(data, 'unclassified allocation')
         for operand in ('../fixture/' + SPEC, './' + SPEC, 'docs//maxi/specs/0001-line-counter/spec.md',
                         '$PWD/' + SPEC, '$(pwd)/' + SPEC, SPEC + '*', SPEC + '; true',
@@ -100,7 +144,7 @@ class BuilderEvidence(unittest.TestCase):
                 data = fixture()
                 if joined:
                     data['sessions'][-1]['events'] = [command('cat ' + PROMPT + ' ' + operand,
-                        data['installed'][PROMPT] + SPECIFIED)]
+                        data['installed'][PROMPT] + SPECIFIED)] + builder_completion()
                 else:
                     data['sessions'][-1]['events'][1] = command('cat ' + operand, SPECIFIED)
                 self.check(data, 'unclassified allocation')
@@ -160,7 +204,7 @@ class BuilderEvidence(unittest.TestCase):
         data = fixture()
         prompt = data['installed'][PROMPT]
         text = 'cat ' + PROMPT + ' /fixture/' + SPEC
-        data['sessions'][-1]['events'] = [command(text, prompt + SPECIFIED)]
+        data['sessions'][-1]['events'] = [command(text, prompt + SPECIFIED)] + builder_completion()
         self.assertEqual(self.check(data)['builder_checks'], 1)
         for wrong in ('printf ' + text, text.replace('/installed/', '/foreign/'),
                       text.replace('/fixture/', '/foreign/'),

@@ -180,10 +180,40 @@ def canonical_spec_output($slug):
   test("(?m)^# Feature Specification:") and test("(?m)^## User Scenarios & Testing") and
   test("(?m)^## Requirements") and test("(?m)^## Success Criteria") and
   test("(?m)^## Assumptions");
+# A builder's free-form questions/result must finish in its own native turn.
+# Only reads completed before that matching final message can acquit the check.
+def completed_builder:
+  . as $child |
+  [.events | to_entries[] | select(.value.type == "event_msg" and
+    .value.payload.type == "task_complete")] as $terminals |
+  [.events | to_entries[] | select(.value.type == "event_msg" and
+    .value.payload.type == "item_completed" and
+    .value.payload.item.type == "AgentMessage" and
+    .value.payload.item.phase == "final_answer")] as $messages |
+  if ($terminals | length) == 1 and ($messages | length) == 1 then
+    $terminals[0].value.payload as $terminal |
+    $messages[0].value.payload as $message |
+    if $messages[0].key < $terminals[0].key and
+       ($terminal.turn_id | type == "string" and length > 0) and
+       ($terminal.completed_at | type == "number" and . > 0) and
+       ($terminal.last_agent_message | type == "string" and test("\\S")) and
+       $message.turn_id == $terminal.turn_id and $message.thread_id == $child.id and
+       ($message.completed_at_ms | type == "number" and . > 0) and
+       $terminal.completed_at >= ($message.completed_at_ms / 1000 | floor) and
+       all($message.item.content[]; .type == "Text") and
+       ([$message.item.content[].text] | join("")) == $terminal.last_agent_message and
+       all(.events[]; .type != "event_msg" or
+         (.payload.type != "task_failed" and .payload.type != "turn_aborted" and .payload.type != "error"))
+    then .events = [.events[0:$messages[0].key][] |
+      select(.payload.turn_id == $terminal.turn_id and .payload.thread_id == $child.id and
+        (.payload.completed_at_ms | type == "number") and
+        .payload.completed_at_ms <= $message.completed_at_ms)]
+    else null end
+  else null end;
 def builder_read($input; $parent; $identity):
   [$input.sessions[] | select(.agent == $identity)] as $children |
   ($children | length) == 1 and
-  any($children[]; . as $child |
+  any($children[]; completed_builder | select(. != null) | . as $child |
     (.id | type == "string" and length > 0) and .id != $parent.id and
     ($parent.id | type == "string" and length > 0) and
     .source.subagent.thread_spawn.parent_thread_id == $parent.id and

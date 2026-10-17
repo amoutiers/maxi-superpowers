@@ -17,6 +17,7 @@ fi
 SOURCE_HEAD="$(git -C "$ROOT" rev-parse HEAD)"
 OUTPUT="$ROOT/.superpowers/sdd/integration/$(date +%Y%m%d%H%M%S)-$$/upgrade"
 mkdir -p "$OUTPUT"
+printf '%s\n' "$SOURCE_HEAD" > "$OUTPUT/source-head.txt"
 RUNTIME="$(mktemp -d "${TMPDIR:-/tmp}/maxi-upgrade.XXXXXX")"
 RUNTIME="$(cd "$RUNTIME" && pwd -P)"
 printf '%s\n' "$RUNTIME" > "$OUTPUT/runtime-path.txt"
@@ -43,6 +44,8 @@ INSTALLED="$(find "$CODEX_HOME/plugins/cache/maxi-superpowers/maxi" -type d -nam
 }
 diff -rq "$ROOT/skills" "$INSTALLED" > "$OUTPUT/installed-diff.txt"
 cp -R "$INSTALLED" "$OUTPUT/installed-skills"
+cmp -s "$ROOT/.codex-plugin/plugin.json" "$INSTALLED/../.codex-plugin/plugin.json"
+cp "$INSTALLED/../.codex-plugin/plugin.json" "$OUTPUT/installed-plugin.json"
 
 FIXTURE="$RUNTIME/fixture"
 mkdir -p "$FIXTURE/docs/maxi"
@@ -356,6 +359,7 @@ evidence = {
 (output / 'evidence.json').write_text(json.dumps(evidence, indent=2) + '\n')
 PY
 python3 "$ROOT/tests/integration/upgrade-cases/check-evidence.py" "$OUTPUT" > "$OUTPUT/result.json"
+python3 "$ROOT/tests/integration/upgrade-cases/retain-evidence.py" capture "$OUTPUT" > "$OUTPUT/retention-result.json"
 if [ "$(git -C "$ROOT" rev-parse HEAD)" != "$SOURCE_HEAD" ] || \
    [ -n "$(git -C "$ROOT" status --porcelain=v1 --untracked-files=all)" ]; then
   echo "INCOMPLETE: source worktree changed; evidence: $OUTPUT" >&2

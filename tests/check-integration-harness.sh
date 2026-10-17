@@ -188,6 +188,13 @@ else
 fi
 assert_file_exists "$ROOT/tests/integration/git-closure-cases/check-evidence.py" "Git closure evidence checker"
 assert_file_exists "$ROOT/tests/integration/git-closure-cases/cases.json" "Git closure case matrix"
+if python3 "$ROOT/tests/integration/upgrade-cases/test-retention.py"; then
+  echo "OK  [durable upgrade receipts and Git proof]"
+else
+  echo "FAIL [durable upgrade receipts and Git proof]" >&2
+  failures=$((failures + 1))
+fi
+
 if python3 "$ROOT/tests/integration/git-closure-cases/test-checker.py" >/dev/null; then
   echo "OK  [Git closure checker regressions]"
 else
