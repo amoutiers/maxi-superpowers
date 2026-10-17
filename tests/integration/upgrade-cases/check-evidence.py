@@ -91,6 +91,14 @@ def collect_task_review(sessions, stage, fixture, workspace, base, end):
     relative = str(package.relative_to(fixture))
     expected_commands = (["cat", relative], ["cat", str(package)])
     package_bytes = package.read_bytes()
+    task = {"first-task": 1, "resume": 2}.get(stage)
+    brief = workspace / f"task-{task}-brief.md"
+    report = workspace / f"task-{task}-report.md"
+    companions = (brief, report)
+    joined_commands = []
+    if task and all(path.is_file() and not path.is_symlink() for path in companions):
+        joined_commands = [["cat", *(str(path.relative_to(fixture)) for path in (*companions, package))],
+                           ["cat", *(str(path) for path in (*companions, package))]]
     matches = []
     for child in sessions:
         context = child.get("agent")
@@ -121,8 +129,15 @@ def collect_task_review(sessions, stage, fixture, workspace, base, end):
             except ValueError:
                 continue
             output = item.get("aggregated_output")
-            if (words in expected_commands and isinstance(output, str) and
-                    package_bytes in output.encode("utf-8")):
+            if (not isinstance(output, str) or re.search(
+                    r"tokens? truncated|output truncated|truncated output|\[\.\.\.", output, re.I)):
+                continue
+            native_bytes = output.encode("utf-8")
+            # The report can gain later fix notes; validate its native read, not its later bytes.
+            joined = (words in joined_commands and item.get("status") == "completed" and
+                      native_bytes.startswith(brief.read_bytes()) and native_bytes.endswith(package_bytes) and
+                      len(native_bytes) > len(brief.read_bytes()) + len(package_bytes))
+            if (words in expected_commands and package_bytes in native_bytes) or joined:
                 matches.append({"stage": stage, "context": context,
                                 "package": str(package), "package_sha256": digest(package)})
     require(len(matches) == 1, f"missing or duplicate observed {stage} task reviewer/package")

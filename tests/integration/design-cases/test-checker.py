@@ -123,6 +123,99 @@ class BuilderEvidence(unittest.TestCase):
         item['command'] = ['printf', '%s', item['command'][-1]]
         self.check(data, 'unclassified allocation')
 
+    def test_joined_builder_prompt_and_canonical_cat(self):
+        data = fixture()
+        prompt = data['installed'][PROMPT]
+        text = 'cat ' + PROMPT + ' /fixture/' + SPEC
+        data['sessions'][-1]['events'] = [command(text, prompt + SPECIFIED)]
+        self.assertEqual(self.check(data)['builder_checks'], 1)
+        for wrong in ('printf ' + text, text.replace('/installed/', '/foreign/'),
+                      text.replace('/fixture/', '/foreign/'),
+                      'cat /fixture/' + SPEC + ' ' + PROMPT,
+                      text + '; printf done'):
+            bad = copy.deepcopy(data)
+            bad['sessions'][-1]['events'][0]['payload']['item']['command'][-1] = wrong
+            self.check(bad, 'unclassified allocation')
+        for output in (SPECIFIED, prompt[:-1] + SPECIFIED, prompt + SPECIFIED[:60],
+                       prompt + SPECIFIED + '\n... tokens truncated ...\n'):
+            bad = copy.deepcopy(data)
+            bad['sessions'][-1]['events'][0]['payload']['item']['aggregated_output'] = output
+            self.check(bad, 'unclassified allocation')
+        for mutate in ('parent', 'identity', 'echo-argv', 'failed', 'pending'):
+            bad = copy.deepcopy(data)
+            event = bad['sessions'][-1]['events'][0]
+            if mutate == 'parent':
+                bad['sessions'][0]['events'].append(bad['sessions'][-1]['events'].pop())
+                bad['sessions'][-1]['events'] = [command('true', '')]
+            elif mutate == 'identity':
+                bad['sessions'][-1]['source']['subagent']['thread_spawn']['parent_thread_id'] = 'foreign'
+            elif mutate == 'echo-argv':
+                event['payload']['item']['command'][:2] = ['printf', '%s']
+            elif mutate == 'failed':
+                event['payload']['item']['exit_code'] = 1
+            else:
+                event['payload']['completed_at_ms'] = None
+            self.check(bad, 'unclassified allocation')
+
+    def test_observed_installed_owner_loops(self):
+        python = "python3 - <<'PY'\nfrom pathlib import Path\nr=Path('/installed')\nfor f in ['brainstorming/SKILL.md','brainstorming/builder-check-prompt.md','clarify/SKILL.md','plan/SKILL.md']:\n p=r/f\n assert p.is_file() and not p.is_symlink()\n print('\\nFILE '+str(p.resolve())+'\\n'+p.read_text())\nPY"
+        shell = 's=/installed\nfor f in brainstorming/SKILL.md brainstorming/builder-check-prompt.md clarify/SKILL.md; do\ntest -f "$s/$f" && test ! -L "$s/$f" && test -r "$s/$f" || exit 1\ncat "$s/$f"\ndone\ngit status --short\nls -R docs/maxi'
+        for text, owner in ((python, 'plan'), (shell, 'clarify')):
+            with self.subTest(form=text.splitlines()[0]):
+                data = fixture()
+                data['owners'] = [owner]
+                data['sessions'][0]['events'][0] = command(text, 'PLAN OWNER\nCLARIFY OWNER\n')
+                self.check(data)
+                mutations = [text.replace('/installed', '/foreign'),
+                             text.replace('plan/SKILL.md', 'other/SKILL.md') if owner == 'plan' else
+                             text.replace('clarify/SKILL.md', 'other/SKILL.md')]
+                if owner == 'plan':
+                    mutations += [text.replace('p=r/f', 'p=other/f'),
+                                  text.replace('p=r/f', "r=Path('/foreign'); p=r/f"),
+                                  text.replace('p=r/f', 'p=r/rel'),
+                                  text.replace('p.read_text()', 'p.name'),
+                                  text.replace('p.read_text()', 'p.read_text()[:30]')]
+                else:
+                    mutations += [text.replace('cat "$s/$f"', 'printf "$s/$f"'),
+                                  text.replace('cat "$s/$f"', 'cat "$other/$f"'),
+                                  text.replace('cat "$s/$f"', 's=/foreign; cat "$s/$f"'),
+                                  text.replace('clarify/SKILL.md; do', 'clarify/SKILL.md ../outside.md; do')]
+                for wrong in mutations:
+                    bad = copy.deepcopy(data)
+                    bad['sessions'][0]['events'][0]['payload']['item']['command'][-1] = wrong
+                    self.check(bad, 'absent completed installed-owner read')
+                for mutate in ('bytes', 'truncated', 'failed', 'pending', 'argv'):
+                    bad = copy.deepcopy(data)
+                    event = bad['sessions'][0]['events'][0]
+                    if mutate == 'bytes':
+                        event['payload']['item']['aggregated_output'] = 'incomplete'
+                    elif mutate == 'truncated':
+                        event['payload']['item']['aggregated_output'] += '... tokens truncated ...'
+                    elif mutate == 'failed':
+                        event['payload']['item']['exit_code'] = 1
+                    elif mutate == 'pending':
+                        event['payload']['completed_at_ms'] = None
+                    else:
+                        event['payload']['item']['command'][:2] = ['printf', '%s']
+                    self.check(bad, 'absent completed installed-owner read')
+
+    def test_observed_filename_braces_read_owner(self):
+        data = fixture()
+        data['owners'] = ['plan']
+        text = 'cat /installed/plan/{SKILL.md,plan-template.md} /installed/specify/{spec-author.md,spec-template.md} /installed/using-maxi/skill-resolution.md'
+        data['sessions'][0]['events'][0] = command(text, 'PLAN OWNER\n')
+        self.check(data)
+        for wrong in ('printf ' + text, text.replace('/installed/plan/', '/foreign/plan/'),
+                      text.replace('SKILL.md,', 'OTHER.md,'), text + '; printf done',
+                      text.replace('plan-template.md', '../outside.md'),
+                      text.replace('/installed/using-maxi/', '/foreign/using-maxi/')):
+            bad = copy.deepcopy(data)
+            bad['sessions'][0]['events'][0]['payload']['item']['command'][-1] = wrong
+            self.check(bad, 'absent completed installed-owner read')
+        bad = copy.deepcopy(data)
+        bad['sessions'][0]['events'][0]['payload']['item']['aggregated_output'] = 'partial'
+        self.check(bad, 'absent completed installed-owner read')
+
     def test_parent_prompt_read_does_not_count_for_child(self):
         data = fixture()
         data['sessions'][0]['events'].append(data['sessions'][-1]['events'].pop(0))

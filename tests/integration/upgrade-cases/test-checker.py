@@ -473,6 +473,73 @@ class UpgradeEvidenceTest(unittest.TestCase):
                         checker.collect_task_review(
                             bad, "first-task", fixture, workspace, "abc1234", "def5678")
 
+    def test_collect_task_review_accepts_exact_brief_report_package_cat(self):
+        with tempfile.TemporaryDirectory() as temp:
+            fixture = Path(temp).resolve() / 'fixture'
+            workspace = fixture / '.superpowers/sdd/task-workspace'
+            workspace.mkdir(parents=True)
+            paths = [workspace / 'task-1-brief.md', workspace / 'task-1-report.md',
+                     workspace / 'review-abc1234..def5678.diff']
+            for path, content in zip(paths, ('Exact task brief\n', 'Exact task report\n', 'Exact diff\n')):
+                path.write_text(content)
+            words = ['cat', *(str(path.relative_to(fixture)) for path in paths)]
+            output = ''.join(path.read_text() for path in paths)
+            child = {'agent': '/root/task_reviewer', 'cwd': str(fixture), 'events': [
+                {'type': 'event_msg', 'payload': {'completed_at_ms': 1, 'item': {
+                    'type': 'CommandExecution', 'status': 'completed', 'exit_code': 0,
+                    'command': ['/bin/zsh', '-lc', shlex.join(words)], 'aggregated_output': output}}},
+                {'type': 'event_msg', 'payload': {'type': 'task_complete',
+                 'last_agent_message': '### Spec Compliance\n✅ Spec compliant\n**Task quality:** Approved'}},
+            ]}
+            sessions = [{'agent': '/root', 'cwd': str(fixture), 'events': []}, child]
+            observed = checker.collect_task_review(sessions, 'first-task', fixture, workspace,
+                                                   'abc1234', 'def5678')
+            self.assertEqual(observed['context'], '/root/task_reviewer')
+            self.assertEqual(observed['package_sha256'], sha(paths[-1]))
+            with paths[1].open('a') as report_file:
+                report_file.write('Later authorized final-review fix notes.\n')
+            self.assertEqual(checker.collect_task_review(sessions, 'first-task', fixture, workspace,
+                             'abc1234', 'def5678')['context'], '/root/task_reviewer')
+            mutations = [
+                ('echo', lambda c: c['events'][0]['payload']['item'].update(
+                    command=['/bin/zsh', '-lc', 'printf ' + shlex.join(words)])),
+                ('foreign', lambda c: c['events'][0]['payload']['item'].update(
+                    command=['/bin/zsh', '-lc', shlex.join([*words[:-1], '../foreign.diff'])])),
+                ('wrong companion', lambda c: c['events'][0]['payload']['item'].update(
+                    command=['/bin/zsh', '-lc', shlex.join([words[0], words[1].replace('task-1-', 'task-2-'), *words[2:]])])),
+                ('extra operand', lambda c: c['events'][0]['payload']['item'].update(
+                    command=['/bin/zsh', '-lc', shlex.join([*words, 'counter.py'])])),
+                ('partial', lambda c: c['events'][0]['payload']['item'].update(aggregated_output='Exact diff\n')),
+                ('truncated', lambda c: c['events'][0]['payload']['item'].update(
+                    aggregated_output=output + '... tokens truncated ...')),
+                ('failed', lambda c: c['events'][0]['payload']['item'].update(exit_code=1)),
+                ('pending', lambda c: c['events'][0]['payload'].pop('completed_at_ms')),
+                ('wrong cwd', lambda c: c.update(cwd=str(fixture.parent))),
+                ('parent', lambda c: c.update(agent='/root')),
+                ('argv', lambda c: c['events'][0]['payload']['item'].update(
+                    command=['printf', '%s', shlex.join(words)])),
+            ]
+            for label, mutate in mutations:
+                with self.subTest(label=label):
+                    bad = json.loads(json.dumps(sessions))
+                    mutate(bad[1])
+                    with self.assertRaisesRegex(ValueError, 'missing or duplicate observed'):
+                        checker.collect_task_review(bad, 'first-task', fixture, workspace,
+                                                    'abc1234', 'def5678')
+
+    def test_resume_prompt_requires_successful_owner_and_reviewer_reads(self):
+        source = (CHECKER.parent.parent / 'run-codex-upgrade-test.sh').read_text()
+        invocation = next(line for line in source.splitlines() if line.startswith('run_stage resume '))
+        script = 'run_stage() { printf "%s" "$2"; }\nINSTALLED=/bound-installed\nRUNTIME=/runtime\nSPEC_DIR=/canonical\n' + invocation
+        result = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        prompt = result.stdout
+        self.assertIn('/bound-installed/using-maxi/SKILL.md', prompt)
+        self.assertIn('successful', prompt)
+        self.assertIn('separate', prompt)
+        self.assertIn('**Ready to merge?**', prompt)
+        self.assertIn('**Fix round:** All findings addressed, no new Critical/Important breakage', prompt)
+
     def assert_rejected(self, root, label):
         result = subprocess.run([sys.executable, str(CHECKER), str(root)],
                                 capture_output=True, text=True)

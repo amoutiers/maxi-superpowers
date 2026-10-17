@@ -7,13 +7,57 @@ def python_path_names($command; $base):
   [$command | scan("(?m)(?:^|[;\\n])[[:space:]]*([a-z][a-z0-9_]*)=Path\\((['\"])([^'\"]+)\\2\\)") |
     .[0] as $name | select(.[2] == $base and
       ([$command | scan("(?m)(?:^|[[:space:];])" + $name + "=")] | length) == 1) | $name];
+# These complete native forms are retained installed-run observations, not shell evaluation.
+def complete_shell_read:
+  .command[0:-1] == ["/bin/zsh", "-lc"] and .status == "completed" and
+  (.aggregated_output | type == "string" and length > 0 and
+    (test("(?i)tokens? truncated|output truncated|truncated output|\\[\\.\\.\\.") | not));
+def safe_relative_reads($names; $relative):
+  ($names | length) > 0 and ($names | index($relative) != null) and
+  all($names[]; test("^[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*/[A-Za-z][A-Za-z0-9.-]*$"));
+def observed_installed_loop($path):
+  ($path | split("/")) as $parts |
+  ($parts[0:-2] | join("/")) as $base |
+  ($parts[-2:] | join("/")) as $relative |
+  .command[-1] as $command |
+  complete_shell_read and
+  (any([$command | scan("(?m)^for f in \\[(('[A-Za-z0-9_./-]+')(?:,'[A-Za-z0-9_./-]+')*)\\]:$")][];
+    .[0] as $list |
+    ($list | split(",") | map(ltrimstr("'") | rtrimstr("'"))) as $names |
+    safe_relative_reads($names; $relative) and
+    any(["assert p.is_file() and not p.is_symlink()", "assert not p.is_symlink() and p.is_file()"][];
+      $command == ("python3 - <<'PY'\nfrom pathlib import Path\nr=Path('" + $base +
+        "')\nfor f in [" + $list + "]:\n p=r/f\n " + . +
+        "\n print('\\nFILE '+str(p.resolve())+'\\n'+p.read_text())\nPY"))) or
+   any([$command | scan("(?m)^for f in ([A-Za-z0-9_./ -]+); do$")][];
+     .[0] as $list | ($list | split(" ") | map(select(length > 0))) as $names |
+     safe_relative_reads($names; $relative) and
+     $command == ("s=" + $base + "\nfor f in " + $list +
+       "; do\ntest -f \"$s/$f\" && test ! -L \"$s/$f\" && test -r \"$s/$f\" || exit 1\ncat \"$s/$f\"\ndone\ngit status --short\nls -R docs/maxi")));
+def observed_filename_braces($path):
+  ($path | split("/") | .[0:-2] | join("/")) as $base |
+  .command[-1] as $command |
+  ($command | split(" ")) as $words |
+  complete_shell_read and $words[0] == "cat" and ($words | length) > 1 and
+  ([$words[1:][] |
+    if startswith($base + "/") then
+      ltrimstr($base + "/") |
+      if test("^[a-z][a-z0-9-]*/\\{[A-Za-z][A-Za-z0-9.-]*(?:,[A-Za-z][A-Za-z0-9.-]*)+\\}$") then
+        (split("/{")) as $parts |
+        ($parts[1] | rtrimstr("}") | split(",")[]) as $file |
+        $base + "/" + $parts[0] + "/" + $file
+      elif test("^[a-z][a-z0-9-]*/[A-Za-z][A-Za-z0-9.-]*$") then $base + "/" + .
+      else null end
+    else null end] as $paths |
+   all($paths[]; . != null) and ($paths | index($path) != null));
 # Only finite comma-separated installed skill names; never evaluate shell text.
 def reads_path($installed; $path):
   (.command | join(" ")) as $command |
   ($command | contains($path)) or
+  observed_installed_loop($path) or observed_filename_braces($path) or
   (($path | sub("/[a-z][a-z-]*/SKILL.md$"; "")) as $base |
    ($path | split("/") | .[-2:] | join("/")) as $relative |
-   ($command | contains("python3 - <<") and contains("'" + $relative + "'") and
+   ($command | contains("python3 - <<") and test("(?m)^for rel in \\[") and contains("'" + $relative + "'") and
      contains("p.read_text()") and
      any(python_path_names($command; $base)[];
        . as $name | ($command | contains("p=" + $name + "/rel")))) or
@@ -92,9 +136,7 @@ def read_owner($installed; $owner):
 def full_file_read($path; $relative; $fixture):
   (.command[-1] // "") as $command |
   ([ $path ] + (if .cwd == ("file://" + $fixture) then [$relative] else [] end)) as $paths |
-  .command[0:-1] == ["/bin/zsh", "-lc"] and .status == "completed" and
-  (.aggregated_output | type == "string" and length > 0 and
-    (test("(?i)tokens? truncated|output truncated|truncated output|\\[\\.\\.\\.") | not)) and
+  complete_shell_read and
   (any($paths[]; . as $file |
     any([$file, "\"" + $file + "\"", "'" + $file + "'"][];
       $command == ("cat " + .) or $command == ("cat -- " + .)) or
@@ -112,6 +154,12 @@ def full_file_read($path; $relative; $fixture):
        $command == ("python3 - <<'PY'\nfrom pathlib import Path\n" + $name + "=Path(" +
          $quote + $base + $quote + ")\nfor rel in [" + $quote + $relative + $quote +
          "]:\n p=" + $name + "/rel\n print(p.read_text())\nPY")))));
+def canonical_spec_output($slug):
+  startswith("---\n") and endswith("\n") and
+  contains("\nslug: " + $slug + "\n") and contains("\nstatus: specified\n") and
+  test("(?m)^# Feature Specification:") and test("(?m)^## User Scenarios & Testing") and
+  test("(?m)^## Requirements") and test("(?m)^## Success Criteria") and
+  test("(?m)^## Assumptions");
 def builder_read($input; $parent; $identity):
   [$input.sessions[] | select(.agent == $identity)] as $children |
   ($children | length) == 1 and
@@ -122,19 +170,19 @@ def builder_read($input; $parent; $identity):
     .source.subagent.thread_spawn.agent_path == $identity and
     any($input.installed | to_entries[];
       . as $prompt | (.key | endswith("/brainstorming/builder-check-prompt.md")) and
-      any($child | commands[];
-        full_file_read($prompt.key; $prompt.key; $input.fixture) and
-        (.aggregated_output | contains($prompt.value)))) and
-    any($input.files | keys[] | select(endswith("/spec.md")); . as $relative |
-      ($relative | split("/") | .[-2]) as $slug |
-      any($child | commands[];
-        full_file_read($input.fixture + "/" + $relative; $relative; $input.fixture) and
-        (.aggregated_output | startswith("---\n") and endswith("\n") and
-          contains("\nslug: " + $slug + "\n") and contains("\nstatus: specified\n") and
-          test("(?m)^# Feature Specification:") and
-          test("(?m)^## User Scenarios & Testing") and
-          test("(?m)^## Requirements") and test("(?m)^## Success Criteria") and
-          test("(?m)^## Assumptions")))));
+      any($input.files | keys[] | select(endswith("/spec.md")); . as $relative |
+        ($relative | split("/") | .[-2]) as $slug |
+        (any($child | commands[];
+           full_file_read($prompt.key; $prompt.key; $input.fixture) and
+           (.aggregated_output | contains($prompt.value))) and
+         any($child | commands[];
+           full_file_read($input.fixture + "/" + $relative; $relative; $input.fixture) and
+           (.aggregated_output | canonical_spec_output($slug)))) or
+        any($child | commands[];
+          complete_shell_read and
+          .command[-1] == ("cat " + $prompt.key + " " + $input.fixture + "/" + $relative) and
+          (.aggregated_output | startswith($prompt.value) and
+            (ltrimstr($prompt.value) | canonical_spec_output($slug)))))));
 
 . as $input |
 require(.exit_code == 0 and .head_unchanged and .source_unchanged; "incomplete execution or changed Git HEAD/source") |
