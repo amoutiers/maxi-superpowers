@@ -1,5 +1,7 @@
 # maxi-superpowers Architecture
 
+Antigravity uses `.antigravity-plugin/plugin.json` and native skill discovery without a session-start hook. The `using-maxi` description requests a conversation-start project check; its body activates the pipeline only when `docs/maxi/` exists. An explicit Maxi command retains its own prerequisites. No root rule or per-model-call hook is added.
+
 ## Plugin Overview
 
 maxi-superpowers vendors superpowers v7.0.0 and has packaging surfaces for Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, Muse, OpenCode, Pi, Qwen Code, and Hermes Agent. Native qualification remains host-specific. The plugin has two layers:
@@ -15,6 +17,7 @@ Maxi operations bind delegated skills and helpers to the loaded owner's physical
 
 ```
 maxi-superpowers/
+├── .antigravity-plugin/     # Antigravity native manifest (skill discovery, no hooks)
 ├── .claude-plugin/          # Claude Code plugin manifest (+ marketplace)
 ├── .codex-plugin/           # Codex plugin manifest (hooks: {}, native skill discovery)
 ├── .agents/plugins/         # Codex marketplace manifest
@@ -27,7 +30,7 @@ maxi-superpowers/
 ├── index.js                 # OpenCode package-root re-export
 ├── .pi/                     # Pi extension (maxi.ts)
 ├── hooks/                   # Session-start hooks
-│   ├── hooks.json           # Claude Code + Antigravity root manifest (session-start)
+│   ├── hooks.json           # Claude Code, Copilot CLI and Qwen root manifest (session-start)
 │   ├── hooks-cursor.json    # Cursor manifest (sessionStart + additional_context)
 │   ├── run-hook.cmd         # Cross-platform polyglot wrapper
 │   └── session-start        # Unified hook (env-aware JSON output, gated on docs/maxi/)
@@ -196,7 +199,7 @@ Maxi's sixteen-host inventory is addressed through executable adapters, declarat
 | Harness | Mechanism |
 |---|---|
 | Claude Code | `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`; root `hooks/hooks.json` runs the gated unified `hooks/session-start` |
-| Antigravity | Repository-root install reads `.claude-plugin/plugin.json` and root `hooks/hooks.json`; no `.antigravity-plugin/` directory |
+| Antigravity | Native `.antigravity-plugin/plugin.json`; skill discovery reaches the project-aware `using-maxi` bootstrap without a session-start hook |
 | Codex App | `.agents/plugins/marketplace.json` resolves `plugins/maxi` to `.codex-plugin/plugin.json`; native skill discovery with `hooks: {}` |
 | Codex CLI | Same `.agents/plugins/marketplace.json` → `plugins/maxi` → `.codex-plugin/plugin.json` path as Codex App; native skill discovery, no SessionStart hook |
 | Cursor | `.cursor-plugin/plugin.json` points to `skills/` and `hooks/hooks-cursor.json`, which runs the gated `hooks/session-start` |
@@ -218,12 +221,12 @@ Hermes keeps the injected context below its 10,000-character limit by directing 
 
 Hook ownership:
 
-- `hooks/hooks.json`: root manifest for Claude Code and Antigravity, and the shared marketplace hook path used by GitHub Copilot CLI. Runs the unified `hooks/session-start`.
+- `hooks/hooks.json`: root manifest for Claude Code, and the shared marketplace hook path used by GitHub Copilot CLI and Qwen. Runs the unified `hooks/session-start`.
 - `hooks/hooks-cursor.json`: Cursor manifest (Cursor `sessionStart` event, `additional_context` snake_case). Runs the unified `hooks/session-start`.
 - `hooks/session-start`: the single env-aware hook. Detects `CURSOR_PLUGIN_ROOT` (`additional_context`), then `MUSE_PLUGIN_ROOT`, `QWEN_PROJECT_DIR`, or `CLAUDE_PLUGIN_ROOT` without `COPILOT_CLI` (`hookSpecificOutput.additionalContext`), and falls back to top-level `additionalContext`. Gated on `docs/maxi/` (silent outside a maxi project).
 - `hooks/run-hook.cmd`: cross-platform polyglot wrapper for the hook scripts.
 
-The package is validated by the fast tier (`check-plugin-manifest.sh`, `check-declarative-harnesses.sh`, `check-hermes-plugin.sh`, `check-codex-plugin.sh`, `check-hooks.sh`, `check-cursor-hooks.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`, `check-pi-extension.sh`). The bootstrap preamble is identical across the bash hook, the OpenCode plugin, and the Pi extension (parity-guarded).
+The package is validated by the fast tier (`check-antigravity-plugin.sh`, `check-plugin-manifest.sh`, `check-declarative-harnesses.sh`, `check-hermes-plugin.sh`, `check-codex-plugin.sh`, `check-hooks.sh`, `check-cursor-hooks.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`, `check-pi-extension.sh`). The bootstrap preamble is identical across the bash hook, the OpenCode plugin, and the Pi extension (parity-guarded).
 
 ## Design Decisions
 

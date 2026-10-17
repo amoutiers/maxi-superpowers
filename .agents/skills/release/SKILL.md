@@ -87,6 +87,7 @@ Update every version-bearing manifest. The JSON files use `"version"`; the
 Hermes YAML manifest uses `version:`:
 
 ```
+.antigravity-plugin/plugin.json # Antigravity native plugin manifest
 .claude-plugin/plugin.json   # Claude Code plugin manifest
 .codex-plugin/plugin.json    # Codex plugin manifest
 .cursor-plugin/plugin.json   # Cursor plugin manifest
@@ -101,7 +102,7 @@ package.json                 # npm and Pi package manifest
 ### 6. Commit release artifacts (commit 1 of 2)
 
 ```bash
-git add CHANGELOG.md .claude-plugin/plugin.json .codex-plugin/plugin.json \
+git add CHANGELOG.md .antigravity-plugin/plugin.json .claude-plugin/plugin.json .codex-plugin/plugin.json \
   .cursor-plugin/plugin.json .devin-plugin/plugin.json .hermes-plugin/plugin.yaml \
   .kimi-plugin/plugin.json .muse-plugin/plugin.json gemini-extension.json package.json
 git commit -m "chore(release): vX.Y.Z"
@@ -169,5 +170,5 @@ echo "Action running at: https://github.com/${REMOTE}/actions"
 | Relying on the Action to pin marketplace.json | Update marketplace metadata locally in step 7, before tagging |
 | One commit for everything | Two commits: (1) version+CHANGELOG, (2) marketplace.json pin — tag on commit 2 |
 | `git status` without `--porcelain` | `--porcelain` catches untracked files that plain `git status` calls "clean" |
-| Only bumping a subset of manifests | Bump and stage all nine manifests listed in step 5 |
+| Only bumping a subset of manifests | Bump and stage all ten manifests listed in step 5 |
 | Creating a plugin-prefixed tag | Create and push only the canonical `vX.Y.Z` tag |

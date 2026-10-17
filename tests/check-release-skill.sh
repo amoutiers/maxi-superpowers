@@ -30,6 +30,7 @@ if [ -f "$SKILL" ]; then
   MARKETPLACE_SECTION=$(sed -n '/^### 7\. Update marketplace metadata/,/^### 8\. Tag and push/p' "$SKILL")
 
   for manifest in \
+    .antigravity-plugin/plugin.json \
     .claude-plugin/plugin.json \
     .codex-plugin/plugin.json \
     .cursor-plugin/plugin.json \

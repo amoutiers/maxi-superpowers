@@ -2,7 +2,7 @@
 # SessionStart hook for maxi plugin
 #
 # One unified hook for all harnesses that run a session-start shell hook
-# (Claude Code, Antigravity, Cursor, Copilot CLI, Muse, Qwen). Codex and OpenCode use
+# (Claude Code, Cursor, Copilot CLI, Muse, Qwen). Codex and OpenCode use
 # their own discovery mechanisms and do not call this hook.
 #
 # Output format is selected by environment:

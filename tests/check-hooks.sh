@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Validates hooks manifests and the unified session-start hook.
-# Model aligned 1:1 with superpowers v6.3.0:
-#   - hooks/hooks.json: root manifest for Claude Code + Antigravity
+#   - hooks/hooks.json: root manifest for Claude Code, Copilot CLI and Qwen
 #   - hooks/hooks-cursor.json: Cursor manifest (sessionStart + additional_context)
 #   - hooks/session-start: single env-aware hook, gated on docs/maxi/
 set -euo pipefail
@@ -15,7 +14,7 @@ CURSOR_HOOKS_JSON="$HOOKS_DIR/hooks-cursor.json"
 MUSE_PLUGIN="$ROOT/.muse-plugin/plugin.json"
 failures=0
 
-# --- root manifest: hooks.json (Claude Code + Antigravity) ---
+# --- root manifest: hooks.json (Claude Code, Copilot CLI and Qwen) ---
 assert_file_exists "$HOOKS_JSON" "hooks.json"
 [ ! -f "$HOOKS_JSON" ] && summary_and_exit "hooks checks"
 
@@ -62,14 +61,6 @@ for stale in hooks-claude.json hooks-codex.json hooks-antigravity.json; do
     echo "OK  [no stale $stale]"
   fi
 done
-
-# The .antigravity-plugin/ package directory is gone (Antigravity installs from repo root).
-if [ -e "$ROOT/.antigravity-plugin" ]; then
-  echo "FAIL [.antigravity-plugin/]: should be removed (Antigravity installs from repo root)" >&2
-  failures=$((failures + 1))
-else
-  echo "OK  [no .antigravity-plugin/]"
-fi
 
 # --- behavior: the unified hook emits the right JSON shape per harness ---
 TMP_PROJ="$(mktemp -d)"; TMP_EMPTY="$(mktemp -d)"

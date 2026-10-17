@@ -18,7 +18,7 @@ A spec-driven development plugin for Claude Code, Antigravity, Codex App, Codex 
 | Harness | Maxi packaging or distribution path |
 |---|---|
 | Claude Code | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, and gated `hooks/hooks.json` → `hooks/session-start` |
-| Antigravity | Repository-root install using `.claude-plugin/plugin.json` and gated `hooks/hooks.json`; no dedicated package directory |
+| Antigravity | Native `.antigravity-plugin/plugin.json` with skill discovery and project-aware `using-maxi` bootstrap; no session-start hook |
 | Codex App | `.agents/plugins/marketplace.json` → `plugins/maxi` → `.codex-plugin/plugin.json`; native skill discovery with `hooks: {}` |
 | Codex CLI | Same Codex marketplace and `.codex-plugin/plugin.json` path as the app; native skill discovery, no SessionStart hook |
 | Cursor | `.cursor-plugin/plugin.json` → `skills/` plus `hooks/hooks-cursor.json` → gated `hooks/session-start` |
@@ -70,7 +70,7 @@ cd maxi-superpowers
 agy plugin install .
 ```
 
-Antigravity runs the plugin's session-start hook (the root `hooks/hooks.json`), so maxi is active from the first message. Reinstall with the same command to update.
+Antigravity uses `.antigravity-plugin/plugin.json` and native skill discovery without a session-start hook. The `using-maxi` description requests a conversation-start project check; its body activates the pipeline only when `docs/maxi/` exists. An explicit Maxi command retains its own prerequisites. No root rule or per-model-call hook is added. Reinstall with the same command to update. Native package validation and actual conversation behavior are separate qualification steps.
 
 ### For Cursor
 Install from Cursor's plugin marketplace. `.cursor-plugin/plugin.json` points Cursor to the skills directory and `hooks/hooks-cursor.json`; the hook emits Cursor's `additional_context` shape.

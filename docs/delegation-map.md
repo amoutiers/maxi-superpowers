@@ -2,6 +2,8 @@
 
 This table shows which maxi pipeline skill delegates to which sub-skill, what status the spec must be in before the skill runs, and what status it transitions to on success.
 
+Antigravity uses `.antigravity-plugin/plugin.json` and native skill discovery without a session-start hook. The `using-maxi` description requests a conversation-start project check; its body activates the pipeline only when `docs/maxi/` exists. An explicit Maxi command retains its own prerequisites. No root rule or per-model-call hook is added.
+
 ## Pipeline Delegation Table
 
 ### Forward Pipeline

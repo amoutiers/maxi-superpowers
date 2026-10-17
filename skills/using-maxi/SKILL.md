@@ -1,6 +1,6 @@
 ---
 name: using-maxi
-description: Use when starting a maxi session, completing a local maintenance batch, reporting an external operational wait, or referencing pipeline phases, commands, artifacts, or statuses
+description: Use when starting any conversation for a Maxi project check, completing a local maintenance batch, reporting an external operational wait, or referencing pipeline phases, commands, artifacts, or statuses
 ---
 
 <SUBAGENT-STOP>
@@ -11,6 +11,12 @@ If you were dispatched as a subagent to execute a specific task, ignore this ski
 
 maxi adds a strict spec-driven pipeline to superpowers. The 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills.
 Superpowers v7.0.0 contributes 15 vendored skills. Its imported Native mode does not replace Maxi's SDD execution and completion contract.
+
+## Conversation-start project check
+
+At conversation start, check whether `docs/maxi/` exists in the current project. If `docs/maxi/` does not exist, stop automatic bootstrap here and leave the pipeline inactive. An explicit Maxi command still runs its own prerequisites, including constitution creation for a new project. If `docs/maxi/` exists, activate the session instructions below.
+
+Antigravity uses `.antigravity-plugin/plugin.json` and native skill discovery without a session-start hook. The `using-maxi` description requests a conversation-start project check; its body activates the pipeline only when `docs/maxi/` exists. An explicit Maxi command retains its own prerequisites. No root rule or per-model-call hook is added.
 
 ## Runtime binding
 

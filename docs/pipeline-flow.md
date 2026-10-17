@@ -98,6 +98,8 @@ flowchart TD
 
 ## Notes
 
+- Antigravity uses `.antigravity-plugin/plugin.json` and native skill discovery without a session-start hook. The `using-maxi` description requests a conversation-start project check; its body activates the pipeline only when `docs/maxi/` exists. An explicit Maxi command retains its own prerequisites. No root rule or per-model-call hook is added.
+
 - Maxi operations bind delegated skills and helpers to the loaded owner's physical installed snapshot through [resolve-skill.sh](../skills/using-maxi/resolve-skill.sh); missing bundled instructions stop the handoff. Codex SDD loads [codex-waiting.md](../skills/x-develop/codex-waiting.md): event waits respect platform and communication limits, while silent-child reconciliation uses five-minute elapsed intervals. An unchanged timeout continues the wait without fresh inspection. These runtime adaptations preserve the existing phase and review gates.
 - The imported superpowers v7.0.0 inventory has 15 upstream skills alongside 19 Maxi-native skills. Its Native mode does not provide a Maxi implementation receipt; `/maxi:implement` still delegates execution to upstream SDD.
 - `/maxi:constitution` has no status prerequisite — it can run at any time.

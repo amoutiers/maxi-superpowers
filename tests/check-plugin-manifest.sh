@@ -30,17 +30,13 @@ assert_jq "$MANIFEST" ".name" "maxi" "plugin.json: name is maxi"
 
 assert_jq "$MANIFEST" ".version | test(\"^[0-9]+\\\\.[0-9]+\\\\.[0-9]+$\")" "true" "plugin.json: version is semver"
 
-# Aligned 1:1 with superpowers v6.3.0: no root plugin.json and no
-# .antigravity-plugin/ package directory. Antigravity installs from the repo
-# root and reads .claude-plugin/plugin.json (Claude Code manifest).
-for stale in "$ROOT/plugin.json" "$ROOT/.antigravity-plugin"; do
-  if [ -e "$stale" ]; then
-    echo "FAIL [$(basename "$stale"): should be removed (Antigravity now installs from repo root)]" >&2
-    failures=$((failures + 1))
-  else
-    echo "OK  [no $(basename "$stale")]"
-  fi
-done
+# The root plugin.json shim is obsolete; hosts use their native package manifest.
+if [ -e "$ROOT/plugin.json" ]; then
+  echo "FAIL [root plugin.json]: obsolete shim" >&2
+  failures=$((failures + 1))
+else
+  echo "OK  [no root plugin.json]"
+fi
 
 # --- M4 (2026-05-30 review): package.json version must match the manifest ---
 PKG="$ROOT/package.json"
