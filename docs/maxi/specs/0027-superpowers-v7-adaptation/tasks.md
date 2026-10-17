@@ -30,7 +30,7 @@ The installed owner snapshot and existing bump/sync tooling are available. The i
 
 **Independent Test**: Task 1's focused boundary/runtime/sync checks and fresh installed pressure case; Task 4 extends the retained evidence checker.
 
-- [ ] T001 [US1] Import exact v7 through scripts/bump-superpowers.sh, adapt skills/specify/SKILL.md and skills/specify/spec-author.md, and synchronize skills/using-maxi/SKILL.md, docs/pipeline-flow.md, docs/delegation-map.md, docs/architecture.md, AGENTS.md and current version references (plan Task 1)
+- [x] T001 [US1] Import exact v7 through scripts/bump-superpowers.sh, adapt skills/specify/SKILL.md and skills/specify/spec-author.md, and synchronize skills/using-maxi/SKILL.md, docs/pipeline-flow.md, docs/delegation-map.md, docs/architecture.md, AGENTS.md and current version references (plan Task 1)
 
 **Checkpoint**: MVP design intake retains canonical ownership, one creation builder check and the existing gates.
 
