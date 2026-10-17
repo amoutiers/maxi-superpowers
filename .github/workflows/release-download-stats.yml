@@ -1,0 +1,27 @@
+name: Release download statistics
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/release_download_stats.py
+      - name: Save statistics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stats/
+          git diff --cached --quiet || (git commit -m "chore: update download stats" && git push)
