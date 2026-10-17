@@ -40,7 +40,7 @@ The installed owner snapshot and existing bump/sync tooling are available. The i
 
 **Independent Test**: Empty-PATH hooks, actual Hermes descriptions in both layouts, native manifest checks and the available Antigravity validator.
 
-- [ ] T002 [US2] Port hooks/session-start, hooks/run-hook.cmd and .hermes-plugin/__init__.py fixes with tests/check-hooks.sh, tests/check-hermes-plugin.sh and the affected AGENTS.md coverage description (depends on T001) (plan Task 2)
+- [x] T002 [US2] Port hooks/session-start, hooks/run-hook.cmd and .hermes-plugin/__init__.py fixes with tests/check-hooks.sh, tests/check-hermes-plugin.sh and the affected AGENTS.md coverage description (depends on T001) (plan Task 2)
 - [ ] T003 [US2] Add .antigravity-plugin/plugin.json, adapt skills/using-maxi/SKILL.md discovery and the Mandatory Sync five, update README.md and both local release skills, and register tests/check-antigravity-plugin.sh (depends on T002) (plan Task 3)
 
 **Checkpoint**: Host package, release inventory and project-aware bootstrap checks agree.
