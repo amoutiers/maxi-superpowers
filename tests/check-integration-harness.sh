@@ -158,6 +158,12 @@ UPGRADE_RUNNER="$ROOT/tests/integration/run-codex-upgrade-test.sh"
 UPGRADE_CHECKER="$ROOT/tests/integration/upgrade-cases/check-evidence.py"
 assert_file_exists "$UPGRADE_RUNNER" "installed upgrade lifecycle runner"
 assert_file_exists "$UPGRADE_CHECKER" "upgrade evidence checker"
+if python3 "$ROOT/tests/integration/design-cases/test-checker.py"; then
+  echo "OK  [builder evidence and guarded answer regressions]"
+else
+  echo "FAIL [builder evidence and guarded answer regressions]" >&2
+  failures=$((failures + 1))
+fi
 assert_grep "$RUN_ALL" 'run-codex-upgrade-test.sh' "integration includes the installed upgrade lifecycle"
 assert_grep "$UPGRADE_RUNNER" 'run-with-deadline.pl' "upgrade runner bounds Codex calls"
 assert_grep "$UPGRADE_RUNNER" 'installed-diff.txt' "upgrade runner byte checks staged skills"
@@ -185,7 +191,7 @@ assert_grep "$ROOT/tests/integration/run-codex-design-test.sh" 'codex exec resum
 assert_not_grep "$ROOT/tests/integration/run-codex-design-test.sh" 'codex exec --ephemeral' "design preserves structured sessions"
 # Selector validation is exercised before authentication or runtime creation.
 selector_home=$(mktemp -d)
-for selector in initial revision boundaries all design-validation review-only; do
+for selector in initial revision boundaries v7 all design-validation review-only v7-intent v7-builder v7-skip v7-draft-only; do
   selector_code=0
   CODEX_HOME="$selector_home" bash "$ROOT/tests/integration/run-codex-design-test.sh" "$selector" > "$selector_home/result" 2>&1 || selector_code=$?
   if [ "$selector_code" -eq 1 ] && grep -q 'authentication file not found' "$selector_home/result"; then
@@ -349,7 +355,7 @@ SHELL_READ
     fi
   done
   question_sample=$(jq -c '
-    .name = "questions" | .answers = ["independent choices", "dependent choice"] | .max_questions = 4 |
+    .name = "questions" | .answers = ["independent choices", "dependent choice"] | .answer_question_patterns = ["A.*B.*C", "D"] | .max_questions = 4 |
     .cli = [{"type":"turn.completed"},{"type":"turn.completed"},{"type":"turn.completed"},
       {"type":"item.completed","item":{"type":"agent_message","text":"Preview? Preview? Preview? Preview? Preview?"}}] |
     .sessions[0].events += [

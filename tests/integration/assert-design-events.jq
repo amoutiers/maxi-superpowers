@@ -86,6 +86,56 @@ def read_owner($installed; $owner):
      ($owner == "specify" and ($skill.key | endswith("/specify/spec-author.md")))) and
     any($cmds[]; reads_path($installed; $skill.key) and
       (.aggregated_output | contains($skill.value))));
+
+# Recognize full-file reads only, never dispatch text, echoes, slices or shell evaluation.
+# Canonical output is the event-time snapshot: later author corrections are allowed.
+def full_file_read($path; $relative; $fixture):
+  (.command[-1] // "") as $command |
+  ([ $path ] + (if .cwd == ("file://" + $fixture) then [$relative] else [] end)) as $paths |
+  .command[0:-1] == ["/bin/zsh", "-lc"] and .status == "completed" and
+  (.aggregated_output | type == "string" and length > 0 and
+    (test("(?i)tokens? truncated|output truncated|truncated output|\\[\\.\\.\\.") | not)) and
+  (any($paths[]; . as $file |
+    any([$file, "\"" + $file + "\"", "'" + $file + "'"][];
+      $command == ("cat " + .) or $command == ("cat -- " + .)) or
+    any(["'", "\""][]; . as $quote |
+      any(["p", "path", "spec"][]; . as $name |
+        $command == ("python3 - <<'PY'\nfrom pathlib import Path\n" + $name + "=Path(" +
+          $quote + $file + $quote + ")\nprint(" + $name + ".read_text())\nPY") or
+        $command == ("python3 - <<'PY'\nfrom pathlib import Path\nprint(Path(" +
+          $quote + $file + $quote + ").read_text())\nPY")))) or
+  (($path | split("/")) as $parts |
+   ($parts[0:-2] | join("/")) as $base |
+   ($parts[-2:] | join("/")) as $relative |
+   any(["base", "b"][]; . as $name |
+     any(["'", "\""][]; . as $quote |
+       $command == ("python3 - <<'PY'\nfrom pathlib import Path\n" + $name + "=Path(" +
+         $quote + $base + $quote + ")\nfor rel in [" + $quote + $relative + $quote +
+         "]:\n p=" + $name + "/rel\n print(p.read_text())\nPY")))));
+def builder_read($input; $parent; $identity):
+  [$input.sessions[] | select(.agent == $identity)] as $children |
+  ($children | length) == 1 and
+  any($children[]; . as $child |
+    (.id | type == "string" and length > 0) and .id != $parent.id and
+    ($parent.id | type == "string" and length > 0) and
+    .source.subagent.thread_spawn.parent_thread_id == $parent.id and
+    .source.subagent.thread_spawn.agent_path == $identity and
+    any($input.installed | to_entries[];
+      . as $prompt | (.key | endswith("/brainstorming/builder-check-prompt.md")) and
+      any($child | commands[];
+        full_file_read($prompt.key; $prompt.key; $input.fixture) and
+        (.aggregated_output | contains($prompt.value)))) and
+    any($input.files | keys[] | select(endswith("/spec.md")); . as $relative |
+      ($relative | split("/") | .[-2]) as $slug |
+      any($child | commands[];
+        full_file_read($input.fixture + "/" + $relative; $relative; $input.fixture) and
+        (.aggregated_output | startswith("---\n") and endswith("\n") and
+          contains("\nslug: " + $slug + "\n") and contains("\nstatus: specified\n") and
+          test("(?m)^# Feature Specification:") and
+          test("(?m)^## User Scenarios & Testing") and
+          test("(?m)^## Requirements") and test("(?m)^## Success Criteria") and
+          test("(?m)^## Assumptions")))));
+
 . as $input |
 require(.exit_code == 0 and .head_unchanged and .source_unchanged; "incomplete execution or changed Git HEAD/source") |
 require(any(.cli[]; .type == "turn.completed") and
@@ -94,9 +144,9 @@ require((.sessions | length) > 0 and all(.sessions[]; (.events | length) > 0); "
 [.cli[] | select(.type == "item.completed" and .item.type == "agent_message") | .item.text] as $messages |
 [.sessions[] | select(.agent == "/root") | .events[] | select(.type == "event_msg" and .payload.type == "task_complete") | .payload] as $final_turns |
 [.sessions[] | select(.agent == "/root") | .events[] | select(.type == "turn_context") | .payload.turn_id] as $turn_ids |
-(if .name == "questions" then ([$final_turns[].last_agent_message | scan("\\?")] | length)
+(if (.answers // [] | length) > 0 then ([$final_turns[].last_agent_message | scan("\\?")] | length)
  else ([$messages[] | scan("\\?")] | length) end) as $question_count |
-require(if .name == "questions" then
+require(if (.answers // [] | length) > 0 then
   ($final_turns | length) == ([.cli[] | select(.type == "turn.completed")] | length) and
   ($final_turns | length) == ((.answers | length) + 1) and
   $turn_ids == ($final_turns | map(.turn_id)) and
@@ -105,6 +155,13 @@ require(if .name == "questions" then
     (.last_agent_message | type) == "string" and (.last_agent_message | length) > 0) and
   ($final_turns[-1].last_agent_message | test("\\?") | not)
   else true end; "incomplete scripted final-turn evidence") |
+require(if (.answers // [] | length) > 0 then
+  (.answer_question_patterns | type == "array") and
+  (.answer_question_patterns | length) == (.answers | length) and
+  all(range(0; .answers | length); . as $i |
+    ($input.answer_question_patterns[$i] | type == "string" and length > 0) and
+    ($final_turns[$i].last_agent_message | test($input.answer_question_patterns[$i]; "i")))
+  else true end; "scripted answer question mismatch") |
 require($question_count <= .max_questions; "unexpected user questions; inspect transcript") |
 require(all(.changes[]; . as $path | $input.allowed | index($path)); "unauthorized write or successor") |
 require(all(.files | keys[]; . as $path | $input.allowed | index($path)); "duplicate or unauthorized artifact") |
@@ -138,13 +195,20 @@ $input |
  if ($out | length) != 1 then error("missing/duplicate allocation result") else
  ($out[0].output | fromjson | .task_name) as $identity |
  if ($identity | type) != "string" or ($identity | startswith("/root/")) == false then error("unknown allocation identity") else
- {identity:$identity, reviewer:($reviewers | index($identity) != null),
+ ([$input.sessions[] | select(.agent == $call.agent)]) as $parents |
+ {identity:$identity, builder:(($parents | length) == 1 and
+    any($parents[]; builder_read($input; .; $identity))), reviewer:($reviewers | index($identity) != null),
  owner:any($input.sessions[]; .agent == $identity and
    (any(["specify","clarify","plan","revise"][]; . as $owner |
       any($input.sessions[] | select(.agent == $identity); read_owner($input.installed; $owner))) or
     (read_owner($input.installed; "review") and any(commands[];
       invokes_reservation($input.helper) and any(reservation_lines; startswith("DESIGN_REVIEW_RESERVED "))))))} end end] as $allocations |
-require(all($allocations[]; .reviewer or .owner); "unclassified allocation: incomplete review count") |
+require(all($allocations[]; .reviewer or .owner or .builder); "unclassified allocation: incomplete review count") |
+require((.expected_builder_checks | type == "number") and .expected_builder_checks >= 0 and
+  (.expected_builder_checks | floor) == .expected_builder_checks; "invalid expected builder checks") |
+[$allocations[] | select(.builder)] as $builders |
+require(all($builders[]; (.reviewer or .owner) | not); "builder identity overlaps reviewer or owner") |
+require(($builders | length) == .expected_builder_checks; "builder check count mismatch") |
 require(all($reviewers[]; . as $id | any($allocations[]; .identity == $id)); "report reviewer is not a returned harness identity") |
 [$calls[] | select(.name == "followup_task") |
  . as $call | (if (.args.target | startswith("/")) then .args.target else .agent + "/" + .args.target end) as $target |
@@ -180,6 +244,6 @@ require(if .outcome == "approved" then
         .item.type == "AgentMessage" and .item.phase == "final_answer" and
         ([.item.content[] | select(.type == "Text") | .text] | join("")) == $terminal.last_agent_message)))
   else true end; "absent or inconsistent completed independent reviewer verdict") |
-{result:(if .review then .outcome else "verified" end), review_dispatches:($reviews | length), reservations:($reservations | length),
+{result:(if .review then .outcome else "verified" end), review_dispatches:($reviews | length), builder_checks:($builders | length), reservations:($reservations | length),
  user_turns:([.cli[] | select(.type == "turn.completed")] | length),
  questions:$question_count, duplicate_documents:0}

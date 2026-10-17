@@ -20,7 +20,9 @@
     "review": false,
     "answers": [],
     "status": null,
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 1,
+    "answer_question_patterns": []
   },
   {
     "name": "design-validation",
@@ -50,19 +52,26 @@
     "review": true,
     "answers": [],
     "status": null,
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 1,
+    "answer_question_patterns": []
   },
   {
     "name": "lean-plan-only",
     "group": "lean",
     "prompt": "Run /maxi:plan for the clarified 0001-line-counter spec. Plan only, then stop at the requested plan-owner destination. counter.py counts non-empty lines; check.py parses its decimal CLI output with parse_count(text: str) -> int, and the owning check.py task must test assert parse_count(\"0\") == 0. All product choices in the spec are settled. Scan for specific review risks; if none survive the scan, say so in Review Focus. Keep the plan lean and preserve interfaces and assertions in their owning task. Do not start review, tasks, analysis, implementation, a separate Superpowers plan, or a nested execution handoff. Do not commit or modify source files. Work only in this fixture.",
-    "owners": ["plan", "writing-plans"],
+    "owners": [
+      "plan",
+      "writing-plans"
+    ],
     "allowed": [
       "docs/maxi/specs/0001-line-counter/spec.md",
       "docs/maxi/specs/0001-line-counter/plan.md"
     ],
     "required": {
-      "docs/maxi/specs/0001-line-counter/spec.md": ["status: planned"],
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "status: planned"
+      ],
       "docs/maxi/specs/0001-line-counter/plan.md": [
         "Global Constraints",
         "Review Focus",
@@ -74,20 +83,30 @@
     "review": false,
     "answers": [],
     "status": "clarified",
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 0,
+    "answer_question_patterns": []
   },
   {
     "name": "settled-sdd-design",
     "group": "lean",
     "prompt": "Run /maxi:specify with slug 0001-line-counter. A Python command line utility counts non-empty lines in one existing UTF-8 file path. Whitespace-only lines are empty. Print the decimal count followed by LF. An unreadable file produces concise stderr and nonzero exit. Use only the standard library, no network, configuration, or UI. counter.py owns line counting; check.py parses the CLI decimal output with parse_count(text: str) -> int and its owning task must assert parse_count(\"0\") == 0. Review Focus should cover the genuine producer-to-consumer risk that a changed whitespace rule could leave an expected count stale; name the owning task and test. All product choices and this design are approved. SDD execution is already selected for later implementation, after design gates. Complete the canonical design through owner-only writes and bounded independent review. Do not implement, commit, modify source files, create tasks or analysis, create a duplicate Superpowers artifact, or present a nested execution handoff. Work only in this fixture.",
-    "owners": ["specify", "clarify", "plan", "writing-plans", "review"],
+    "owners": [
+      "specify",
+      "clarify",
+      "plan",
+      "writing-plans",
+      "review"
+    ],
     "allowed": [
       "docs/maxi/specs/0001-line-counter/spec.md",
       "docs/maxi/specs/0001-line-counter/plan.md",
       "docs/maxi/specs/0001-line-counter/reviews/design-review.md"
     ],
     "required": {
-      "docs/maxi/specs/0001-line-counter/spec.md": ["status: planned"],
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "status: planned"
+      ],
       "docs/maxi/specs/0001-line-counter/plan.md": [
         "Global Constraints",
         "Review Focus",
@@ -100,7 +119,9 @@
     "review": true,
     "answers": [],
     "status": null,
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 1,
+    "answer_question_patterns": []
   },
   {
     "name": "questions",
@@ -128,7 +149,12 @@
       "Use line_count as the JSON key. This settles the dependent choice; complete the canonical spec and clarification."
     ],
     "status": null,
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 1,
+    "answer_question_patterns": [
+      "(?s)(?=.*(?:whitespace|space))(?=.*(?:path|stdin))(?=.*(?:JSON|text)).*\\?",
+      "key.*\\?"
+    ]
   },
   {
     "name": "revision",
@@ -164,7 +190,9 @@
     "review": true,
     "answers": [],
     "status": null,
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 0,
+    "answer_question_patterns": []
   },
   {
     "name": "review-only",
@@ -185,7 +213,9 @@
     "review": true,
     "answers": [],
     "status": null,
-    "max_reviews": 1
+    "max_reviews": 1,
+    "expected_builder_checks": 0,
+    "answer_question_patterns": []
   },
   {
     "name": "edit-only",
@@ -206,7 +236,9 @@
     "review": false,
     "answers": [],
     "status": null,
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 0,
+    "answer_question_patterns": []
   },
   {
     "name": "parked",
@@ -221,7 +253,9 @@
     "review": false,
     "answers": [],
     "status": "parked",
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 0,
+    "answer_question_patterns": []
   },
   {
     "name": "cancelled",
@@ -236,7 +270,9 @@
     "review": false,
     "answers": [],
     "status": "cancelled",
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 0,
+    "answer_question_patterns": []
   },
   {
     "name": "reopened-done",
@@ -258,7 +294,9 @@
     "review": false,
     "answers": [],
     "status": "reopened",
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 0,
+    "answer_question_patterns": []
   },
   {
     "name": "missing-continuity",
@@ -273,6 +311,118 @@
     "review": false,
     "answers": [],
     "status": "missing",
-    "max_reviews": 2
+    "max_reviews": 2,
+    "expected_builder_checks": 0,
+    "answer_question_patterns": []
+  },
+  {
+    "name": "v7-intent",
+    "group": "v7",
+    "prompt": "Run /maxi:specify with slug 0001-line-counter. I want a Python line counter, but its real purpose and choices are not settled. Start the normal intent conversation with one open question. After my answer create the canonical spec and complete clarification only. Do not implement, commit, modify source files, or create plan, tasks or analysis. Work only in this fixture.",
+    "owners": [
+      "specify",
+      "clarify"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "status: clarified",
+        "whitespace"
+      ]
+    },
+    "seeded": false,
+    "review": false,
+    "answers": [
+      "I need the count to check non-empty records in one existing UTF-8 file before importing it. Whitespace-only lines are empty. Input is one file path, not stdin. Print a decimal count followed by LF. On unreadable input print concise stderr and exit nonzero. Use the Python standard library only, no network or UI. These settle the product choices and design. Complete the canonical spec and clarification only."
+    ],
+    "status": null,
+    "max_reviews": 2,
+    "expected_builder_checks": 1,
+    "answer_question_patterns": [
+      "(?s)(skip|rather|just start|questions).*(moment|people|use|wish|when|what|why|tell|describe|purpose|doing|need).{0,600}\\?"
+    ],
+    "max_questions": 1
+  },
+  {
+    "name": "v7-builder",
+    "group": "v7",
+    "prompt": "Run /maxi:specify with slug 0001-line-counter. A Python command line utility counts non-empty lines in one existing UTF-8 file path. Whitespace-only lines are empty. Print the decimal count followed by LF. An unreadable file produces concise stderr and nonzero exit. No network, configuration, dependencies, or UI. All these product choices and this design are approved. Create the canonical spec and complete clarification only. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "specify",
+      "clarify"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "status: clarified",
+        "whitespace"
+      ]
+    },
+    "seeded": false,
+    "review": false,
+    "answers": [],
+    "status": null,
+    "max_reviews": 2,
+    "expected_builder_checks": 1,
+    "answer_question_patterns": []
+  },
+  {
+    "name": "v7-skip",
+    "group": "v7",
+    "prompt": "Run /maxi:specify with slug 0001-line-counter. I want a Python line counter, but its real purpose and choices are not settled. Start the normal intent conversation with one open question. After my answer create the canonical spec and complete clarification only. Do not implement, commit, modify source files, or create plan, tasks or analysis. Work only in this fixture.",
+    "owners": [
+      "specify",
+      "clarify"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "status: clarified",
+        "whitespace",
+        "(?i)assum|agent|default"
+      ]
+    },
+    "seeded": false,
+    "review": false,
+    "answers": [
+      "Skip the questions and just start. Use sensible defaults for a Python standard-library CLI counting non-empty UTF-8 lines in one existing file path, whitespace-only lines empty, decimal count plus LF, concise stderr and nonzero exit on unreadable input. No stdin, JSON, network, UI, or dependencies. Treat any significant choice not in this answer as an explicit agent assumption. Create and clarify only the canonical spec."
+    ],
+    "status": null,
+    "max_reviews": 2,
+    "expected_builder_checks": 1,
+    "answer_question_patterns": [
+      "(?s)(skip|rather|just start|questions).*(moment|people|use|wish|when|what|why|tell|describe|purpose|doing|need).{0,600}\\?"
+    ],
+    "max_questions": 1
+  },
+  {
+    "name": "v7-draft-only",
+    "group": "v7",
+    "prompt": "Run /maxi:specify with slug 0001-line-counter. A Python command line utility counts non-empty lines in one existing UTF-8 file path. Whitespace-only lines are empty. Print the decimal count followed by LF. An unreadable file produces concise stderr and nonzero exit. No network, configuration, dependencies, or UI. All these product choices and this design are approved. Draft only the canonical spec. Stop after the spec-author write without brainstorming, builder, clarification or planning. Do not implement, commit, modify source files, or create tasks/analysis. Work only in this fixture.",
+    "owners": [
+      "specify"
+    ],
+    "allowed": [
+      "docs/maxi/specs/0001-line-counter/spec.md"
+    ],
+    "required": {
+      "docs/maxi/specs/0001-line-counter/spec.md": [
+        "status: specified",
+        "whitespace"
+      ]
+    },
+    "seeded": false,
+    "review": false,
+    "answers": [],
+    "status": null,
+    "max_reviews": 2,
+    "expected_builder_checks": 0,
+    "answer_question_patterns": []
   }
 ]

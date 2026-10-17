@@ -7,9 +7,9 @@ CASE_GROUP="${1:-all}"
 command -v jq >/dev/null || { echo 'ERROR: jq required' >&2; exit 1; }
 CASES="$ROOT/tests/integration/design-cases/cases.json"
 case "$CASE_GROUP" in
-  initial|revision|boundaries|all) ;;
+  initial|revision|boundaries|v7|all) ;;
   *) jq -e --arg name "$CASE_GROUP" 'any(.[]; .name == $name)' "$CASES" >/dev/null || {
-    echo 'Usage: run-codex-design-test.sh [initial|revision|boundaries|all|case-name]' >&2
+    echo 'Usage: run-codex-design-test.sh [initial|revision|boundaries|v7|all|case-name]' >&2
     exit 2
   };;
 esac
@@ -34,6 +34,19 @@ run_codex_with_deadline() {
   shift
   perl "$ROOT/tests/integration/run-with-deadline.pl" 600 5 -- "$@" </dev/null >> "$log" 2>&1
 }
+# Scripted answers require their declared question in a completed native CLI message.
+question_allows_answer() {
+  local log="$1" case_file="$2" turn="$3"
+  tr -d '\000' < "$log" | awk '/^\{/' | jq -se --slurpfile case "$case_file" --argjson turn "$turn" '
+    $case[0] as $c |
+    ($c.answer_question_patterns | type == "array") and
+    ($c.answer_question_patterns | length) == ($c.answers | length) and
+    ($c.answer_question_patterns[$turn] | type == "string" and length > 0) and
+    any(.[]; .type == "turn.completed") and
+    all(.[]; .type != "turn.failed" and .type != "error") and
+    ([.[] | select(.type == "item.completed" and .item.type == "agent_message") | .item.text][-1] // "" |
+      test("\\?") and test($c.answer_question_patterns[$turn]; "i"))' >/dev/null
+}
 run_codex_with_deadline "$OUTPUT_DIR/install.log" codex plugin marketplace add "$RUNTIME/marketplace"
 run_codex_with_deadline "$OUTPUT_DIR/install.log" codex plugin add maxi@maxi-superpowers
 INSTALLED=$(find "$CODEX_HOME/plugins/cache/maxi-superpowers/maxi" -type d -name skills -print)
@@ -43,7 +56,7 @@ printf '{}\n' > "$OUTPUT_DIR/installed.json"
 while IFS= read -r file; do
   jq --arg path "$file" --rawfile content "$file" '. + {($path):$content}' "$OUTPUT_DIR/installed.json" > "$OUTPUT_DIR/installed.tmp"
   mv "$OUTPUT_DIR/installed.tmp" "$OUTPUT_DIR/installed.json"
-done < <(find "$INSTALLED" -type f \( -name SKILL.md -o -path "$INSTALLED/specify/spec-author.md" \))
+done < <(find "$INSTALLED" -type f \( -name SKILL.md -o -path "$INSTALLED/specify/spec-author.md" -o -path "$INSTALLED/brainstorming/builder-check-prompt.md" \))
 HELPER="$INSTALLED/review/design-contract.sh"
 printf '%s\n' "$SOURCE_HEAD_BEFORE" > "$OUTPUT_DIR/source-head.txt"
 cp -R "$INSTALLED" "$OUTPUT_DIR/installed-skills"
@@ -89,11 +102,7 @@ while IFS= read -r name; do
     turn=0
     while IFS= read -r answer; do
       # A scripted answer is only sent after the corresponding real question.
-      if ! tr -d '\000' < "$DIR/turn-$turn.jsonl" | awk '/^\{/' | jq -se --argjson turn "$turn" '
-        [.[] | select(.type == "item.completed" and .item.type == "agent_message") | .item.text] | join("\n") |
-        test("\\?") and (if $turn == 0 then
-          test("whitespace|space";"i") and test("path|stdin";"i") and test("JSON|text";"i")
-          else test("key";"i") end)' >/dev/null; then
+      if ! question_allows_answer "$DIR/turn-$turn.jsonl" "$DIR/case.json" "$turn"; then
         code=1
         printf '%s\n' 'INCOMPLETE: expected product question was not observed; no scripted answer sent' > "$DIR/questions.log"
         break
@@ -110,7 +119,7 @@ while IFS= read -r name; do
   while IFS= read -r session; do
     if jq -se --arg fixture "$FIXTURE" '.[0].type == "session_meta" and .[0].payload.cwd == $fixture' "$session" >/dev/null; then
       cp "$session" "$DIR/$(basename "$session")"
-      jq -s '{agent:(.[0].payload.agent_path // "/root"), events:.}' "$session" > "$DIR/session.tmp"
+      jq -s '{agent:(.[0].payload.agent_path // "/root"), id:.[0].payload.id, source:.[0].payload.source, events:.}' "$session" > "$DIR/session.tmp"
       jq --slurpfile next "$DIR/session.tmp" '. + $next' "$DIR/sessions.json" > "$DIR/sessions.tmp"
       mv "$DIR/sessions.tmp" "$DIR/sessions.json"
     fi
@@ -139,7 +148,8 @@ while IFS= read -r name; do
   if [ "$(git -C "$ROOT" rev-parse HEAD)" = "$SOURCE_HEAD_BEFORE" ] && [ -z "$(git -C "$ROOT" status --porcelain=v1 --untracked-files=all)" ]; then source_unchanged=true; fi
   max_questions=0
   case "$name" in questions) max_questions=4;; parked|cancelled|missing-continuity) max_questions=1;; esac
-  jq -n --slurpfile c "$DIR/case.json" --slurpfile cli "$DIR/cli.jsonl" --slurpfile sessions "$DIR/sessions.json" --slurpfile files "$DIR/files.json" --slurpfile changes "$DIR/changes.json" --slurpfile installed "$OUTPUT_DIR/installed.json" --arg helper "$HELPER" --arg outcome "$outcome" --argjson verified "$verified" --argjson head "$head_unchanged" --argjson source "$source_unchanged" --argjson code "$code" --argjson elapsed "$elapsed" --argjson max_questions "$max_questions" '$c[0] + {cli:$cli,sessions:$sessions[0],files:$files[0],changes:$changes[0],installed:$installed[0],helper:$helper,outcome:$outcome,verified:$verified,head_unchanged:$head,source_unchanged:$source,exit_code:$code,elapsed_seconds:$elapsed,max_questions:$max_questions}' > "$DIR/evidence.json"
+  max_questions=$(jq -r --argjson default "$max_questions" '.max_questions // $default' "$DIR/case.json")
+  jq -n --slurpfile c "$DIR/case.json" --slurpfile cli "$DIR/cli.jsonl" --slurpfile sessions "$DIR/sessions.json" --slurpfile files "$DIR/files.json" --slurpfile changes "$DIR/changes.json" --slurpfile installed "$OUTPUT_DIR/installed.json" --arg fixture "$FIXTURE" --arg helper "$HELPER" --arg outcome "$outcome" --argjson verified "$verified" --argjson head "$head_unchanged" --argjson source "$source_unchanged" --argjson code "$code" --argjson elapsed "$elapsed" --argjson max_questions "$max_questions" '$c[0] + {cli:$cli,sessions:$sessions[0],files:$files[0],changes:$changes[0],installed:$installed[0],fixture:$fixture,helper:$helper,outcome:$outcome,verified:$verified,head_unchanged:$head,source_unchanged:$source,exit_code:$code,elapsed_seconds:$elapsed,max_questions:$max_questions}' > "$DIR/evidence.json"
   cp -R "$FIXTURE/docs" "$DIR/final-docs"
   git -C "$FIXTURE" diff HEAD > "$DIR/final.diff"
   if jq -e -f "$ROOT/tests/integration/assert-design-events.jq" "$DIR/evidence.json" > "$DIR/result.json" 2> "$DIR/assertions.log"; then

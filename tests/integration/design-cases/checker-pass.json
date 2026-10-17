@@ -210,5 +210,7 @@
   "source_unchanged": true,
   "exit_code": 0,
   "outcome": "approved",
-  "name": "design-validation"
+  "name": "design-validation",
+  "expected_builder_checks": 0,
+  "answers": []
 }
