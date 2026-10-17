@@ -72,6 +72,39 @@ class BuilderEvidence(unittest.TestCase):
         data['sessions'][-1]['events'][1]['payload']['item']['cwd'] = 'file:///foreign'
         self.check(data, 'unclassified allocation')
 
+    def test_cat_operands_share_bounded_absolute_relative_resolution(self):
+        absolute = '/fixture/' + SPEC
+        for prefix in ('cat ', 'cat -- '):
+            for operand in (absolute, SPEC):
+                for quote in ('', "'", '"'):
+                    with self.subTest(prefix=prefix, operand=operand, quote=quote):
+                        data = fixture()
+                        data['sessions'][-1]['events'][1] = command(prefix + quote + operand + quote, SPECIFIED)
+                        self.check(data)
+                        data['sessions'][-1]['events'] = [command(
+                            prefix + quote + PROMPT + quote + ' ' + quote + operand + quote,
+                            data['installed'][PROMPT] + SPECIFIED)]
+                        self.check(data)
+        for text in ('cat ' + PROMPT + ' ' + SPEC,
+                     'cat ' + PROMPT + ' /fixture/docs/../docs/maxi/specs/0001-line-counter/spec.md'):
+            for cwd in ('file:///foreign', None):
+                data = fixture()
+                event = command(text, data['installed'][PROMPT] + SPECIFIED)
+                event['payload']['item']['cwd'] = cwd
+                data['sessions'][-1]['events'] = [event]
+                self.check(data, 'unclassified allocation')
+        for operand in ('../fixture/' + SPEC, './' + SPEC, 'docs//maxi/specs/0001-line-counter/spec.md',
+                        '$PWD/' + SPEC, '$(pwd)/' + SPEC, SPEC + '*', SPEC + '; true',
+                        'docs/%2e%2e/' + SPEC):
+            for joined in (False, True):
+                data = fixture()
+                if joined:
+                    data['sessions'][-1]['events'] = [command('cat ' + PROMPT + ' ' + operand,
+                        data['installed'][PROMPT] + SPECIFIED)]
+                else:
+                    data['sessions'][-1]['events'][1] = command('cat ' + operand, SPECIFIED)
+                self.check(data, 'unclassified allocation')
+
     def test_missing_partial_echo_failed_or_truncated_reads_are_unclassified(self):
         for slot in (0, 1):
             for mutation in ('missing', 'partial', 'echo', 'failed', 'pending', 'truncated', 'foreign'):

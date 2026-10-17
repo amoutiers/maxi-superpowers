@@ -133,27 +133,47 @@ def read_owner($installed; $owner):
 
 # Recognize full-file reads only, never dispatch text, echoes, slices or shell evaluation.
 # Canonical output is the event-time snapshot: later author corrections are allowed.
+# Parse only literal cat operands, then compare resolved paths with the exact targets.
+# Relative operands require the fixture cwd; dot segments and expansions are unsupported.
+def cat_read_paths($fixture):
+  . as $read |
+  if complete_shell_read then
+    try (
+      (.command[-1] | capture("^cat(?: --)? (?<operands>.+)$").operands // "") as $args |
+      ([$args | scan("(\"[^\"\\n]+\"|'[^'\\n]+'|[A-Za-z0-9_./-]+)") | .[0]]) as $tokens |
+      if ($tokens | length) > 0 and ($tokens | join(" ")) == $args then
+        [$tokens[] |
+          (if startswith("\"") or startswith("'") then .[1:-1] else . end) as $path |
+          if ($path | test("^/?[A-Za-z0-9_./ -]+$") and
+              (ltrimstr("/") | split("/") | all(.[]; length > 0 and . != "." and . != ".."))) then
+            if $path | startswith("/") then $path
+            elif $read.cwd == ("file://" + $fixture) then $fixture + "/" + $path
+            else null end
+          else null end] as $paths |
+        if all($paths[]; . != null) then $paths else null end
+      else null end
+    ) catch null
+  else null end;
 def full_file_read($path; $relative; $fixture):
   (.command[-1] // "") as $command |
   ([ $path ] + (if .cwd == ("file://" + $fixture) then [$relative] else [] end)) as $paths |
-  complete_shell_read and
-  (any($paths[]; . as $file |
-    any([$file, "\"" + $file + "\"", "'" + $file + "'"][];
-      $command == ("cat " + .) or $command == ("cat -- " + .)) or
-    any(["'", "\""][]; . as $quote |
-      any(["p", "path", "spec"][]; . as $name |
-        $command == ("python3 - <<'PY'\nfrom pathlib import Path\n" + $name + "=Path(" +
-          $quote + $file + $quote + ")\nprint(" + $name + ".read_text())\nPY") or
-        $command == ("python3 - <<'PY'\nfrom pathlib import Path\nprint(Path(" +
-          $quote + $file + $quote + ").read_text())\nPY")))) or
-  (($path | split("/")) as $parts |
-   ($parts[0:-2] | join("/")) as $base |
-   ($parts[-2:] | join("/")) as $relative |
-   any(["base", "b"][]; . as $name |
-     any(["'", "\""][]; . as $quote |
-       $command == ("python3 - <<'PY'\nfrom pathlib import Path\n" + $name + "=Path(" +
-         $quote + $base + $quote + ")\nfor rel in [" + $quote + $relative + $quote +
-         "]:\n p=" + $name + "/rel\n print(p.read_text())\nPY")))));
+  (cat_read_paths($fixture) == [$path]) or
+  (complete_shell_read and
+   (any($paths[]; . as $file |
+      any(["'", "\""][]; . as $quote |
+        any(["p", "path", "spec"][]; . as $name |
+          $command == ("python3 - <<'PY'\nfrom pathlib import Path\n" + $name + "=Path(" +
+            $quote + $file + $quote + ")\nprint(" + $name + ".read_text())\nPY") or
+          $command == ("python3 - <<'PY'\nfrom pathlib import Path\nprint(Path(" +
+            $quote + $file + $quote + ").read_text())\nPY")))) or
+    (($path | split("/")) as $parts |
+     ($parts[0:-2] | join("/")) as $base |
+     ($parts[-2:] | join("/")) as $relative |
+     any(["base", "b"][]; . as $name |
+       any(["'", "\""][]; . as $quote |
+         $command == ("python3 - <<'PY'\nfrom pathlib import Path\n" + $name + "=Path(" +
+           $quote + $base + $quote + ")\nfor rel in [" + $quote + $relative + $quote +
+           "]:\n p=" + $name + "/rel\n print(p.read_text())\nPY"))))));
 def canonical_spec_output($slug):
   startswith("---\n") and endswith("\n") and
   contains("\nslug: " + $slug + "\n") and contains("\nstatus: specified\n") and
@@ -179,8 +199,7 @@ def builder_read($input; $parent; $identity):
            full_file_read($input.fixture + "/" + $relative; $relative; $input.fixture) and
            (.aggregated_output | canonical_spec_output($slug)))) or
         any($child | commands[];
-          complete_shell_read and
-          .command[-1] == ("cat " + $prompt.key + " " + $input.fixture + "/" + $relative) and
+          cat_read_paths($input.fixture) == [$prompt.key, $input.fixture + "/" + $relative] and
           (.aggregated_output | startswith($prompt.value) and
             (ltrimstr($prompt.value) | canonical_spec_output($slug)))))));
 

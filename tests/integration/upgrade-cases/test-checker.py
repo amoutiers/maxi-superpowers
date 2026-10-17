@@ -540,6 +540,59 @@ class UpgradeEvidenceTest(unittest.TestCase):
         self.assertIn('**Ready to merge?**', prompt)
         self.assertIn('**Fix round:** All findings addressed, no new Critical/Important breakage', prompt)
 
+    def test_observed_task_labels_are_unambiguous_and_task_bound(self):
+        report = ('Spec compliance: ✅ Compliant for Task 2.\n\n'
+                  '- The complete pipeline and whole-branch review cannot be verified from this task diff.\n\n'
+                  'Issues: No Critical, Important, or Minor findings.\n\n'
+                  'Task quality: **Approved**.\n')
+        self.assertEqual(checker.task_review_verdict(report, 2), 'approved')
+        for bad in (report.replace('Task 2.', 'Task 1.'), report.replace('Compliant', 'Not compliant'),
+                    report.replace('Approved', 'Needs fixes'), report.replace('Approved', 'Approved with reservations'),
+                    report.replace('Task 2.', 'Task 2, with caveats.'),
+                    report + 'Task quality: **Approved**.\n',
+                    report + '- Task quality: **Approved**.\n',
+                    report + '- Spec compliance: ✅ Compliant for Task 2.\n',
+                    report + 'Spec compliance: ✅ Compliant for Task 2.\n',
+                    report + '**Task quality:** Needs fixes\n',
+                    report + '### Spec Compliance\n✅ Spec compliant\n**Task quality:** Approved\n',
+                    report + 'Not compliant.\n', report + 'Needs fixes.\n'):
+            with self.subTest(report=bad):
+                self.assertIsNone(checker.task_review_verdict(bad, 2))
+
+    def test_complete_task_review_accepts_observed_plain_labels(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            make_complete(root)
+            path = root / 'stages/resume/sessions.json'
+            sessions = json.loads(path.read_text())
+            child = next(s for s in sessions if s['agent'] == '/root/task_two_reviewer')
+            report = 'Spec compliance: ✅ Compliant for Task 2.\n\nTask quality: **Approved**.\n'
+            for event in child['events']:
+                payload = event.get('payload', {})
+                if payload.get('type') == 'task_complete':
+                    payload['last_agent_message'] = report
+                elif payload.get('item', {}).get('type') == 'AgentMessage':
+                    payload['item']['content'][0]['text'] = report
+            path.write_text(json.dumps(sessions))
+            result = subprocess.run([sys.executable, str(CHECKER), str(root)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_migration_prompt_prepares_full_id_package_before_review(self):
+        source = (CHECKER.parent.parent / 'run-codex-upgrade-test.sh').read_text()
+        invocation = next(line for line in source.splitlines() if line.startswith('run_stage migration '))
+        script = ('run_stage() { printf "%s" "$2"; }\nINSTALLED=/bound-installed\nMIGRATION=/migration\n'
+                  'MIG_BASE=' + '1' * 40 + '\nMIG_HEAD=' + '2' * 40 + '\n' + invocation)
+        result = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        prompt = result.stdout
+        self.assertIn('/bound-installed/x-develop/SKILL.md contract', prompt)
+        self.assertIn('1' * 40, prompt)
+        self.assertIn('2' * 40, prompt)
+        self.assertIn('before reviewer dispatch', prompt)
+        self.assertIn('canonical package preparation', prompt)
+        self.assertIn('complete native output preservation', prompt)
+        self.assertIn('Do not request an extra review round', prompt)
+
     def assert_rejected(self, root, label):
         result = subprocess.run([sys.executable, str(CHECKER), str(root)],
                                 capture_output=True, text=True)

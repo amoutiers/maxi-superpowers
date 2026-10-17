@@ -83,7 +83,9 @@ require_literal "$DEVELOP" "Every projection's exact distributed bytes are SHA-2
 require_literal "$DEVELOP" 'Removing an anchored incomplete `TNNN` during structural correction fails before successor creation and leaves the active-projection pointer unchanged.' 'structural correction can erase an incomplete anchored task'
 require_literal "$DEVELOP" 'Complete ledger lines containing `Ruling:` are preserved byte-for-byte in lineage order and hash-bound by the terminal receipt.' 'ruling evidence is not preserved and hash-bound'
 require_literal "$DEVELOP" 'normalize to column-zero triple backticks in the preamble and task bodies while preserving payload bytes' 'projection does not preserve upstream task-brief extraction'
-require_literal "$DEVELOP" "Regenerate each review package with upstream's \`review-package\` helper" 'review packages are not compared with their Git ranges'
+require_literal "$DEVELOP" 'Before substantive review dispatch, resolve both endpoints to full commit IDs' 'review package endpoints are not normalized before dispatch'
+require_literal "$DEVELOP" 'generate the persisted package and a separate candidate with those full IDs, then compare them byte-for-byte before dispatch' 'canonical review package is not verified before dispatch'
+require_literal "$DEVELOP" 'including every verdict line, without editing or omitting any response' 'complete native reviewer responses are not preserved'
 require_literal "$DEVELOP" 'Before final-review work is dispatched, persist the harness-issued reviewer context' 'reviewer dispatch identity is not persisted before dispatch'
 require_literal "$DEVELOP" 'For Codex, first allocate a fresh reviewer for an identity handshake only' 'Codex reviewer handshake is missing'
 require_literal "$DEVELOP" 'capture the harness-returned canonical task path, persist it, then dispatch the review through a follow-up to that same reviewer' 'Codex final review does not bind the allocated reviewer'
@@ -108,6 +110,8 @@ for doc in \
   require_literal "$doc" 'fenced Task-like headings never enter native selection or completion maps.' "$(basename "$doc") omits fence-aware native consumption"
   require_literal "$doc" 'READY_TO_FINISH' "$(basename "$doc") omits the terminal receipt gate"
   require_literal "$doc" 'Upstream SDD owns the only whole-branch review' "$(basename "$doc") keeps ambiguous final-review ownership"
+  require_literal "$doc" 'Before substantive review dispatch, `x-develop` resolves both endpoints to full commit IDs and generates and byte-compares the canonical package through the bound upstream helper.' "$(basename "$doc") omits canonical package preparation before dispatch"
+  require_literal "$doc" 'It preserves every complete native review output verbatim, including all verdict lines.' "$(basename "$doc") omits complete native review preservation"
   require_literal "$doc" 'immutable initial task-selection anchor' "$(basename "$doc") omits the selection anchor gate"
   require_literal "$doc" 'Completion reuse requires the latest selection of that TNNN to be complete, with an unchanged exact plan hash and canonical task line.' "$(basename "$doc") omits content-bound completion reuse"
   require_literal "$doc" 'end an ancestor of current HEAD' "$(basename "$doc") omits completion Git ancestry"

@@ -80,6 +80,25 @@ def normalized_task_quality(report):
     return report.replace("**Task quality: Approved.**", "**Task quality:** Approved")
 
 
+def task_review_verdict(report, task_number):
+    """Classify the two observed task presentations without changing native text."""
+    if re.search(r"(?mi)^[ \t]*(?:Spec compliance|Task quality):", report):
+        spec = re.findall(r"(?mi)^[ \t]*(?:[-*][ \t]+)?(?:#{1,6}[ \t]+)?(?:\*\*)?Spec compliance\b[^\n]*", report)
+        quality = re.findall(r"(?mi)^[ \t]*(?:[-*][ \t]+)?(?:#{1,6}[ \t]+)?(?:\*\*)?Task quality\b[^\n]*", report)
+        if (spec == [f"Spec compliance: ✅ Compliant for Task {task_number}."] and
+                quality == ["Task quality: **Approved**."] and not re.search(
+                    r"not (?:spec )?compliant|non[- ]?compliant|needs fixes|not approved|rejected|❌|✅ Spec compliant",
+                    report, re.I)):
+            return "approved"
+        return None
+    quality = normalized_task_quality(report)
+    if "### Spec Compliance" in report and "**Task quality:**" in quality:
+        if "✅ Spec compliant" in report and "**Task quality:** Approved" in quality:
+            return "approved"
+        return "reported"
+    return None
+
+
 def collect_task_review(sessions, stage, fixture, workspace, base, end):
     """Bind a task's real reviewer to its exact committed-range package read."""
     fixture = fixture.resolve()
@@ -110,9 +129,7 @@ def collect_task_review(sessions, stage, fixture, workspace, base, end):
                    for event in child.get("events", [])
                    if event.get("type") == "event_msg" and
                    event.get("payload", {}).get("type") == "task_complete"]
-        if not any("### Spec Compliance" in report and
-                   "**Task quality:**" in normalized_task_quality(report)
-                   for report in reports):
+        if not any(task_review_verdict(report, task) is not None for report in reports):
             continue
         for event in child.get("events", []):
             payload = event.get("payload", {})
@@ -482,12 +499,10 @@ def task_review(stage, review, annotation, ledger, task_number):
                for event in children[0]["events"]
                if event.get("type") == "event_msg" and
                event.get("payload", {}).get("type") == "task_complete"]
-    require(len(reports) == 1 and "### Spec Compliance" in reports[0] and
-            "**Task quality:**" in normalized_task_quality(reports[0]),
+    require(len(reports) == 1 and task_review_verdict(reports[0], task_number) is not None,
             "task reviewer gave no spec and quality verdict")
     if annotation == "review clean":
-        require("✅ Spec compliant" in reports[0] and
-                "**Task quality:** Approved" in normalized_task_quality(reports[0]),
+        require(task_review_verdict(reports[0], task_number) == "approved",
                 "clean completion contradicts task reviewer")
     else:
         parked = int(annotation.split()[0])
