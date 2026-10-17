@@ -36,6 +36,8 @@ A spec-driven development plugin for Claude Code, Antigravity, Codex App, Codex 
 
 Gemini and Kimi are declarative surfaces. Their manifests cannot inspect the current working directory before loading `GEMINI.md` or `using-maxi`, so the bootstrap may load outside projects containing `docs/maxi/`. Executable adapters remain gated.
 
+The [v7.0.0 local qualification report](docs/superpowers/qualification/2026-10-17-superpowers-7-adaptation.md) separates actual installed Codex behavior, Antigravity CLI discovery probes, deterministic adapter checks and remaining native host limits.
+
 Hermes keeps its injected context below 10,000 characters by asking its native loader for `skill_view("maxi:using-maxi")` and including only the Hermes tool mapping. Hermes has no post-compaction hook; if a long session compacts away the first-turn bootstrap, start a fresh session.
 
 ### For Claude Code

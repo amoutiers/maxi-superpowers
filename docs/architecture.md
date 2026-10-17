@@ -228,6 +228,8 @@ Hook ownership:
 
 The package is validated by the fast tier (`check-antigravity-plugin.sh`, `check-plugin-manifest.sh`, `check-declarative-harnesses.sh`, `check-hermes-plugin.sh`, `check-codex-plugin.sh`, `check-hooks.sh`, `check-cursor-hooks.sh`, `check-opencode-plugin.sh`, `check-bootstrap-parity.sh`, `check-pi-extension.sh`). The bootstrap preamble is identical across the bash hook, the OpenCode plugin, and the Pi extension (parity-guarded).
 
+Source identities, actual installed-agent results and host-specific limits are recorded in the [v7.0.0 local qualification report](superpowers/qualification/2026-10-17-superpowers-7-adaptation.md). Package validation, deterministic adapter checks and native conversation behavior remain separate evidence.
+
 ## Design Decisions
 
 ### Strict pipeline — no skips (2026-05-24)
