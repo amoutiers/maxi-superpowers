@@ -17,7 +17,7 @@ mkdir -p "$SNAPSHOT/plan" "$FOREIGN/subagent-driven-development"
 printf 'Maxi owner\n' > "$SNAPSHOT/plan/SKILL.md"
 printf 'Foreign engine\n' > "$FOREIGN/subagent-driven-development/SKILL.md"
 
-for skill in writing-plans subagent-driven-development finishing-a-development-branch; do
+for skill in brainstorming writing-plans subagent-driven-development finishing-a-development-branch; do
   mkdir -p "$SNAPSHOT/$skill"
   printf 'Bundled %s\n' "$skill" > "$SNAPSHOT/$skill/SKILL.md"
   actual="$(bash "$RESOLVER" "$SNAPSHOT/plan/SKILL.md" "$skill")"
@@ -56,5 +56,18 @@ reject "relative owner" skills/plan/SKILL.md writing-plans
 reject "path traversal" "$SNAPSHOT/plan/SKILL.md" ../standalone
 reject "absolute skill name" "$SNAPSHOT/plan/SKILL.md" "$FOREIGN/subagent-driven-development"
 reject "missing arguments"
+
+# The real installed support comes from the resolved bundled brainstorming owner.
+mkdir -p "$SNAPSHOT/specify"
+cp "$ROOT/skills/specify/SKILL.md" "$SNAPSHOT/specify/SKILL.md"
+cp "$ROOT/skills/brainstorming/builder-check-prompt.md" "$SNAPSHOT/brainstorming/builder-check-prompt.md"
+brainstorming="$(bash "$RESOLVER" "$SNAPSHOT/specify/SKILL.md" brainstorming)"
+assert_files_equal "${brainstorming%/SKILL.md}/builder-check-prompt.md" \
+  "$ROOT/vendor/superpowers/skills/brainstorming/builder-check-prompt.md" \
+  "installed builder prompt retains exact upstream bytes"
+assert_grep "$ROOT/skills/specify/SKILL.md" 'cd -P.*dirname.*brainstorming' "prompt directory derives from resolved brainstorming"
+assert_grep "$ROOT/skills/specify/SKILL.md" 'Missing or unsafe.*builder.*stops' "unsafe builder support cannot fall back"
+
+assert_grep "$ROOT/skills/specify/SKILL.md" 'builder itself.*complete bound prompt.*installed path' "builder independently reads its bound installed prompt"
 
 summary_and_exit "runtime contract checks"

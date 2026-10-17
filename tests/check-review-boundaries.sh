@@ -293,6 +293,20 @@ for skill in specify clarify revise plan tasks analyze implement; do
   assert_not_grep "$ROOT/skills/$skill/SKILL.md" 'replay_contract\|replay_continuation\|--resume-current-\|REVIEW_REQUIRED\|replay-plan\.sh\|x-review' "$skill has no replay trigger"
 done
 
+# Intake keeps every upstream exit inside the canonical owner flow.
+assert_grep "$ROOT/skills/specify/SKILL.md" 'resolve-skill.sh" "$maxi_owner_skill" brainstorming' "specify binds brainstorming to its loaded snapshot"
+assert_grep "$ROOT/skills/specify/SKILL.md" 'interview opt-out.*return to the author' "opt-out returns through the author"
+assert_grep "$ROOT/skills/specify/SKILL.md" 'prototypes.*return to the author' "prototypes keep the owner handoff"
+assert_grep "$ROOT/skills/specify/SKILL.md" 'one fresh.*read-only builder' "one independent builder check"
+assert_grep "$ROOT/skills/specify/SKILL.md" 'builder-check-prompt.md.*regular, non-symlink' "builder prompt is snapshot-local and safe"
+assert_grep "$ROOT/skills/specify/SKILL.md" 'complete canonical spec once.*domain' "builder receives canonical document and domain"
+assert_grep "$ROOT/skills/specify/SKILL.md" 'questions only.*no approval' "builder cannot grant design approval"
+assert_grep "$ROOT/skills/specify/SKILL.md" 'Before actual clarification' "builder precedes actual clarification"
+assert_grep "$ROOT/skills/specify/SKILL.md" 'Draft-only creation bypasses.*builder' "draft-only has no builder handoff"
+assert_grep "$ROOT/skills/specify/spec-author.md" '## New-spec builder correction' "author owns new-spec builder corrections"
+assert_section_grep "$ROOT/skills/specify/spec-author.md" '## New-spec builder correction' 'Preserve.*creation identity.*design_cycle.*specified' "builder correction preserves new-spec identity"
+assert_grep "$ROOT/skills/specify/spec-author.md" 'never use the existing-spec edit.*rollback' "new-spec correction cannot use revision rollback"
+
 # Artifact owners return; only authorized entry coordinators continue the round.
 assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Process' 'Invoke `/maxi:review` exactly once.*spec\.md.*plan\.md' "standalone initial plan has one review"
 assert_section_grep "$ROOT/skills/plan/SKILL.md" '## Process' 'outer specify/revise coordinator.*return after writing' "coordinated plan returns to owner"

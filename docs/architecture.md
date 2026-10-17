@@ -2,10 +2,10 @@
 
 ## Plugin Overview
 
-maxi-superpowers vendors superpowers v6.4.2 and has packaging surfaces for Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, Muse, OpenCode, Pi, Qwen Code, and Hermes Agent. Native qualification remains host-specific. The plugin has two layers:
+maxi-superpowers vendors superpowers v7.0.0 and has packaging surfaces for Claude Code, Antigravity, Codex App, Codex CLI, Cursor, Devin CLI, Factory Droid, Gemini CLI, GitHub Copilot CLI, Grok Build CLI, Kimi Code, Muse, OpenCode, Pi, Qwen Code, and Hermes Agent. Native qualification remains host-specific. The plugin has two layers:
 
 1. **Spec-driven pipeline**: 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. The forward pipeline reads project artifacts and enforces its documented prerequisites; lifecycle and migration skills use only the prerequisites named by their own contracts.
-2. **Superpowers implementation engine**: 15 vendored superpowers v6.4.2 skills (`brainstorming`, `writing-plans`, `executing-plans`, `diagnosing-superpowers`, and others) perform delegated work. The 19 Maxi-native skills retain pipeline ownership; imported Native mode is outside Maxi's SDD completion contract.
+2. **Superpowers implementation engine**: 15 vendored superpowers v7.0.0 skills (`brainstorming`, `writing-plans`, `executing-plans`, `diagnosing-superpowers`, and others) perform delegated work. The 19 Maxi-native skills retain pipeline ownership; imported Native mode is outside Maxi's SDD completion contract.
 
 The result is a reproducible, auditable route from a feature request to shipped code. The loaded `using-maxi` session skill also triggers Git closure for a completed local batch or independent external wait. `implement` delegates to the bundled `/maxi:finishing-a-development-branch` after its `done` write and reports the actual Git disposition with exact scope, evidence, and next action. Explicitly authorized maintenance uses its bounded scope and checks; a partial Maxi spec cannot take that route. Git outcomes are reports, not pipeline statuses.
 
@@ -67,6 +67,7 @@ maxi-superpowers/
 │   ├── migrate-from-brownfield/
 │   ├── migrate-adr/
 │   ├── brainstorming/       # vendored from superpowers (do not hand-edit)
+│   │   └── builder-check-prompt.md # unchanged bundled read-only check
 │   ├── diagnosing-superpowers/
 │   ├── writing-plans/
 │   ├── executing-plans/
@@ -120,7 +121,7 @@ See [delegation-map.md](delegation-map.md) for the complete mapping and [pipelin
 | maxi skill | Delegates to |
 |---|---|
 | `constitution` | writes directly |
-| `specify` | `/maxi:brainstorming` |
+| `specify` | owner-bound `/maxi:brainstorming` and its bundled builder check |
 | `clarify` | actual ambiguity scan; zero to three questions per turn, owner-only return |
 | `plan` | `/maxi:writing-plans`, then `/maxi:x-adr` for detected architectural choices |
 | `review` | dedicated `review/design-reviewer.md`; reserves/publishes only the design-review record |
@@ -142,7 +143,7 @@ A passing readiness review is valid only when `analysis.md` carries `maxi-readin
 
 Design approval uses `maxi-design-review-v1` with exact spec/plan hashes and the same decision-input digest: exact constitution bytes and names/bytes of every direct ADR Markdown file except generated README.md, regardless of status. Owners capture original hashes before reading, review the complete decision-input snapshot, and compare before report/status writes. Candidate-based stamping atomically publishes only after comparing the original supplied digest; failure preserves prior evidence. Tasks and implement resolve verifiers from loaded installed skills, never client fallbacks; legacy evidence requires a new actual review or analysis. Only `DESIGN_REVIEW_VERIFIED` permits extraction, and only `READINESS_VERIFIED` permits new/resumed implementation.
 
-The public `/maxi:review` command dispatches `review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It reserves the pending report before dispatch and publishes reviewed evidence bound to the spec/plan pair only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure does not block unless the design must change. `/maxi:tasks` stops before any write if that approval is missing or stale. Bare specify and spec-only creation coordinate author then actual clarification to `clarified`; explicit design validation and design revisions coordinate affected owners through `planned` plus a bounded review round. Owner-only calls return after their own write. Artifact owners are skill responsibilities executed sequentially in the current agent through their required instructions; skill delegation does not inherently require another agent. The independent design reviewer remains separate. Draft-only, edit-only and phase-only requests stop at the requested owner. Public `/maxi:review` is report-only, with no correction. Standalone initial planning retains one initial review; its nested dispatch is suppressed under a coordinator. Coordinated review reserves at most two passes in the existing report, corrects all first-pass findings once and reuses the reviewer where available; interruption never resets the allowance. No design operation invokes tasks, analyze or implement.
+The public `/maxi:review` command dispatches `review/design-reviewer.md` with the complete exact current `spec.md`, `plan.md`, and accepted ADRs named by `spec.md`'s `related_adrs`. It reserves the pending report before dispatch and publishes reviewed evidence bound to the spec/plan pair only after one exact terminal verdict. Task `Files` lists are expected primary edits rather than implementation allowlists; mechanical closure does not block unless the design must change. `/maxi:tasks` stops before any write if that approval is missing or stale. Non-draft specification creation binds brainstorming and its unchanged builder prompt to the loaded owner snapshot. Every brainstorming exit returns through the canonical author. One fresh independent read-only builder check reads the authored spec before clarification, asks only material planning questions, and routes corrections through that same author without resetting identity. Draft-only creation and existing-spec revision keep their boundaries. The builder grants no approval, design-review count or successor authorization. Bare specify and spec-only creation coordinate author then actual clarification to `clarified`; explicit design validation and design revisions coordinate affected owners through `planned` plus a bounded review round. Owner-only calls return after their own write. Artifact owners are skill responsibilities executed sequentially in the current agent through their required instructions; skill delegation does not inherently require another agent. The independent design reviewer remains separate. Draft-only, edit-only and phase-only requests stop at the requested owner. Public `/maxi:review` is report-only, with no correction. Standalone initial planning retains one initial review; its nested dispatch is suppressed under a coordinator. Coordinated review reserves at most two passes in the existing report, corrects all first-pass findings once and reuses the reviewer where available; interruption never resets the allowance. No design operation invokes tasks, analyze or implement.
 
 `/maxi:x-develop` maps canonical Maxi `TNNN` tasks to an immutable SDD `Task N` projection. Upstream SDD owns task review, fix rounds, and the final implementation review. `/maxi:x-develop` is the sole incremental Maxi checkbox owner; `/maxi:implement` validates that every task is checked and alone persists `implementing → done`. Branch finishing starts only after Maxi has recorded `done`.
 
@@ -181,7 +182,7 @@ Each phase has one responsibility and remains mandatory in order. There is no sk
 superpowers is vendored as a git subtree at `vendor/superpowers/`:
 
 ```bash
-# Current pin: v6.4.2 (see VENDORED.md)
+# Current pin: v7.0.0 (see VENDORED.md)
 bash scripts/bump-superpowers.sh <new-tag>
 bash scripts/sync-superpowers.sh
 ```
@@ -190,7 +191,7 @@ bash scripts/sync-superpowers.sh
 
 ## Harness Strategy
 
-Maxi's sixteen-host inventory is addressed through executable adapters, declarative manifests, native discovery, or marketplace-only distribution. [ADR-0031](maxi/adr/0031-align-superpowers-v6-4-model.md) governs the v6.4.2 adaptation. The OpenCode V2 adapter uses its native skill and context hooks. Muse packaging and Qwen's Claude marketplace conversion are integrated, with native limits recorded below:
+Maxi's sixteen-host inventory is addressed through executable adapters, declarative manifests, native discovery, or marketplace-only distribution. [ADR-0031](maxi/adr/0031-align-superpowers-v6-4-model.md) records the earlier v6.4 adaptation; the current import is v7.0.0. The OpenCode V2 adapter uses its native skill and context hooks. Muse packaging and Qwen's Claude marketplace conversion are integrated, with native limits recorded below:
 
 | Harness | Mechanism |
 |---|---|

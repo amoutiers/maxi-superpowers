@@ -2,7 +2,7 @@
 # Verifies superpowers version citations in authored docs match the pin in VENDORED.md.
 # Ground truth: VENDORED.md "- **Pinned version**: vX.Y.Z".
 # Guards the drift class where bump-superpowers.sh updates VENDORED.md but leaves
-# README.md / docs/architecture.md / docs/delegation-map.md citing the old version.
+# README.md or any Mandatory Sync five document citing the old version.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -26,7 +26,7 @@ else
 fi
 
 # Authored docs that cite a superpowers version. (specs/ and adr/ intentionally drift — excluded.)
-DOCS=(README.md docs/architecture.md docs/delegation-map.md)
+DOCS=(README.md AGENTS.md docs/architecture.md docs/delegation-map.md docs/pipeline-flow.md skills/using-maxi/SKILL.md)
 
 for rel in "${DOCS[@]}"; do
   f="$ROOT/$rel"
