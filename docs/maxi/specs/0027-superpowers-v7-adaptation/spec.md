@@ -2,7 +2,7 @@
 slug: 0027-superpowers-v7-adaptation
 created: 2026-10-17
 updated: 2026-10-17
-status: analyzed
+status: implementing
 design_cycle: 0
 parked_from: null
 related_adrs: [0005-superpowers-vendoring-git-subtree, 0032-align-superpowers-v7-model]
