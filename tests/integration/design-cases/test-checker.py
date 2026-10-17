@@ -54,6 +54,32 @@ def fixture():
 
 
 class BuilderEvidence(unittest.TestCase):
+    def test_reservation_literal_python_helper_binding_is_exact_and_unambiguous(self):
+        helper = '/installed/review/design-contract.sh'
+        observed = ("python3 - <<'PY'\nimport json,subprocess\nfrom pathlib import Path\n"
+            "c=json.loads(Path('/private/tmp/review-context.json').read_text()); r=Path.cwd(); "
+            "d=r/'docs/maxi/specs/0001-line-counter'; h='" + helper + "'\n"
+            "p=subprocess.run(['bash',h,'reserve',str(d/'reviews/design-review.md'),str(d/'spec.md'),"
+            "str(d/'plan.md'),str(r),c['operation_id'],c['request_sha'],'coordinated',"
+            "'/root/design_reviewer','absent'],capture_output=True,text=True); print(p.stdout,p.stderr); p.check_returncode()\n"
+            "c['reserved_sha']=p.stdout.strip().split('report_sha256=')[1]; "
+            "Path('/private/tmp/review-context.json').write_text(json.dumps(c))\nPY")
+        definitions = CHECKER.read_text().split('\n. as $input |', 1)[0]
+        for label, text, accepted in [
+            ('observed', observed, True),
+            ('wrong-helper', observed.replace(helper, '/other/design-contract.sh'), False),
+            ('reassigned', observed.replace("p=subprocess.run", "h='/other/helper'\np=subprocess.run"), False),
+            ('duplicate-call', observed.replace("p=subprocess.run", "subprocess.run(['bash',h,'reserve'])\np=subprocess.run"), False),
+            ('echo', 'echo ' + observed, False),
+            ('traversal', observed.replace('/private/tmp/review-context.json', '/private/tmp/../review-context.json'), False),
+        ]:
+            with self.subTest(label=label):
+                result = subprocess.run(['jq', '-e', '--arg', 'helper', helper,
+                    definitions + '\npython_reservation_call($helper)'],
+                    input=json.dumps(command(text, 'DESIGN_REVIEW_RESERVED')['payload']['item']),
+                    capture_output=True, text=True)
+                self.assertEqual(result.returncode == 0, accepted, result.stderr)
+
     def check(self, data, error=None):
         result = subprocess.run(['jq', '-e', '-f', str(CHECKER)], input=json.dumps(data),
                                 capture_output=True, text=True)

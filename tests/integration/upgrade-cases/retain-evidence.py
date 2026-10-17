@@ -117,7 +117,7 @@ def verify(directory):
             if value != 'null':
                 require(sha(mapped(directory, manifest, role, value)) == checker.field(receipt, key + '_sha256'),
                         f'receipt dependency mismatch: {key}')
-        sessions = json.loads((directory / 'stages' / stage / 'sessions.json').read_text())
+        sessions = checker.stage_data(directory, stage)['sessions']
         final = checker.reviewer_terminal(sessions, entry['context'])
         spec = mapped(directory, manifest, role, checker.field(receipt, 'spec'))
         plan = spec.with_name('plan.md')

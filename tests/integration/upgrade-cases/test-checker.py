@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Regression checks for the installed upgrade evidence gate."""
 import json
+import copy
 import importlib.util
 import hashlib
 from pathlib import Path
@@ -426,7 +427,138 @@ def make_complete(directory):
             "spec": spec, "plan": plan, "tasks": tasks}
 
 
+def nested_controller(sessions):
+    """Recorded native shape: root allocates SDD, which allocates task/review children."""
+    root = next(s for s in sessions if s['agent'] == '/root')
+    root['id'] = 'root-id'
+    calls = [e for e in root['events'] if e.get('type') == 'response_item']
+    root['events'] = [e for e in root['events'] if e.get('type') != 'response_item']
+    root['events'][:0] = [
+        {'type': 'response_item', 'timestamp': '2026-09-27T10:00:00.000Z', 'payload': {
+            'type': 'function_call', 'name': 'spawn_agent', 'call_id': 'sdd',
+            'arguments': json.dumps({'task_name': 'task1_sdd', 'message': 'Execute SDD'})}},
+        {'type': 'response_item', 'timestamp': '2026-09-27T10:00:01.000Z', 'payload': {
+            'type': 'function_call_output', 'call_id': 'sdd',
+            'output': '{"task_name":"/root/task1_sdd"}'}}]
+    controller = {'agent': '/root/task1_sdd', 'id': 'sdd-id', 'cwd': root['cwd'],
+        'source': {'subagent': {'thread_spawn': {'parent_thread_id': 'root-id',
+                    'agent_path': '/root/task1_sdd', 'depth': 1}}}, 'events': calls}
+    for child in sessions[1:]:
+        child['agent'] = child['agent'].replace('/root/', '/root/task1_sdd/', 1)
+        child['id'] = child['agent'] + '-id'
+        child['source'] = {'subagent': {'thread_spawn': {'parent_thread_id': 'sdd-id',
+            'agent_path': child['agent'], 'depth': 2}}}
+        for event in child['events']:
+            if event.get('type') == 'event_msg':
+                event['payload']['thread_id'] = child['id']
+    for event in calls:
+        p = event['payload']
+        if p.get('type') == 'function_call_output':
+            value = json.loads(p.get('output') or '{}')
+            if 'task_name' in value:
+                value['task_name'] = value['task_name'].replace('/root/', '/root/task1_sdd/', 1)
+                p['output'] = json.dumps(value)
+        elif p.get('name') == 'followup_task':
+            args = json.loads(p['arguments'])
+            args['target'] = args['target'].rsplit('/', 1)[-1]
+            p['arguments'] = json.dumps(args)
+    sessions.append(controller)
+    return sessions
+
+
 class UpgradeEvidenceTest(unittest.TestCase):
+    def test_stage_load_binds_retained_native_session_and_event_suffix(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            record_stage(root, SKILLS, 'resume', (), 'root-id',
+                         review=('/root/final_reviewer', 'full spec', 'full plan', '**Ready to merge?** Yes'))
+            path = root/'stages/resume/sessions.json'
+            sessions = nested_controller(json.loads(path.read_text()))
+            native = path.parent/'native'
+            native.mkdir()
+            for index, session in enumerate(sessions):
+                meta = {k:v for k,v in session.items() if k != 'events'}
+                meta['agent_path'] = meta.pop('agent')
+                records = [{'type':'session_meta','payload':meta}, *session['events']]
+                (native/f'{index}.jsonl').write_text('\n'.join(map(json.dumps,records))+'\n')
+            path.write_text(json.dumps([{k:v for k,v in s.items() if k not in ('id','source')}
+                                        for s in sessions]))
+            loaded = checker.stage_data(root, 'resume')['sessions']
+            self.assertEqual(next(s for s in loaded if s['agent']=='/root/task1_sdd')['id'],'sdd-id')
+            before = path.read_bytes()
+            checker.review_dispatch(loaded, '/root/task1_sdd/final_reviewer',
+                                    'full spec', 'full plan', '**Ready to merge?** Yes')
+            self.assertEqual(path.read_bytes(), before)
+            target = native/'1.jsonl'
+            original = target.read_bytes()
+            with self.subTest('mismatched-events'):
+                target.write_bytes(original+b'{"type":"event_msg","payload":{"type":"error"}}\n')
+                with self.assertRaises(ValueError): checker.stage_data(root, 'resume')
+            target.write_bytes(original)
+            with self.subTest('duplicate-native-session'):
+                (native/'duplicate.jsonl').write_bytes(original)
+                with self.assertRaises(ValueError): checker.stage_data(root, 'resume')
+
+    def test_nested_native_controller_joins_task_actors_reviewers_and_final_review(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            make_complete(root)
+            for name in ('first-task', 'resume'):
+                path = root / 'stages' / name / 'sessions.json'
+                path.write_text(json.dumps(nested_controller(json.loads(path.read_text()))))
+            path = root / 'evidence.json'
+            data = json.loads(path.read_text())
+            data['context'] = data['context'].replace('/root/', '/root/task1_sdd/', 1)
+            for review in data['task_reviews']:
+                review['context'] = review['context'].replace('/root/', '/root/task1_sdd/', 1)
+            # Review/receipt identities are historical fixture bytes, so exercise the
+            # three joins directly, without inventing replacement receipt bytes.
+            for number, review in enumerate(data['task_reviews'], 1):
+                stage = checker.stage_data(root, review['stage'])
+                checker.task_review(stage, review, 'review clean', Path(data['ledger']).read_text(), number)
+                actor = checker.task_execution(stage, Path(data['fixture']), Path(data['ledger']).parent,
+                    number, data['first'] if number == 1 else data['head'])
+                self.assertEqual(actor, f'/root/task1_sdd/task{number}_implementer')
+            stage = checker.stage_data(root, 'resume')
+            final = checker.reviewer_terminal(stage['sessions'], data['context'])
+            self.assertEqual(len(checker.review_dispatch(stage['sessions'], data['context'],
+                (Path(data['pre_done_fixture'])/'docs/maxi/specs/0001-upgrade/spec.md').read_text(),
+                (Path(data['pre_done_fixture'])/'docs/maxi/specs/0001-upgrade/plan.md').read_text(), final)), 1)
+
+    def test_nested_dispatch_rejects_unproven_allocations_parent_threads_and_targets(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            final = '**Ready to merge?** Yes'
+            record_stage(root, SKILLS, 'resume', (), 'root-id',
+                         review=('/root/final_reviewer', 'full spec', 'full plan', final))
+            original = nested_controller(json.loads((root/'stages/resume/sessions.json').read_text()))
+            context = '/root/task1_sdd/final_reviewer'
+            checker.review_dispatch(original, context, 'full spec', 'full plan', final)
+            for label in ('missing-root-allocation', 'missing-child-allocation', 'duplicate-allocation',
+                          'missing-result', 'duplicate-result', 'invented-result', 'failed-result',
+                          'wrong-parent', 'wrong-session', 'wrong-cwd', 'wrong-thread',
+                          'wrong-target', 'wrong-parent-followup', 'duplicate-session'):
+                with self.subTest(label=label):
+                    sessions = copy.deepcopy(original)
+                    parent = next(s for s in sessions if s['agent']=='/root/task1_sdd')
+                    child = next(s for s in sessions if s['agent']==context)
+                    if label == 'missing-root-allocation': sessions[0]['events'] = sessions[0]['events'][2:]
+                    elif label == 'missing-child-allocation': parent['events'] = parent['events'][2:]
+                    elif label == 'duplicate-allocation': parent['events'] += copy.deepcopy(parent['events'][:2])
+                    elif label == 'missing-result': parent['events'].pop(1)
+                    elif label == 'duplicate-result': parent['events'].append(copy.deepcopy(parent['events'][1]))
+                    elif label == 'invented-result': parent['events'][1]['payload']['output']='{"task_name":"/root/invented"}'
+                    elif label == 'failed-result': parent['events'][1]['payload']['output']=json.dumps({'task_name':context,'error':'failed'})
+                    elif label == 'wrong-parent': child['source']['subagent']['thread_spawn']['parent_thread_id']='root-id'
+                    elif label == 'wrong-session': child['id']='sdd-id'
+                    elif label == 'wrong-cwd': child['cwd']='/other-fixture'
+                    elif label == 'wrong-thread': child['events'][-1]['payload']['thread_id']='foreign-id'
+                    elif label == 'wrong-target': parent['events'][2]['payload']['arguments']=json.dumps({'target':'other/final_reviewer','message':'full spec full plan'})
+                    elif label == 'wrong-parent-followup': sessions[0]['events'] += parent['events'][2:]; parent['events']=parent['events'][:2]
+                    elif label == 'duplicate-session': sessions.append(copy.deepcopy(child))
+                    with self.assertRaises(ValueError):
+                        checker.review_dispatch(sessions, context, 'full spec', 'full plan', final)
+
     def test_collect_task_review_binds_relative_package_and_native_verdict(self):
         with tempfile.TemporaryDirectory() as temp:
             fixture = Path(temp).resolve() / "fixture"
@@ -948,8 +1080,10 @@ class UpgradeEvidenceTest(unittest.TestCase):
             checker.review_dispatch(sessions, nested, "full spec", "full plan", final)
         root_events[2]["payload"]["arguments"] = json.dumps(
             {"target": "a/design_reviewer", "message": "Review full spec and full plan"})
-        self.assertEqual(checker.review_dispatch(sessions, nested, "full spec", "full plan", final),
-                         [final])
+        # A matching prefix/relative target cannot invent the missing parent
+        # allocation or reconcile a returned identity with another task name.
+        with self.assertRaises(ValueError):
+            checker.review_dispatch(sessions, nested, "full spec", "full plan", final)
 
     def test_terminal_proof_accepts_native_pwd_bound_paths(self):
         with tempfile.TemporaryDirectory() as temp:

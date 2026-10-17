@@ -104,8 +104,24 @@ def python_helper_expressions($command; $helper):
   (["\"" + $helper + "\"", "'" + $helper + "'"] +
    [python_path_names($command; $review_dir)[] | "str(" + . + "/'design-contract.sh')"] +
    [python_path_names($command; $skills_dir)[] | "str(" + . + "/'review/design-contract.sh')"]);
+# One retained Python reservation program, with a literal h binding. Reconstruct
+# its entire body so reassignment, extra calls and arbitrary Python never qualify.
+def literal_python_reservation($helper):
+  .command[-1] as $command |
+  complete_shell_read and
+  any([$command | scan("Path\\('(/[A-Za-z0-9_./-]+)'\\)")] | unique | .[];
+    .[0] as $context | ($context | split("/") | index("..") == null) and
+    any([$command | scan("d=r/'docs/maxi/specs/([a-z0-9-]+)'")][];
+      .[0] as $slug |
+      any([$command | scan("'coordinated','(/root/[a-z][a-z0-9_/]*)','absent'")][];
+        .[0] as $reviewer |
+        $command == ("python3 - <<'PY'\nimport json,subprocess\nfrom pathlib import Path\n" +
+          "c=json.loads(Path('" + $context + "').read_text()); r=Path.cwd(); d=r/'docs/maxi/specs/" + $slug + "'; h='" + $helper + "'\n" +
+          "p=subprocess.run(['bash',h,'reserve',str(d/'reviews/design-review.md'),str(d/'spec.md'),str(d/'plan.md'),str(r),c['operation_id'],c['request_sha'],'coordinated','" + $reviewer + "','absent'],capture_output=True,text=True); print(p.stdout,p.stderr); p.check_returncode()\n" +
+          "c['reserved_sha']=p.stdout.strip().split('report_sha256=')[1]; Path('" + $context + "').write_text(json.dumps(c))\nPY"))));
 def python_reservation_call($helper):
   (.command | join(" ")) as $command |
+  literal_python_reservation($helper) or
   any(python_helper_expressions($command; $helper)[]; . as $expression |
     any(["subprocess.run(['bash',", "subprocess.check_output(['bash',"][]; . as $prefix |
       $command | contains($prefix + $expression + ",'reserve',")));

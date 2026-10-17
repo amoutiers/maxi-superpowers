@@ -165,18 +165,82 @@ def reviewer_reads(sessions, context, spec_path, plan_path, spec_bytes, plan_byt
     native_reads(sessions, context, {spec_path: spec_bytes, plan_path: plan_bytes})
 
 
+def target_identity(emitter, target):
+    require(isinstance(target, str) and target, "missing native task target")
+    identity = target if target.startswith("/") else emitter + "/" + target
+    require(re.fullmatch(r"/root(?:/[a-z][a-z0-9_]{0,127})+", identity),
+            "invalid native task target")
+    return identity
+
+
+def issued_children(sessions):
+    """Join returned identities to their actual emitter and native parent chain."""
+    indexed = {s["agent"]: s for s in sessions}
+    require(len(indexed) == len(sessions) and "/root" in indexed, "duplicate or missing native session")
+    ids = [s["id"] for s in sessions if "id" in s]
+    require(len(ids) == len(set(ids)) and all(isinstance(i, str) and i for i in ids),
+            "duplicate or invalid native thread")
+    issued = {}
+    for parent in sessions:
+        calls, results = {}, set()
+        for event in parent.get("allocation_events", parent["events"]):
+            p = event.get("payload", {})
+            if event.get("type") != "response_item":
+                continue
+            call_id = p.get("call_id")
+            if p.get("type") == "function_call" and p.get("name") == "spawn_agent":
+                require(call_id not in calls, "duplicate native allocation call")
+                calls[call_id] = event
+            elif p.get("type") == "function_call_output" and call_id in calls:
+                require(call_id not in results, "duplicate native allocation result")
+                results.add(call_id)
+                output = json.loads(p.get("output", "{}"))
+                require(isinstance(output, dict), "unknown native allocation result")
+                identity = output.get("task_name")
+                if identity not in indexed:
+                    continue  # A retained parent history also contains inactive earlier children.
+                require(set(output) == {"task_name"}, "unknown or failed native allocation result")
+                args = json.loads(calls[call_id]["payload"].get("arguments", "{}"))
+                require(identity == target_identity(parent["agent"], args.get("task_name")),
+                        "native allocation returned a different task identity")
+                require(identity not in issued, "duplicate native child allocation")
+                issued[identity] = (parent, calls[call_id], event)
+    for context, child in indexed.items():
+        if context == "/root":
+            continue
+        require(context in issued, "native child identity is not harness-issued")
+        parent = issued[context][0]
+        # Retained JSONL supplies metadata when exposed. Older direct-root
+        # snapshots retain their existing checks; descendants require native IDs.
+        spawn = child.get("source", {}).get("subagent", {}).get("thread_spawn", {})
+        if "id" in child or "id" in parent or parent["agent"] != "/root":
+            require(child.get("id") and parent.get("id") and
+                    spawn.get("parent_thread_id") == parent["id"] and
+                    spawn.get("agent_path") == context and
+                    child.get("parent_thread_id", parent["id"]) == parent["id"] and
+                    child.get("cwd") == parent.get("cwd"), "native child parent/session mismatch")
+            require(all(e.get("payload", {}).get("thread_id", child["id"]) == child["id"]
+                        for e in child["events"]), "native event belongs to another thread")
+        seen = {context}
+        while parent["agent"] != "/root":
+            require(parent["agent"] not in seen and parent["agent"] in issued,
+                    "unproven or cyclic native parent chain")
+            seen.add(parent["agent"])
+            parent = issued[parent["agent"]][0]
+    return issued
+
+
 def review_dispatch(sessions, context, spec, plan, final):
     if not re.fullmatch(r"/root(?:/[a-z][a-z0-9_]{0,127})+", context):
         raise ValueError("invalid reviewer context")
-    roots = [session for session in sessions if session.get("agent") == "/root"]
-    if len(roots) != 1:
-        raise ValueError("missing root session")
+    issued = issued_children(sessions)
+    require(context in issued, "missing reviewer allocation")
+    parent = issued[context][0]
     calls = {}
     state = "start"
     followups = []
     followup_times = []
-    aliases = {context, context.removeprefix("/root/")}
-    for event in roots[0].get("events", []):
+    for event in parent.get("events", []):
         if event.get("type") != "response_item":
             continue
         payload = event.get("payload", {})
@@ -189,7 +253,7 @@ def review_dispatch(sessions, context, spec, plan, final):
                 raise ValueError("duplicate reviewer dispatch call")
             arguments = json.loads(payload.get("arguments", "{}"))
             calls[call_id] = (name, arguments)
-            if name == "followup_task" and arguments.get("target") in aliases:
+            if name == "followup_task" and target_identity(parent["agent"], arguments.get("target")) == context:
                 message = arguments.get("message", "")
                 if (state not in {"allocated", "dispatched"} or
                         not isinstance(message, str) or not message or
@@ -206,7 +270,7 @@ def review_dispatch(sessions, context, spec, plan, final):
                 if state != "start" or spec in arguments.get("message", "") or plan in arguments.get("message", ""):
                     raise ValueError("reviewer allocation was not an identity handshake")
                 state = "allocated"
-            elif name == "followup_task" and arguments.get("target") in aliases:
+            elif name == "followup_task" and target_identity(parent["agent"], arguments.get("target")) == context:
                 if state != "followup-pending" or output not in {
                         "", '{"status":"running"}', '{"status":"completed"}'}:
                     raise ValueError("missing reviewer follow-up result")
@@ -381,6 +445,27 @@ def stage_data(directory, name):
     require(isinstance(sessions, list) and sessions and
             all(isinstance(item, dict) and item.get("events") for item in sessions),
             f"missing native sessions: {name}")
+    native = stage / "native"
+    if native.is_dir():
+        retained = {}
+        for path in native.glob("*.jsonl"):
+            records = [json.loads(line) for line in path.read_text().splitlines()]
+            require(records and records[0].get("type") == "session_meta", "missing native session metadata")
+            meta = records[0]["payload"]
+            context = meta.get("agent_path") or "/root"
+            require(context not in retained, "duplicate retained native session")
+            retained[context] = (meta, records)
+        require(set(retained) == {s["agent"] for s in sessions}, "native session inventory mismatch")
+        for session in sessions:
+            meta, records = retained[session["agent"]]
+            require(meta.get("cwd") == session.get("cwd") and
+                    records[-len(session["events"]):] == session["events"],
+                    "retained native session/event mismatch")
+            for key in ("id", "source", "parent_thread_id"):
+                if key in meta:
+                    require(key not in session or session[key] == meta[key], "changed native session metadata")
+                    session[key] = meta[key]
+            session["allocation_events"] = records
     cli = [json.loads(line) for line in (stage / "cli.jsonl").read_text().splitlines()
            if line.startswith("{")]
     threads = [event.get("thread_id") for event in cli if event["type"] == "thread.started"]
@@ -478,23 +563,11 @@ def task_review(stage, review, annotation, ledger, task_number):
     require(package.is_file() and digest(package) == review["package_sha256"],
             "task review package bytes changed")
     sessions = stage["sessions"]
-    roots = [session for session in sessions if session.get("agent") == "/root"]
     children = [session for session in sessions if session.get("agent") == context]
-    require(len(roots) == len(children) == 1, "missing task reviewer session")
-    calls = {}
-    allocated = False
-    for event in roots[0]["events"]:
-        payload = event.get("payload", {})
-        if event.get("type") != "response_item":
-            continue
-        call_id = payload.get("call_id")
-        if payload.get("type") == "function_call" and payload.get("name") == "spawn_agent":
-            calls[call_id] = json.loads(payload.get("arguments", "{}"))
-        elif payload.get("type") == "function_call_output" and call_id in calls:
-            if json.loads(payload.get("output", "{}" )).get("task_name") == context:
-                require(not allocated, "duplicate task reviewer allocation")
-                allocated = True
-    require(allocated, "task reviewer identity is not harness-issued")
+    issued = issued_children(sessions)
+    require(len(children) == 1 and context in issued, "missing task reviewer session")
+    parent, _, result = issued[context]
+    require(result in parent["events"], "task reviewer allocation is outside this stage")
     reports = [event.get("payload", {}).get("last_agent_message", "")
                for event in children[0]["events"]
                if event.get("type") == "event_msg" and
@@ -521,23 +594,9 @@ def task_execution(stage, fixture, workspace, number, endpoint):
     roots = [session for session in stage["sessions"] if session.get("agent") == "/root"]
     require(len(roots) == 1, "missing implementation controller")
     require(roots[0].get("cwd") == str(fixture), "implementation controller cwd changed")
-    calls = {}
-    issued = {}
-    for event in roots[0]["events"]:
-        if event.get("type") != "response_item":
-            continue
-        payload = event.get("payload", {})
-        call_id = payload.get("call_id")
-        if payload.get("type") == "function_call" and payload.get("name") == "spawn_agent":
-            calls[call_id] = event.get("timestamp")
-        elif payload.get("type") == "function_call_output" and call_id in calls:
-            try:
-                context = json.loads(payload.get("output", "")).get("task_name")
-            except (AttributeError, ValueError):
-                continue
-            if isinstance(context, str):
-                require(context not in issued, "duplicate implementation actor allocation")
-                issued[context] = event.get("timestamp")
+    issued = {context: result.get("timestamp")
+              for context, (parent, _, result) in issued_children(stage["sessions"]).items()
+              if result in parent["events"]}
     matched = []
     for session in stage["sessions"]:
         context = session.get("agent")
