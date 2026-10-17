@@ -112,7 +112,9 @@ run_stage() {
   local writable="$RUNTIME/pre-done-fixture"
   [ "$name" = migration ] && writable="$RUNTIME/migration-pre-done-fixture"
   mkdir -p "$dir/snapshot"
-  printf '%s\n' "$prompt" > "$dir/prompt.txt"
+  printf '%s' "$prompt" > "$dir/prompt-original.txt"
+  python3 "$ROOT/tests/integration/render-codex-fixture-prompt.py" "$INSTALLED" "$dir/prompt-original.txt" "$dir/prompt.txt"
+  prompt="$(cat "$dir/prompt.txt")"
   if [ "$name" = design ] || [ "$name" = migration ]; then
     (cd "$repo"; run_bounded "$dir/raw.log" codex exec --json --sandbox workspace-write \
       --add-dir "$repo/.git" --add-dir "$writable" --add-dir "$writable/.git" \

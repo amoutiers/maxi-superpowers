@@ -158,6 +158,13 @@ UPGRADE_RUNNER="$ROOT/tests/integration/run-codex-upgrade-test.sh"
 UPGRADE_CHECKER="$ROOT/tests/integration/upgrade-cases/check-evidence.py"
 assert_file_exists "$UPGRADE_RUNNER" "installed upgrade lifecycle runner"
 assert_file_exists "$UPGRADE_CHECKER" "upgrade evidence checker"
+if python3 "$ROOT/tests/integration/test-codex-fixture-prompt.py"; then
+  echo "OK  [Codex fixture prompt rendering and wiring]"
+else
+  echo "FAIL [Codex fixture prompt rendering and wiring]" >&2
+  failures=$((failures + 1))
+fi
+
 if python3 "$ROOT/tests/integration/design-cases/test-checker.py"; then
   echo "OK  [builder evidence and guarded answer regressions]"
 else

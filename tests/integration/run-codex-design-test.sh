@@ -90,7 +90,8 @@ while IFS= read -r name; do
   git -C "$FIXTURE" -c user.name='Maxi Integration' -c user.email='integration@example.invalid' commit -qm 'test: seed design fixture'
   FIXTURE_HEAD_BEFORE=$(git -C "$FIXTURE" rev-parse HEAD)
   printf '%s\n' "$FIXTURE_HEAD_BEFORE" > "$DIR/fixture-head.txt"
-  jq -r '.prompt' "$DIR/case.json" > "$DIR/prompt.txt"
+  jq -r '.prompt' "$DIR/case.json" > "$DIR/prompt-original.txt"
+  python3 "$ROOT/tests/integration/render-codex-fixture-prompt.py" "$INSTALLED" "$DIR/prompt-original.txt" "$DIR/prompt.txt"
   start=$(date +%s)
   code=0
   (cd "$FIXTURE"; run_codex_with_deadline "$DIR/turn-0.jsonl" codex exec --json --sandbox workspace-write --cd "$FIXTURE" "$(cat "$DIR/prompt.txt")") || code=$?
