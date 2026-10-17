@@ -51,7 +51,7 @@ The installed owner snapshot and existing bump/sync tooling are available. The i
 
 **Independent Test**: Executable checker regressions and tests/check-integration-harness.sh, including rejection of missing, echoed and unrelated child evidence.
 
-- [ ] T004 [US3] Extend tests/integration/design-cases/cases.json, tests/integration/run-codex-design-test.sh and tests/integration/assert-design-events.jq with guarded v7 replay and independent builder accounting; update owning harness regressions and documentation (depends on T003) (plan Task 4)
+- [x] T004 [US3] Extend tests/integration/design-cases/cases.json, tests/integration/run-codex-design-test.sh and tests/integration/assert-design-events.jq with guarded v7 replay and independent builder accounting; update owning harness regressions and documentation (depends on T003) (plan Task 4)
 
 **Checkpoint**: The committed harness can run actual installed qualification against a clean candidate.
 
