@@ -32,9 +32,9 @@ require_literal "$IMPLEMENT" 'Accept only the exact `READY_TO_FINISH` token' 'im
 require_literal "$IMPLEMENT" 'Do not tick task checkboxes in this skill' 'implement still owns incremental checkboxes'
 require_literal "$IMPLEMENT" 'Do not dispatch another code review' 'implement still owns a duplicate final review'
 require_literal "$IMPLEMENT" 'retain the returned projection lineage and aggregated `Ruling:` lines until branch/worktree completion' 'implement drops returned SDD evidence'
-require_literal "$IMPLEMENT" 'invoke `superpowers:finishing-a-development-branch` only after the `done` write is persisted' 'branch finishing is not after done'
+require_literal "$IMPLEMENT" 'invoke `/maxi:finishing-a-development-branch` only after the `done` write is persisted' 'branch finishing is not after done'
 require_literal "$SESSION" '## Git Closure' 'session guidance omits the local Git closure trigger'
-require_literal "$SESSION" 'superpowers:finishing-a-development-branch' 'session closure omits the existing finishing owner'
+require_literal "$SESSION" '/maxi:finishing-a-development-branch' 'session closure omits the existing finishing owner'
 require_literal "$IMPLEMENT" 'Git outcome: integrated | awaiting decision | deliberately retained | blocked' 'implement report omits the required Git outcome'
 require_literal "$IMPLEMENT" 'Scope: exact branch/worktree and local batch' 'implement report omits exact Git scope'
 require_literal "$IMPLEMENT" 'Evidence/next action:' 'implement report omits evidence and next action'
@@ -71,7 +71,7 @@ require_literal "$DEVELOP" 'Pass the printed canonical absolute projection path 
 require_literal "$DEVELOP" 'Change directory to the bound physical Git worktree before every upstream SDD helper call.' 'foreign-cwd binding is missing'
 require_literal "$DEVELOP" 'Use upstream SDD without fix-loop overrides.' 'upstream fix loop is still overridden'
 require_literal "$DEVELOP" 'final-review-only' 'all-checked final review path is missing'
-require_literal "$DEVELOP" 'Intercept immediately before upstream workspace deletion and `superpowers:finishing-a-development-branch`.' 'finish boundary is not intercepted'
+require_literal "$DEVELOP" 'Intercept immediately before upstream workspace deletion and `/maxi:finishing-a-development-branch`.' 'finish boundary is not intercepted'
 require_literal "$DEVELOP" 'Return the projection lineage and aggregated `Ruling:` lines only together with `READY_TO_FINISH`.' 'result evidence contract is missing'
 require_literal "$DEVELOP" 'return without a success token' 'blocked result can look successful'
 require_literal "$DEVELOP" 'A checkbox alone never acquits a lineage task.' 'lineage can trust a checkbox without predecessor completion'
@@ -124,7 +124,7 @@ fi
 
 implement_ready_line="$(grep -nF 'Accept only the exact `READY_TO_FINISH` token' "$IMPLEMENT" | head -1 | cut -d: -f1)"
 implement_done_line="$(grep -nF 'status: implementing' "$IMPLEMENT" | tail -1 | cut -d: -f1)"
-implement_finish_line="$(grep -nF 'invoke `superpowers:finishing-a-development-branch` only after the `done` write is persisted' "$IMPLEMENT" | head -1 | cut -d: -f1)"
+implement_finish_line="$(grep -nF 'invoke `/maxi:finishing-a-development-branch` only after the `done` write is persisted' "$IMPLEMENT" | head -1 | cut -d: -f1)"
 [ "$implement_ready_line" -lt "$implement_done_line" ] || fail_contract 'done is not gated by READY_TO_FINISH'
 [ "$implement_done_line" -lt "$implement_finish_line" ] || fail_contract 'branch finishing can run before done'
 

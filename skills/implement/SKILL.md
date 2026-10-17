@@ -16,6 +16,10 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
   - `implementing`: resume from last incomplete task in `tasks.md`
   - `done`: stop — *"Implementation complete. All tasks are done."*
 
+## Runtime binding
+
+Load [skill-resolution.md](../using-maxi/skill-resolution.md). Resolve `analyze`, `x-develop`, and `finishing-a-development-branch` with `bash "$maxi_skills_root/using-maxi/resolve-skill.sh" "$maxi_owner_skill" NAME` before their handoffs, and read the complete returned instructions. The readiness verifier remains adjacent to the loaded, snapshot-bound analyze skill.
+
 ## Process
 
 1. **Verify readiness review** — first resolve the verifier from the installed plugin snapshot. Load `analyze` by its registered skill name and take the exact loaded `analyze/SKILL.md` path reported by the skill loader. Canonicalize its containing directory to a physical absolute path and set the canonical absolute `readiness_contract` path to the adjacent `readiness-contract.sh`. Require it to resolve to a regular, non-symlink file (`-f` and not `-L`); otherwise stop before any write or `/maxi:x-develop` dispatch. Do not search from the project root or use a project-relative fallback.
@@ -34,7 +38,7 @@ Execute the implementation plan from `tasks.md`. Delegates to `/maxi:x-develop`.
 5. **Consume the result** — Do not tick task checkboxes in this skill; `x-develop` is the one incremental checkbox owner. Do not dispatch another code review; upstream SDD already owns the final review. Accept only the exact `READY_TO_FINISH` token together with its projection lineage and aggregated `Ruling:` lines. Any other result leaves the spec at `implementing` and stops without branch finishing.
 6. **ADR nudge on rulings** — for a returned `Ruling:` that records an architectural choice absent from `plan.md`, invoke `/maxi:x-adr`. The ADR skill drafts and requests its own consent. Do not rewrite the ruling or its SDD evidence.
 7. **Transition to done** — after `READY_TO_FINISH`, reread `tasks.md` and require every canonical task to be checked. Count remaining `- [ ]` items. If any remain, stop. Otherwise persist `status: implementing → done` and today's `updated:` value.
-8. **Finish the branch** — retain the returned projection lineage and aggregated `Ruling:` lines until branch/worktree completion, and invoke `superpowers:finishing-a-development-branch` only after the `done` write is persisted.
+8. **Finish the branch**: retain the returned projection lineage and aggregated `Ruling:` lines until branch/worktree completion, and invoke `/maxi:finishing-a-development-branch` only after the `done` write is persisted.
 9. **Report** — *"Implementation complete. All tasks done. Status: `done`."* Include the retained lineage and rulings in the finishing handoff. Apply the Git Closure contract in `using-maxi` to the result of the existing finishing call. The report MUST fill every slot below with the actual result; a blocked or failed combined check is not successful integration.
 
    ```text

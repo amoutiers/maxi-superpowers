@@ -33,4 +33,7 @@ assert_file_exists "$ROOT/skills/review/design-contract.sh" "design envelope hel
 assert_file_exists "$ROOT/skills/analyze/readiness-contract.sh" "readiness envelope helper"
 assert_file_exists "$SKILLS_DIR/specify/spec-author.md" "canonical spec author support"
 assert_file_exists "$SKILLS_DIR/review/design-operation.md" "shared design coordination support"
+assert_file_exists "$SKILLS_DIR/using-maxi/resolve-skill.sh" "installed engine resolver"
+assert_file_exists "$SKILLS_DIR/using-maxi/skill-resolution.md" "engine snapshot binding"
+assert_file_exists "$SKILLS_DIR/x-develop/codex-waiting.md" "Codex event waiting adaptation"
 summary_and_exit "maxi-native skill checks"

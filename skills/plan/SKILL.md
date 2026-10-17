@@ -7,6 +7,8 @@ description: Use when the user invokes /maxi:plan or wants to create a technical
 
 Create or explicitly correct a technical implementation plan for an existing spec. Delegates every structural plan write to `/maxi:writing-plans` and writes only `docs/maxi/specs/NNNN-slug/plan.md` plus its optional planning support artifacts.
 
+Load [skill-resolution.md](../using-maxi/skill-resolution.md). Before every writing-plans handoff, run `bash "$maxi_skills_root/using-maxi/resolve-skill.sh" "$maxi_owner_skill" writing-plans` and read the complete returned skill. Normal creation and structural correction use this same bundled engine.
+
 ## Prereqs
 
 - `docs/maxi/constitution.md` must exist — hard stop if missing: *"No constitution found. Run `/maxi:constitution` first."*
@@ -32,7 +34,7 @@ Create or explicitly correct a technical implementation plan for an existing spe
 Use this owner mode only when the user explicitly requests a structural correction to the existing `plan.md` and the spec status is `planned`, `tasked`, `analyzed`, or `implementing`. `parked`, `cancelled`, and `done` are blocked, and a normal invocation never becomes a correction implicitly.
 
 1. Read the current `plan.md` before any write.
-2. Load the installed writing-plans instructions as in Process step 3, then invoke `superpowers:writing-plans` for the correction.
+2. Load the installed writing-plans instructions as in Process step 3, then invoke `/maxi:writing-plans` from the bound snapshot for the correction.
 3. Post-format the corrected plan using the Global Constraints and Review Focus Protocols below.
 4. Return the spec status to `planned`.
 5. Return the corrected plan and `planned` status to the outer coordinator when supplied. Direct edit-only correction stops after this owner write.
@@ -41,7 +43,7 @@ This correction never invokes `review`, `specify`, `clarify`, `tasks`, or `analy
 
 ## Global Constraints Protocol
 
-Apply this protocol to normal creation, replanning, and explicit structural plan correction after mandatory delegation to `superpowers:writing-plans`. Classify only applicable durable cross-task constraints from the current spec and constitution: scope boundaries, protected artifacts or data, required verification evidence, compatibility or integration handoffs, and completion or reporting expectations.
+Apply this protocol to normal creation, replanning, and explicit structural plan correction after mandatory delegation to `/maxi:writing-plans`. Classify only applicable durable cross-task constraints from the current spec and constitution: scope boundaries, protected artifacts or data, required verification evidence, compatibility or integration handoffs, and completion or reporting expectations.
 
 Post-format every newly written or structurally corrected plan with exactly one `Global Constraints` section and no second delivery-contract section. Use simple applicable-only bullets with no fixed category labels or per-category None entries. When none apply, write exactly:
 

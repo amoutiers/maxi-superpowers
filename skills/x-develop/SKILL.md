@@ -6,12 +6,16 @@ description: Use when /maxi:implement delegates execution, or when executing a m
 ## maxi develop - SDD adapter
 
 Adapt Maxi's canonical `TNNN` task artifacts to
-`superpowers:subagent-driven-development`. Upstream SDD owns task dispatch,
+`/maxi:subagent-driven-development`. Upstream SDD owns task dispatch,
 task review, fix rounds, its durable ledger, and the whole-branch review.
 This skill owns projection, checkbox reconciliation, terminal evidence, and
 the return boundary to `/maxi:implement`.
 
 **Announce at start:** "I'm using Subagent-Driven Development to execute this plan."
+
+## Runtime binding
+
+Load [skill-resolution.md](../using-maxi/skill-resolution.md). Run `bash "$maxi_skills_root/using-maxi/resolve-skill.sh" "$maxi_owner_skill" subagent-driven-development` and read the complete returned skill before SDD dispatch. Its prompts and helpers come from that same snapshot. On Codex, load [codex-waiting.md](codex-waiting.md) before executing its task loop; this platform adaptation separates capped waits from the five-minute silent-child reconciliation interval.
 
 ## Inputs and projection
 
@@ -48,7 +52,7 @@ Change directory to the bound physical Git worktree before every upstream SDD he
 Before dispatch, run upstream `sdd-workspace` with that projection and require its returned path to equal the bound `.superpowers/sdd/<projection stem without .md>` directory. `project-tasks.sh` validates the upstream `plan-path` owner before projection reuse or publication; `--verify-only` leaves a missing legacy marker untouched.
 
 - Reconcile the current ledger before every new or resumed dispatch, clearing stale checks for selected tasks without a current completion. Preserve checks for tasks excluded by valid predecessor completion or initially pre-checked outside the selection.
-- Invoke and follow `superpowers:subagent-driven-development` with the
+- Invoke and follow `/maxi:subagent-driven-development` with the
   projection as its plan. Use upstream SDD without fix-loop overrides.
 - After upstream records each canonical annotated task completion, run `reconcile-tasks.sh`.
   It synchronizes only the `TNNN` retained in that projected heading, checking completed tasks and unchecking selected incomplete tasks. This skill is
@@ -63,7 +67,7 @@ final-review instructions here. Upstream SDD remains authoritative for them.
 
 ## Intercept the Finish boundary
 
-Use upstream's final review exactly once. Intercept immediately before upstream workspace deletion and `superpowers:finishing-a-development-branch`. Do not delete any workspace and do not finish the branch in this skill.
+Use upstream's final review exactly once. Intercept immediately before upstream workspace deletion and `/maxi:finishing-a-development-branch`. Do not delete any workspace and do not finish the branch in this skill.
 
 Before final-review work is dispatched, persist the harness-issued reviewer context as the sole `reviewer_context: <context>` line in `final-reviewer-dispatch.identity` beside the current ledger. For Codex, first allocate a fresh reviewer for an identity handshake only: do not send review content during allocation; capture the harness-returned canonical task path, persist it, then dispatch the review through a follow-up to that same reviewer. Require the final reviewer to return that exact context. Accept only a canonical Codex task path (`/root/<lowercase-or-underscore segments>`) or an existing opaque legacy context such as `independent-reviewer`. If the harness exposes no verifiable reviewer context, stop without a success token. Never invent, infer, or repair an identity.
 
@@ -118,6 +122,6 @@ When this skill emits prose that references another maxi artifact (an ADR, spec,
 
 ---
 
-Load and follow `superpowers:subagent-driven-development` using the Skill tool.
-This adapter changes only the Maxi artifact and terminal handoff boundaries
-named above.
+Load and follow the complete resolved `/maxi:subagent-driven-development` skill.
+This adapter changes only runtime binding, Codex waiting, and the Maxi artifact
+and terminal handoff boundaries named above.

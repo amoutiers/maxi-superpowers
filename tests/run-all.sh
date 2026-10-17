@@ -42,6 +42,7 @@ run_check "$TESTS_DIR/check-design-operation.sh" "Bounded design operation conti
 run_check "$TESTS_DIR/check-readiness-contract.sh" "Readiness evidence contract"
 run_check "$TESTS_DIR/check-x-develop-adapter.sh" "Maxi SDD task adapter"
 run_check "$TESTS_DIR/check-implement-handoff.sh" "Implement/x-develop handoff"
+run_check "$TESTS_DIR/check-runtime-contract.sh" "Installed engine resolution"
 run_check "$TESTS_DIR/check-skills-present.sh"   "Maxi-native skills present"
 run_check "$TESTS_DIR/check-revise.sh"           "revise invariant checks"
 run_check "$TESTS_DIR/check-migrate-adr.sh"      "migrate-adr invariant checks"

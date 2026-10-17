@@ -26,6 +26,8 @@ Every new or structurally corrected `plan.md` also carries exactly one `Review F
 
 The plan owner loads the complete registered installed writing-plans skill before drafting or structural correction; an unavailable skill stops planning.
 
+Maxi operations bind delegated skills and helpers to the loaded owner's physical installed snapshot through `using-maxi/resolve-skill.sh`; missing bundled instructions stop the handoff. Codex SDD loads `x-develop/codex-waiting.md`: event waits respect platform and communication limits, while silent-child reconciliation uses five-minute elapsed intervals. An unchanged timeout continues the wait without fresh inspection. These runtime adaptations preserve the existing phase and review gates.
+
 ## Vendored Skills
 
 `skills/` contains a mix of vendored (from superpowers) and maxi-native skills.
@@ -107,6 +109,7 @@ Run `bash tests/run-all.sh` after changes.
 - `check-readiness-contract.sh` — versioned readiness stamping and structural/exact hash verification remain fail-closed
 - `check-x-develop-adapter.sh`: complete-body v2 projection, immutable v1 upgrades, fence-aware mapping, verification without writes, content-bound lineage reconciliation, completion Git ancestry, corrected initial-No review recovery, nonempty ancestral review ranges, final-review identity/package validation, and terminal receipts remain fail-closed; checks Review Focus and exact interface/assertion preservation
 - `check-implement-handoff.sh` — `implement`/`x-develop` ownership, Git outcome reporting, and Mandatory Sync 5 terminal-gate contracts remain aligned
+- `check-runtime-contract.sh`: owner-bound skill resolution uses the same installed snapshot with a co-installed foreign engine and rejects missing, traversing, or symlinked targets
 - `check-skills-present.sh` — all 19 maxi-native skills and targeted support files exist
 - `check-revise.sh` — completed-spec reopening and change-authorization invariants remain aligned
 - `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly

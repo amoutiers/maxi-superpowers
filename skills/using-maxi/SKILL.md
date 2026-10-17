@@ -12,6 +12,10 @@ If you were dispatched as a subagent to execute a specific task, ignore this ski
 maxi adds a strict spec-driven pipeline to superpowers. The 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills.
 Superpowers v6.4.2 contributes 15 vendored skills. Its imported Native mode does not replace Maxi's SDD execution and completion contract.
 
+## Runtime binding
+
+For a Maxi operation, load [skill-resolution.md](skill-resolution.md) and bind delegated skills and their helpers to the loaded Maxi owner's physical installed snapshot with `resolve-skill.sh`. Missing bundled instructions stop that handoff. On Codex, `x-develop` loads [codex-waiting.md](../x-develop/codex-waiting.md): event waits respect platform and communication limits; unchanged timeouts continue the wait, with silent-child reconciliation at five-minute elapsed intervals.
+
 ## The Pipeline
 
 ```
@@ -46,7 +50,7 @@ The 10-state FSM remains unchanged. The three fixed review boundaries are design
 
 When a local batch is complete or independently awaits external acceptance, its current chat evaluates the exact branch/worktree, batch, verification, review, applicable authorization, and existing work tracking. An explicitly named integration coordinator owns the decision instead; report readiness through the authorized workflow without making a second decision or messaging another chat without authorization. An external wait does not block a separately ready local batch. An unmet requirement in the current Maxi spec does: do not relabel a partial spec as maintenance. Outside the pipeline, use only an explicitly authorized, bounded maintenance scope with its required checks and review.
 
-After the normal Maxi gates, `implement` persists `done` before invoking `superpowers:finishing-a-development-branch`. For ready maintenance, the current owner uses that same finishing skill and native worktree tools. Apply existing authorization to the exact operation without asking again; a request for a decision alone grants no merge, push, or publication authority. Keep local integration separate from push and publication. Preserve concurrent work, in-use worktrees, and useful ignored evidence. Retain an explicit keep decision and its resume condition in existing tracking; an unchanged deferral needs no second decision. Report one Git disposition, exact scope, evidence, and next action, including both actual main and batch commit IDs when combined verification fails. These dispositions are reports, not pipeline statuses.
+After the normal Maxi gates, `implement` persists `done` before invoking `/maxi:finishing-a-development-branch` from the bound snapshot. For ready maintenance, the current owner uses that same finishing skill and native worktree tools. Apply existing authorization to the exact operation without asking again; a request for a decision alone grants no merge, push, or publication authority. Keep local integration separate from push and publication. Preserve concurrent work, in-use worktrees, and useful ignored evidence. Retain an explicit keep decision and its resume condition in existing tracking; an unchanged deferral needs no second decision. Report one Git disposition, exact scope, evidence, and next action, including both actual main and batch commit IDs when combined verification fails. These dispositions are reports, not pipeline statuses.
 
 ## Phase Gating
 

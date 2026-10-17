@@ -7,7 +7,9 @@ maxi-superpowers vendors superpowers v6.4.2 and has packaging surfaces for Claud
 1. **Spec-driven pipeline**: 19 Maxi-native skills: 13 user-facing, 2 internal, 1 session, and 3 migration skills. The forward pipeline reads project artifacts and enforces its documented prerequisites; lifecycle and migration skills use only the prerequisites named by their own contracts.
 2. **Superpowers implementation engine**: 15 vendored superpowers v6.4.2 skills (`brainstorming`, `writing-plans`, `executing-plans`, `diagnosing-superpowers`, and others) perform delegated work. The 19 Maxi-native skills retain pipeline ownership; imported Native mode is outside Maxi's SDD completion contract.
 
-The result is a reproducible, auditable route from a feature request to shipped code. The loaded `using-maxi` session skill also triggers Git closure for a completed local batch or independent external wait. `implement` delegates to the existing Superpowers finishing skill after its `done` write and reports the actual Git disposition with exact scope, evidence, and next action. Explicitly authorized maintenance uses its bounded scope and checks; a partial Maxi spec cannot take that route. Git outcomes are reports, not pipeline statuses.
+The result is a reproducible, auditable route from a feature request to shipped code. The loaded `using-maxi` session skill also triggers Git closure for a completed local batch or independent external wait. `implement` delegates to the bundled `/maxi:finishing-a-development-branch` after its `done` write and reports the actual Git disposition with exact scope, evidence, and next action. Explicitly authorized maintenance uses its bounded scope and checks; a partial Maxi spec cannot take that route. Git outcomes are reports, not pipeline statuses.
+
+Maxi operations bind delegated skills and helpers to the loaded owner's physical installed snapshot through [resolve-skill.sh](../skills/using-maxi/resolve-skill.sh); missing bundled instructions stop the handoff. Codex SDD loads [codex-waiting.md](../skills/x-develop/codex-waiting.md): event waits respect platform and communication limits, while silent-child reconciliation uses five-minute elapsed intervals. An unchanged timeout continues the wait without fresh inspection. These runtime adaptations preserve the existing phase and review gates.
 
 ## Repo Layout
 
@@ -52,12 +54,15 @@ maxi-superpowers/
 │   ├── revise/
 │   ├── x-adr/               # internal ADR creation, amendment, and supersession skill
 │   ├── x-develop/           # internal SDD adapter (invoked by implement)
+│   │   ├── codex-waiting.md # platform-bounded event waits and timed reconciliation
 │   │   ├── project-tasks.sh # immutable TNNN → Task N projection
 │   │   ├── projection-headings.awk # version-aware native heading map
 │   │   ├── reconcile-tasks.sh # upstream ledger → Maxi checkbox reconciliation
 │   │   ├── record-terminal.sh # hash-bound terminal receipt writer
 │   │   └── result-contract.sh # READY_TO_FINISH validation gate
 │   ├── using-maxi/          # session skill
+│   │   ├── skill-resolution.md # bind delegated engine skills and helpers
+│   │   └── resolve-skill.sh # resolve within the loaded owner's snapshot
 │   ├── migrate-from-speckit/
 │   ├── migrate-from-brownfield/
 │   ├── migrate-adr/
@@ -122,7 +127,7 @@ See [delegation-map.md](delegation-map.md) for the complete mapping and [pipelin
 | `tasks` | extraction from `plan.md` |
 | `analyze` | reads artifacts and ADRs, writes and stamps `analysis.md` |
 | `implement` | requires a current `maxi-readiness-v2` contract, then `/maxi:x-develop` and `/maxi:x-adr` for returned unplanned rulings |
-| `x-develop` | `superpowers:subagent-driven-development` |
+| `x-develop` | `/maxi:subagent-driven-development` from the bound snapshot |
 | `x-adr` | internal ADR creation and active-spec amendment workflow |
 
 Every newly written `plan.md` carries exactly one `Global Constraints` section containing only applicable durable cross-task constraints from the spec and constitution; transient execution state and individual mutation authority are excluded, while a durable rule requiring fresh authorization is allowed.
