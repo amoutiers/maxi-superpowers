@@ -13,7 +13,11 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Use builtins before a sibling startup hook has repaired PATH.
+case "$0" in
+  */*|*\\*) SCRIPT_DIR="$(cd "${0%[/\\]*}" && pwd)" ;;
+  *) SCRIPT_DIR="$(pwd)" ;;
+esac
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Only inject in maxi projects — skip in projects without docs/maxi/.
@@ -22,7 +26,12 @@ if [ ! -d "$PWD/docs/maxi" ]; then
 fi
 
 # Read using-maxi content
-using_maxi_content=$(cat "${PLUGIN_ROOT}/skills/using-maxi/SKILL.md" 2>&1 || echo "Error reading using-maxi skill")
+skill_md="${PLUGIN_ROOT}/skills/using-maxi/SKILL.md"
+if [ -r "$skill_md" ]; then
+  using_maxi_content="$(<"$skill_md")"
+else
+  using_maxi_content="Error reading using-maxi skill"
+fi
 
 # Escape string for JSON embedding using bash parameter substitution.
 escape_for_json() {
@@ -44,15 +53,25 @@ session_context="<EXTREMELY_IMPORTANT>\nYou have maxi.\n\n**Below is the full co
 # tests/check-bootstrap-parity.sh. Edit both together.
 #
 # Uses printf instead of heredoc to work around bash 5.3+ heredoc hang.
+# Let cat absorb Windows EPIPE when available; empty PATH still uses printf.
+emit_json() {
+  # shellcheck disable=SC2059 # callers pass literal format strings
+  if command -v cat >/dev/null 2>&1; then
+    printf "$@" | cat
+  else
+    printf "$@"
+  fi
+}
+
 if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
   # Cursor sets CURSOR_PLUGIN_ROOT (may also set CLAUDE_PLUGIN_ROOT)
-  printf '{\n  "additional_context": "%s"\n}\n' "$session_context"
+  emit_json '{\n  "additional_context": "%s"\n}\n' "$session_context"
 elif [ -n "${MUSE_PLUGIN_ROOT:-}" ] || [ -n "${QWEN_PROJECT_DIR:-}" ] || { [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; }; then
   # Muse and Qwen take the native nested shape even when Claude markers coexist.
-  printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"
+  emit_json '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"
 else
   # Copilot CLI (sets COPILOT_CLI=1) or unknown platform — SDK standard format
-  printf '{\n  "additionalContext": "%s"\n}\n' "$session_context"
+  emit_json '{\n  "additionalContext": "%s"\n}\n' "$session_context"
 fi
 
 exit 0

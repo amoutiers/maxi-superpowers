@@ -158,4 +158,88 @@ for label in muse qwen; do
   fi
 done
 
+# Both entry points must preserve the complete skill and host precedence even
+# before another startup hook repairs PATH.
+REPO_ROOT="$ROOT" BASH_BIN="$BASH" python3 - <<'PYTEST'
+import json
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+
+root = Path(os.environ["REPO_ROOT"])
+bash = os.environ["BASH_BIN"]
+skill = (root / "skills/using-maxi/SKILL.md").read_text().rstrip("\n")
+expected_context = (
+    "<EXTREMELY_IMPORTANT>\nYou have maxi.\n\n"
+    "**Below is the full content of your 'maxi:using-maxi' skill - your introduction "
+    "to the maxi spec-driven pipeline. For all other maxi skills, use the 'Skill' tool:**\n\n"
+    + skill + "\n</EXTREMELY_IMPORTANT>"
+)
+markers = ("CLAUDE_PLUGIN_ROOT", "CURSOR_PLUGIN_ROOT", "COPILOT_CLI", "MUSE_PLUGIN_ROOT", "QWEN_PROJECT_DIR")
+cases = [
+    ({}, "additionalContext"),
+    ({"CLAUDE_PLUGIN_ROOT": "plugin"}, "nested"),
+    ({"CURSOR_PLUGIN_ROOT": "plugin", "CLAUDE_PLUGIN_ROOT": "plugin"}, "additional_context"),
+    ({"COPILOT_CLI": "1", "CLAUDE_PLUGIN_ROOT": "plugin"}, "additionalContext"),
+    ({"MUSE_PLUGIN_ROOT": "plugin", "COPILOT_CLI": "1", "CLAUDE_PLUGIN_ROOT": "plugin"}, "nested"),
+    ({"QWEN_PROJECT_DIR": "project", "COPILOT_CLI": "1", "CLAUDE_PLUGIN_ROOT": "plugin"}, "nested"),
+    ({"CURSOR_PLUGIN_ROOT": "plugin", "MUSE_PLUGIN_ROOT": "plugin", "QWEN_PROJECT_DIR": "project"}, "additional_context"),
+]
+with tempfile.TemporaryDirectory() as tmp:
+    project = Path(tmp) / "project"
+    (project / "docs/maxi").mkdir(parents=True)
+    for entry in ([bash, str(root / "hooks/session-start")],
+                  [bash, str(root / "hooks/run-hook.cmd"), "session-start"]):
+        for path in (os.environ["PATH"], ""):
+            for additions, shape in cases:
+                env = {key: value for key, value in os.environ.items() if key not in markers}
+                env.update(additions, PATH=path)
+                result = subprocess.run(entry, cwd=project, env=env, capture_output=True, text=True)
+                assert result.returncode == 0 and not result.stderr, (entry, path, result.stderr)
+                payload = json.loads(result.stdout)
+                expected = ({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": expected_context}}
+                            if shape == "nested" else {shape: expected_context})
+                assert payload == expected, (entry, path, shape, "incomplete bootstrap or wrong shape")
+                outside = subprocess.run(entry, cwd=tmp, env=env, capture_output=True, text=True)
+                assert (outside.returncode, outside.stdout, outside.stderr) == (0, "", ""), outside
+    # When cat is available it absorbs the output pipe, rather than relying on
+    # printf alone on Windows. A stub records use without emulating cat.
+    cat_bin = Path(tmp) / "bin"
+    cat_bin.mkdir()
+    cat_marker = Path(tmp) / "cat-used"
+    cat_stub = cat_bin / "cat"
+    cat_stub.write_text(f'#!{bash}\n: > "{cat_marker}"\nexec /bin/cat "$@"\n')
+    cat_stub.chmod(0o755)
+    result = subprocess.run([bash, str(root / "hooks/session-start")], cwd=project,
+                            env={**os.environ, "PATH": str(cat_bin)}, capture_output=True, text=True)
+    assert result.returncode == 0 and not result.stderr and cat_marker.exists(), result
+    payload = json.loads(result.stdout)
+    context = payload.get("additionalContext", payload.get("additional_context"))
+    if context is None:
+        context = payload["hookSpecificOutput"]["additionalContext"]
+    assert context == expected_context
+    # The Unix wrapper must preserve argument boundaries and failing hook status.
+    hooks = Path(tmp) / "hooks with spaces"
+    hooks.mkdir()
+    (hooks / "run-hook.cmd").write_bytes((root / "hooks/run-hook.cmd").read_bytes())
+    (hooks / "probe").write_text('printf "<%s>\\n" "$@"\nexit 7\n')
+    result = subprocess.run([bash, str(hooks / "run-hook.cmd"), "probe", "two words", "*", ""],
+                            env={**os.environ, "PATH": ""}, capture_output=True, text=True)
+    assert (result.returncode, result.stdout, result.stderr) == (7, "<two words>\n<*>\n<>\n", ""), result
+
+# Structural Windows contracts complement the optional native regression below.
+wrapper = (root / "hooks/run-hook.cmd").read_text()
+assert '"%SystemRoot%\\System32\\where.exe" $PATH:bash' in wrapper, "Windows lookup may search the current directory"
+assert 'if defined LOCALAPPDATA if exist "%LOCALAPPDATA%\\Programs\\Git\\bin\\bash.exe"' in wrapper, "missing guarded per-user Git lookup"
+for directory in ('%SystemRoot%\\System32\\', '%SystemRoot%\\Sysnative\\', '%LOCALAPPDATA%\\Microsoft\\WindowsApps\\'):
+    assert f'if /i not "%%~dpB"=="{directory}"' in wrapper, f"missing WSL exclusion: {directory}"
+assert 'if not "%%~xB"==""' in wrapper, "extensionless Bash matches must be skipped"
+assert '\n"%BASH_EXE%" "%HOOK_DIR%%~1" %2 %3 %4 %5 %6 %7 %8 %9\nexit /b %ERRORLEVEL%\n' in wrapper, "Windows dispatch must preserve quoting and return the hook status outside a block"
+print("Hook bootstrap, empty-PATH, precedence, argument and Windows structural checks passed")
+PYTEST
+
+# This suite exercises cmd.exe only when Git Bash on Windows is available.
+bash "$ROOT/tests/hooks/test-run-hook-cmd-windows.sh"
+
 summary_and_exit "hooks checks"

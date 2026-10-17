@@ -29,10 +29,10 @@ class FakeContext:
         self.skill_calls = []
         self.hooks = {}
 
-    def register_skill(self, name, path):
+    def register_skill(self, name, path, *, description=""):
         assert isinstance(path, Path), f"{name} was registered as {type(path).__name__}"
         assert path.is_file(), f"{name} path does not exist: {path}"
-        self.skill_calls.append((name, path))
+        self.skill_calls.append((name, path, description))
 
     def register_hook(self, event, hook):
         self.hooks[event] = hook
@@ -106,8 +106,18 @@ with tempfile.TemporaryDirectory() as tmp:
         context = FakeContext()
         module.register(context)
         expected = expected_skills(root / "skills")
-        assert Counter(name for name, _ in context.skill_calls) == Counter({name: 1 for name in expected})
-        assert all(isinstance(path, Path) for _, path in context.skill_calls)
+        assert Counter(name for name, _, _ in context.skill_calls) == Counter({name: 1 for name in expected})
+        assert all(isinstance(path, Path) for _, path, _ in context.skill_calls)
+        for name, path, description in context.skill_calls:
+            frontmatter = path.read_text(encoding="utf-8").split("---\n", 2)[1]
+            expected_description = next(
+                line.removeprefix("description:").strip()
+                for line in frontmatter.splitlines()
+                if line.startswith("description:")
+            )
+            if expected_description.startswith(('"', "'")):
+                expected_description = expected_description[1:-1]
+            assert description == expected_description, f"{layout}/{name}: missing or wrong description"
         assert set(context.hooks) == {"pre_llm_call"}
 
         project = root / "project"

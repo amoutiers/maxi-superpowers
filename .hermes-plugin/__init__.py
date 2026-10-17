@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 
 BOOTSTRAP_MARKER = "maxi:using-maxi bootstrap for hermes"
@@ -18,6 +19,21 @@ def _skills_dir() -> str:
         "maxi plugin: cannot find the skills/ tree "
         f"(looked at {candidates}). Reinstall the plugin."
     )
+
+
+def _frontmatter_value(content: str, key: str) -> str:
+    """Read existing single-line frontmatter scalars without a YAML dependency."""
+    match = re.match(r"^---\n([\s\S]*?)\n---\n", content)
+    if not match:
+        return ""
+    for line in match.group(1).splitlines():
+        name, sep, value = line.partition(":")
+        if sep and name.strip() == key:
+            value = value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                return value[1:-1]
+            return value
+    return ""
 
 
 def _build_bootstrap(skills_dir: str) -> str:
@@ -44,7 +60,9 @@ def register(ctx):
     for name in sorted(os.listdir(skills_dir)):
         skill_md = os.path.join(skills_dir, name, "SKILL.md")
         if os.path.isfile(skill_md):
-            ctx.register_skill(name, Path(skill_md))
+            with open(skill_md, encoding="utf-8") as skill_file:
+                description = _frontmatter_value(skill_file.read(), "description")
+            ctx.register_skill(name, Path(skill_md), description=description)
 
     def pre_llm_call(
         session_id=None,

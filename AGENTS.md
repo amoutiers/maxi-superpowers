@@ -115,9 +115,9 @@ Run `bash tests/run-all.sh` after changes.
 - `check-migrate-adr.sh` — `migrate-adr` skill/script behaves correctly
 - `check-plugin-manifest.sh` — `.claude-plugin/plugin.json` is valid JSON with required fields
 - `check-declarative-harnesses.sh`: Cursor, Kimi, Devin, Gemini, and Muse manifests match `package.json`; Muse declares all 34 skill paths and a symlink-free staged package; Kimi/Gemini bootstrap wiring and Pi gating remain checked
-- `check-hermes-plugin.sh` — Hermes registers every skill, injects the short first-turn bootstrap only in Maxi projects, and stays below the 10,000-character limit
+- `check-hermes-plugin.sh`: Hermes registers every skill with its frontmatter description in clone and flattened layouts, injects the short first-turn bootstrap only in Maxi projects, and stays below the 10,000-character limit
 - `check-codex-plugin.sh` — `.codex-plugin/plugin.json` (`hooks: {}`), `.agents/plugins/marketplace.json`, and `plugins/maxi` are valid for Codex plugin installation
-- `check-hooks.sh`: Claude, Cursor, Muse, and Qwen session-start shapes and the `docs/maxi/` gate are checked; the Muse manifest runs the unified hook with Bash; stale wrappers and `.antigravity-plugin/` remain absent
+- `check-hooks.sh`: Claude, Cursor, Copilot, Muse, and Qwen session-start shapes, precedence, complete bootstrap and the `docs/maxi/` gate are checked through both entry points with empty PATH; Windows discovery and exit contracts have structural checks and an optional native regression; the Muse manifest runs the unified hook with Bash; stale wrappers and `.antigravity-plugin/` remain absent
 - `check-cursor-hooks.sh` — `hooks/hooks-cursor.json` is a valid Cursor `sessionStart` manifest invoking `hooks/session-start`
 - `check-vendored-doc.sh` — `VENDORED.md` has required version/date lines (regression guard for `bump-superpowers.sh`)
 - `check-sync-script.sh` — `sync-superpowers.sh` copies vendor skills and leaves maxi-native skills untouched
